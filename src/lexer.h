@@ -10,7 +10,8 @@ namespace Lexer{
         std::ifstream source;
         public:
         Lexer(string name) : sourceName(name) {
-            
+            source.open(sourceName);
         } 
+        int getToken();
     };
 }

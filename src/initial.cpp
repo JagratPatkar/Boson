@@ -20,6 +20,7 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
+#include "lexer.h"
 using namespace std;
 using namespace llvm;
 
@@ -38,6 +39,12 @@ int main(){
     builder.SetInsertPoint(entry);
 
     Value *helloworld = builder.CreateGlobalStringPtr("quark lang\n");
-
+    vector<Type*> putsArg;
+    putsArg.push_back(builder.getInt8Ty()->getPointerTo()); 
+    ArrayRef<Type*> argsRef(putsArg);
+    FunctionType *putsType = FunctionType::get(builder.getInt32Ty(),argsRef,false);
+    FunctionCallee putsFunc = module->getOrInsertFunction("puts",putsType);
+    builder.CreateCall(putsFunc,helloworld);
+    builder.CreateRetVoid();
     module->dump();
 }
