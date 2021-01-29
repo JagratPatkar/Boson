@@ -4,7 +4,8 @@ using namespace std;
 namespace Lexer{
     class Lexer{
         enum token{
-            token_number = -1,
+            token_number = -2,
+            token_eof = -1,
         };
         string sourceName;
         std::ifstream source;
