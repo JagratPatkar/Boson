@@ -24,27 +24,31 @@
 using namespace std;
 using namespace llvm;
 
-
 unique_ptr<LLVMContext> context = make_unique<LLVMContext>();
 unique_ptr<Module> module = make_unique<Module>("quark",*context);
 
 
 int main(){
-     
-    IRBuilder<> builder(*context);
-    FunctionType *funcType = FunctionType::get(builder.getInt32Ty(),false);
-    Function *mainFunction = Function::Create(funcType,Function::ExternalLinkage,"main",*module);
     
-    BasicBlock *entry = BasicBlock::Create(*context,"entrypoint",mainFunction);
-    builder.SetInsertPoint(entry);
+    // IRBuilder<> builder(*context);
+    // FunctionType *funcType = FunctionType::get(builder.getInt32Ty(),false);
+    // Function *mainFunction = Function::Create(funcType,Function::ExternalLinkage,"main",*module);
+    
+    // BasicBlock *entry = BasicBlock::Create(*context,"entrypoint",mainFunction);
+    // builder.SetInsertPoint(entry);
 
-    Value *helloworld = builder.CreateGlobalStringPtr("quark lang\n");
-    vector<Type*> putsArg;
-    putsArg.push_back(builder.getInt8Ty()->getPointerTo()); 
-    ArrayRef<Type*> argsRef(putsArg);
-    FunctionType *putsType = FunctionType::get(builder.getInt32Ty(),argsRef,false);
-    FunctionCallee putsFunc = module->getOrInsertFunction("puts",putsType);
-    builder.CreateCall(putsFunc,helloworld);
-    builder.CreateRetVoid();
-    module->dump();
+    // Value *helloworld = builder.CreateGlobalStringPtr("quark lang\n");
+    // vector<Type*> putsArg;
+    // putsArg.push_back(builder.getInt8Ty()->getPointerTo()); 
+    // ArrayRef<Type*> argsRef(putsArg);
+    // FunctionType *putsType = FunctionType::get(builder.getInt32Ty(),argsRef,false);
+    // FunctionCallee putsFunc = module->getOrInsertFunction("puts",putsType);
+    // builder.CreateCall(putsFunc,helloworld);
+    // builder.CreateRetVoid();
+    // module->dump();
+
+
+    Lexer lexer("srcf.qk");
+    int token = lexer.getToken();
+    printf("%d",token); 
 }
