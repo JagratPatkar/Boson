@@ -4,6 +4,9 @@ int Lexer::getToken(){
     char curChar;
     source.get(curChar);
     
+    while(isspace(curChar)) source.get(curChar);
+
+
     if(isdigit(curChar)){
         char isDouble;
         NumberString += curChar;

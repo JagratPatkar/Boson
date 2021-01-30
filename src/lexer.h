@@ -1,6 +1,5 @@
-using namespace std;
 #include <fstream>
-
+using namespace std;
 class Lexer
 {
     enum token

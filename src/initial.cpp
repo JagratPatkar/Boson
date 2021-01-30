@@ -20,8 +20,9 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
-#include "lexer.h"
 using namespace std;
+#include "lexer.h"
+
 using namespace llvm;
 
 unique_ptr<LLVMContext> context = make_unique<LLVMContext>();
@@ -50,5 +51,10 @@ int main(){
 
     Lexer lexer("srcf.qk");
     int token = lexer.getToken();
-    printf("%d",token); 
+    printf("Token = %d \n",token); 
+    switch(token){
+        case -2 : printf("IntNum = %d",lexer.getIntNum()); break;
+        case -3 : printf("DoubleNum = %f",lexer.getDoubleNum()); break;
+        case -1 : printf("End of File"); break;
+    }
 }
