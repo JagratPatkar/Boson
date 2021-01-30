@@ -13,7 +13,7 @@ class Lexer
     double DoubleNum;
     int IntNum;
     string NumberString;
-
+    int currentToken;
 public:
     Lexer(string name) : sourceName(name){
         source.open(sourceName);
@@ -21,4 +21,6 @@ public:
     int getToken();
     double getDoubleNum(){ return DoubleNum; }
     int getIntNum(){ return IntNum; }
+    int getNextToken();
+    void closeFile() { source.close(); }
 };

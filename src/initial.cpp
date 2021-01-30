@@ -52,9 +52,18 @@ int main(){
     Lexer lexer("srcf.qk");
     int token = lexer.getToken();
     printf("Token = %d \n",token); 
-    switch(token){
-        case -2 : printf("IntNum = %d",lexer.getIntNum()); break;
-        case -3 : printf("DoubleNum = %f",lexer.getDoubleNum()); break;
-        case -1 : printf("End of File"); break;
+    while(true) 
+    {   
+        switch(token){
+            case -2 : printf("IntNum = %d \n",lexer.getIntNum()); break;
+            case -3 : printf("DoubleNum = %f \n",lexer.getDoubleNum()); break;
+            case -1 : printf("End of File \n");
+                      return 1;
+                     break;
+        }
+        token = lexer.getToken();
+        printf("Token = %d \n",token); 
     }
+    
+    lexer.closeFile();
 }

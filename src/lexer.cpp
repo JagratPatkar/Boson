@@ -6,11 +6,12 @@ int Lexer::getToken(){
     
     while(isspace(curChar)) source.get(curChar);
 
-
     if(isdigit(curChar)){
         char isDouble;
+        NumberString = "";
         NumberString += curChar;
-        while(source.peek() == '.' || isdigit(source.peek())){
+        char dummy = source.peek();
+        while(dummy == '.' || isdigit(dummy)){
             source.get(curChar);
             if(curChar == '.') isDouble = true;
             NumberString += curChar;
@@ -23,8 +24,7 @@ int Lexer::getToken(){
         return token_int_num;
     }
 
-    if(curChar == source.eof()) return token_eof;
-
+    if(source.eof()) return token_eof;
     printf("Unknown token \n");
     exit(-1);
 }
