@@ -1,13 +1,13 @@
 #include "lexer.h"
 using namespace std;
 int Lexer::getToken(){
-    char curChar;
-    source.get(curChar);
+    char curChar = ' ';
     
-    while(isspace(curChar)) source.get(curChar);
+    while(isspace(curChar) && !source.eof())
+        source.get(curChar);
 
     if(isdigit(curChar)){
-        char isDouble;
+        bool isDouble;
         NumberString = "";
         NumberString += curChar;
         char dummy = source.peek();
@@ -15,6 +15,7 @@ int Lexer::getToken(){
             source.get(curChar);
             if(curChar == '.') isDouble = true;
             NumberString += curChar;
+            dummy = source.peek();
         }
         if(isDouble){
             DoubleNum = strtod(NumberString.c_str(), 0);
@@ -23,7 +24,6 @@ int Lexer::getToken(){
         IntNum = stoi(NumberString.c_str(),0);
         return token_int_num;
     }
-
     if(source.eof()) return token_eof;
     printf("Unknown token \n");
     exit(-1);

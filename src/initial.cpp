@@ -51,8 +51,9 @@ int main(){
 
     Lexer lexer("srcf.qk");
     int token = lexer.getToken();
-    printf("Token = %d \n",token); 
-    while(true) 
+    printf("Token = %d \n",token);
+    int i = 0; 
+    while(i < 6) 
     {   
         switch(token){
             case -2 : printf("IntNum = %d \n",lexer.getIntNum()); break;
@@ -63,6 +64,7 @@ int main(){
         }
         token = lexer.getToken();
         printf("Token = %d \n",token); 
+        i++;
     }
     
     lexer.closeFile();
