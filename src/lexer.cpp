@@ -7,7 +7,7 @@ int Lexer::getToken(){
         source.get(curChar);
 
     if(isdigit(curChar)){
-        bool isDouble;
+        bool isDouble = false;
         NumberString = "";
         NumberString += curChar;
         char dummy = source.peek();

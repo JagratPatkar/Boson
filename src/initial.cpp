@@ -21,8 +21,7 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
 using namespace std;
-#include "lexer.h"
-
+#include "parser.h"
 using namespace llvm;
 
 unique_ptr<LLVMContext> context = make_unique<LLVMContext>();
@@ -49,23 +48,7 @@ int main(){
     // module->dump();
 
 
-    Lexer lexer("srcf.qk");
-    int token = lexer.getToken();
-    printf("Token = %d \n",token);
-    int i = 0; 
-    while(i < 6) 
-    {   
-        switch(token){
-            case -2 : printf("IntNum = %d \n",lexer.getIntNum()); break;
-            case -3 : printf("DoubleNum = %f \n",lexer.getDoubleNum()); break;
-            case -1 : printf("End of File \n");
-                      return 1;
-                     break;
-        }
-        token = lexer.getToken();
-        printf("Token = %d \n",token); 
-        i++;
-    }
-    
-    lexer.closeFile();
+   Parser parser("srcf.qk");
+   parser.parse();
+   
 }
