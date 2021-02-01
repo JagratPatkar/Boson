@@ -24,7 +24,32 @@ int Lexer::getToken(){
         IntNum = stoi(NumberString.c_str(),0);
         return token_int_num;
     }
+
+    if(isalpha(curChar)){
+        Identifier = "";
+        Identifier += curChar;
+        char dummy = source.peek();
+        while(isalnum(dummy)){
+            source.get(curChar);
+            Identifier += curChar;
+            dummy = source.peek();
+        }
+        if(Identifier == "int")
+            return token_int;
+        if(Identifier == "double")
+            return token_double;
+        return token_identifier;
+    }
+
     if(source.eof()) return token_eof;
     printf("Unknown token \n");
     exit(-1);
+}
+
+int Lexer::getNextToken() {
+    return (currentToken = getToken());
+}
+
+int Lexer::getCurrentToken() {
+    return currentToken;
 }

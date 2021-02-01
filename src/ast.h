@@ -1,3 +1,5 @@
+#include <vector>
+using namespace std;
 namespace AST{
     enum Types{
         type_int = -1,
@@ -28,5 +30,28 @@ namespace AST{
         public:
         DoubleNum(double Number) : Number(Number) , Value(type_double){}
         Types getType() override { return type_double; }
+    };
+
+    class Variable : public Expression {
+        string Name;
+        public:
+        Variable(const string& Name,Types VariableType) : Name(Name) , Expression(VariableType) {}
+        const string getName(){ return Name; }
+    };
+
+    class Statement{
+        public:
+        Statement() {}
+        ~Statement() {}
+    };
+
+    class CompundStatement : public Statement{
+        vector<Statement> Statements;
+        public:
+        CompundStatement(vector<Statement> Statements) : Statements(move(Statements)) {}
+    };
+
+    class VariableDeclaration : public Statement {
+        
     };
 }

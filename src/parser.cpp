@@ -17,6 +17,11 @@ void Parser::parse(){
                  printf("Parsed an Double Number Sucessfully \n"); 
             }
             break;
+            case -7 :
+                if(ParseIdentifier()){
+                    
+                }
+            break;
             case -1 : printf("End of File \n");
                     exit(1);
                      break;
@@ -25,6 +30,17 @@ void Parser::parse(){
     }
     lexer.closeFile();
 }  
+
+unique_ptr<Expression> Parse::ParsePrimary(){
+
+}
+
+
+unique_ptr<Expression> Parse::ParseIdentifier(){
+    string Name = lexer.getIdentifier();
+    lexer.getNextToken();
+    return make_unique<Variable>(Name);
+}
 
 unique_ptr<Expression>  Parser::ParseIntNum(){
     return make_unique<IntNum>(lexer.getIntNum());
