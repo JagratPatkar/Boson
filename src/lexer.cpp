@@ -41,6 +41,12 @@ int Lexer::getToken(){
         return token_identifier;
     }
 
+    if(curChar == '=')
+        return token_assignment_op;
+
+    if(curChar == ';')
+        return token_semi_colon;
+
     if(source.eof()) return token_eof;
     printf("Unknown token \n");
     exit(-1);
@@ -52,4 +58,39 @@ int Lexer::getNextToken() {
 
 int Lexer::getCurrentToken() {
     return currentToken;
+}
+
+bool Lexer::isTokenInt(){
+    if(currentToken == token_int) return true;
+    return false;
+}
+
+bool Lexer::isTokenDouble(){
+    if(currentToken == token_double) return true;
+    return false;
+}
+
+bool Lexer::isTokenIdentifier(){
+    if(currentToken == token_identifier) return true;
+    return false;
+}
+
+bool Lexer::isTokenIntNum(){
+    if(currentToken == token_int_num) return true;
+    return false;
+}
+
+bool Lexer::isTokenDoubleNum(){
+    if(currentToken == token_double_num) return true;
+    return false;
+}
+
+bool Lexer::isTokenAssignmentOp(){
+    if(currentToken == token_assignment_op) return true;
+    return false;
+}
+
+bool Lexer::isTokenSemiColon(){
+    if(currentToken == token_semi_colon) return true;
+    return false;
 }

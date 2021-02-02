@@ -14,6 +14,9 @@ class Parser{
     std::unique_ptr<Expression> ParseIntNum();
     std::unique_ptr<Expression> ParseIdentifier();
     std::unique_ptr<Expression> ParseDoubleNum(); 
+    std::unique_ptr<Expression> ParseVariableDeclaration();
+    std::unique_ptr<Expression> LogError(const char*);
+    std::unique_ptr<Expression> LogTypeError(int,int);
     void parse();
     void driver();
 };

@@ -11,6 +11,7 @@ class Lexer
         token_double = -5,
         token_assignment_op = -6,
         token_identifier = -7,
+        token_semi_colon = -8
     };
     string sourceName;
     std::ifstream source;
@@ -30,4 +31,11 @@ public:
     int getNextToken();
     int getCurrentToken();
     void closeFile() { source.close(); }
+    bool isTokenInt();
+    bool isTokenDoueble();
+    bool isTokenIntNum();
+    bool isTokenDoubleNum();
+    bool isTokenIdentifier();
+    bool isTokenAssignmentOp();
+    bool isTokenSemiColon();
 };
