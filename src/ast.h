@@ -71,4 +71,13 @@ namespace AST{
 
         }
     };
+
+    class VariableAssignment : public Statement {
+        unique_ptr<Variable> var;
+        unique_ptr<Expression> exp;
+
+        public :
+        VariableAssignment(unique_ptr<Variable> var,unique_ptr<Expression> exp) : var(move(var)) , exp(move(exp)) {
+        }
+    };
 }
