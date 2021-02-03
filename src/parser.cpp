@@ -1,7 +1,5 @@
 #include "parser.h"
 
-
-
 void Parser::parse(){
     int token = lexer.getNextToken();
     while(true) 
@@ -22,6 +20,16 @@ void Parser::parse(){
 
                 }
             break;
+            case -4 : 
+                if(ParseVariableDeclarationStatement()){
+                    printf("Parsed a variable declaration statement of type int \n");
+                }
+            break;
+            case -5 :
+                if(ParseVariableDeclarationStatement()){
+                    printf("Parsed a variable declaration statement of type double \n");
+                }
+            break;
             case -1 : printf("End of File \n");
                     exit(1);
                      break;
@@ -31,52 +39,63 @@ void Parser::parse(){
     lexer.closeFile();
 }  
 
-unique_ptr<Expression> Parse::ParseVariableDeclaration(){
+unique_ptr<Statement> Parser::ParseVariableDeclarationStatement(){
     int type = lexer.getCurrentToken();
     lexer.getNextToken();
-    if(!lexer.isTokenIdentifier()) return LogError("Identifier Expected"); 
+    if(!lexer.isTokenIdentifier()) return LogStatementError("Identifier Expected"); 
     string name = lexer.getIdentifier();
-    type = returnTypeOnToken(type);
-    auto var = make_unique<Variable>(name,type);
+    Types typedType = AST::TypesOnToken(type);
+    auto var = make_unique<Variable>(name,typedType);
     lexer.getNextToken();
-    if(!lexer.isTokenAssignmentOp()) return LogError("Missing Assignment Operator");
+    if(!lexer.isTokenAssignmentOp()) return LogStatementError("Missing Assignment Operator");
     lexer.getNextToken();
     auto exp = ParseExpression();
-    int t1 = var.getType();
-    int t2 = exp.getType();
-    if(t1 != t2) return LogTypeError(t1,t2);
-    return make_unique<VariableDeclaration>(var,exp);
+    int t1 = (int)var->getType();
+    int t2 = (int)exp->getType();
+   
+    if(t1 != t2) {
+        LogTypeError(t1,t2);
+        return nullptr;
+    }
+    lexer.getNextToken();
+    if(!lexer.isTokenSemiColon()) return LogStatementError("Expected a end of statement");
+    return make_unique<VariableDeclaration>(move(var),move(exp));
 }
 
-unique_ptr<Expression> Parse::LogError(const char* errmsg){
-    fprintf("Error : %s\n",errmsg);
+unique_ptr<Expression> Parser::LogExpressionError(const char* errmsg){
+    fprintf(stderr,"Error : %s\n",errmsg);
     return nullptr;
 }
 
-unqiue_ptr<Expression> Parse::LogTypeError(int t1,int t2){
-    fprintf("Type mistmatch between : %s - and - %s", getTypeName(t1) , getTypeName(t2));
+unique_ptr<Statement> Parser::LogStatementError(const char* errmsg){
+    fprintf(stderr,"Error : %s\n",errmsg);
     return nullptr;
 }
 
-unique_ptr<Expression> ParseExpression(){
+unique_ptr<Expression> Parser::LogTypeError(int t1,int t2){
+    fprintf(stderr,"Type mistmatch between : %s - and - %s \n", AST::TypesName(t1) , AST::TypesName(t2));
+    return nullptr;
+}
+
+unique_ptr<Expression> Parser::ParseExpression(){
     auto lvalue = ParsePrimary();
     if(!lvalue) return nullptr;
     return lvalue;
 }
 
-unique_ptr<Expression> Parse::ParsePrimary(){
+unique_ptr<Expression> Parser::ParsePrimary(){
     if(lexer.isTokenIntNum()) return ParseIntNum();
     if(lexer.isTokenDoubleNum()) return ParseDoubleNum();
     if(lexer.isTokenIdentifier()) return ParseIdentifier();
-    else return LogError("Unknown Expression!");
+    else return LogExpressionError("Unknown Expression!");
 }   
 
 
-unique_ptr<Expression> Parse::ParseIdentifier(){
+unique_ptr<Expression> Parser::ParseIdentifier(){
     string Name = lexer.getIdentifier();
     lexer.getNextToken();
     // return make_unique<Variable>(Name);
-    return null;
+    return nullptr;
 }
 
 unique_ptr<Expression>  Parser::ParseIntNum(){

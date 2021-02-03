@@ -32,7 +32,7 @@ public:
     int getCurrentToken();
     void closeFile() { source.close(); }
     bool isTokenInt();
-    bool isTokenDoueble();
+    bool isTokenDouble();
     bool isTokenIntNum();
     bool isTokenDoubleNum();
     bool isTokenIdentifier();

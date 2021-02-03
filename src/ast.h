@@ -1,25 +1,19 @@
+#include<string>
 #include <vector>
 using namespace std;
 namespace AST{
     enum Types{
         type_int = -1,
-        type_double = -2
+        type_double = -2,
+        type_void = -3
     };
 
-    int returnTypeOnToken(int type){
-        if(type == -4) return  type_int;
-        if(type == -5) return type_double;
-        return 0;
-    }
+    Types TypesOnToken(int type);
 
-
-    const char* getTypeName(int t){
-        if(t == -4) return "int";
-        if(t == -5) return "double";
-        return "void";
-    }
+    const char* TypesName(int t);
 
     class Expression{
+        protected:
         Types ExpressionType;
         public:
         Expression(Types ExpressionType) : ExpressionType(ExpressionType) {}
@@ -53,7 +47,7 @@ namespace AST{
 
         }
         const string getName(){ return Name; }
-        Types getType() override {return ExpressionType;}
+        Types getType() override { return ExpressionType; }
     };
 
     class Statement{

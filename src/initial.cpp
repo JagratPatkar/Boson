@@ -21,8 +21,8 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
 using namespace std;
-#include "parser.h"
 using namespace llvm;
+#include "parser.h"
 
 unique_ptr<LLVMContext> context = make_unique<LLVMContext>();
 unique_ptr<Module> module = make_unique<Module>("quark",*context);
