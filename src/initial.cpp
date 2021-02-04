@@ -24,8 +24,8 @@ using namespace std;
 using namespace llvm;
 #include "parser.h"
 
-unique_ptr<LLVMContext> context = make_unique<LLVMContext>();
-unique_ptr<Module> module = make_unique<Module>("quark",*context);
+// unique_ptr<LLVMContext> context = make_unique<LLVMContext>();
+// unique_ptr<Module> module = make_unique<Module>("quark",*context);
 
 
 int main(){

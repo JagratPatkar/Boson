@@ -2,5 +2,3 @@ int i = 1;
 double j = 10.1;
 int k = 10;
 double o = 1000000000.1;
-k = o;
-o = 10.9;
