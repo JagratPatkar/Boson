@@ -11,6 +11,7 @@ Types Parser::getVariableType(const string& name){
     return SymbolTable[name];
 }
 
+extern unique_ptr<Module> module ;
 
 void Parser::parse(){
     int token = lexer.getNextToken();
@@ -23,8 +24,9 @@ void Parser::parse(){
                 }
             break;
             case -4 : 
-                if(ParseVariableDeclarationStatement()){
+                if(auto VD = ParseVariableDeclarationStatement()){
                     printf("Parsed a variable declaration statement of type int \n");
+                    VD->codeGen();
                 }
             break;
             case -5 :
@@ -33,6 +35,8 @@ void Parser::parse(){
                 }
             break;
             case -1 :printf("End of File \n");
+                     module->dump();
+                     lexer.closeFile();
                      exit(1);
                      break;
         }
@@ -61,8 +65,9 @@ unique_ptr<Statement> Parser::ParseVariableDeclarationStatement(){
             LogTypeError(t1,t2);
             return nullptr;
         }
+        lexer.getNextToken();
     }
-    lexer.getNextToken();
+    
     if(!lexer.isTokenSemiColon()) return LogStatementError("Expected ';' or '='");
     return make_unique<VariableDeclaration>(move(var),move(exp));
 }

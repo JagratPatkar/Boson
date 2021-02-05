@@ -65,13 +65,15 @@ namespace AST{
     class Statement{
         public:
         Statement() {}
-        ~Statement() {}
+        virtual ~Statement() {}
+        virtual void codeGen() = 0;
     };
 
     class CompundStatement : public Statement{
         vector<Statement> Statements;
         public:
         CompundStatement(vector<Statement> Statements) : Statements(move(Statements)) {}
+        void codeGen();
     };
 
     class VariableDeclaration : public Statement {
@@ -82,6 +84,7 @@ namespace AST{
         VariableDeclaration(unique_ptr<Variable> var,unique_ptr<Expression> exp) : var(move(var)) , exp(move(exp)) {
 
         }
+        void codeGen();
     };
 
     class VariableAssignment : public Statement {
@@ -91,5 +94,6 @@ namespace AST{
         public :
         VariableAssignment(unique_ptr<Variable> var,unique_ptr<Expression> exp) : var(move(var)) , exp(move(exp)) {
         }
+        void codeGen();
     };
 }
