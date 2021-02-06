@@ -21,6 +21,8 @@ const char* AST::TypesName(int t){
     return "void";
 }
 
+
+
 llvm::Value* IntNum::codeGen(){
     Type *type = IntegerType::getInt32Ty(*context);
     return ConstantInt::get(type,Number,true);
@@ -30,6 +32,8 @@ llvm::Value* DoubleNum::codeGen(){
 }
 
 llvm::Value* Variable::codeGen(){
+    // Value* v = SymTab[Name];
+    // return builder->CreateLoad(v,Name.c_str());
     return nullptr;
 }
 
@@ -42,15 +46,18 @@ void VariableDeclaration::codeGen(){
     llvm::Value* v;
     if(exp) v = exp->codeGen();
     else v = nullptr;
-    if(vt == type_int) module->getOrInsertGlobal(Name,Type::getInt32Ty(*context));
+    if(vt == type_int) {  module->getOrInsertGlobal(Name,Type::getInt32Ty(*context)); } 
     else module->getOrInsertGlobal(Name,Type::getDoubleTy(*context));
+    
     GlobalVariable* gVar = module->getNamedGlobal(Name);
-    if(v) builder->CreateStore(v,gVar);
+    if(v){
+        Constant* constant = dyn_cast<Constant>(v);
+        gVar->setInitializer(constant);
+    } 
     else {
          if(vt == type_int) gVar->setInitializer(ConstantInt::get(Type::getInt32Ty(*context),0,true));
          else  gVar->setInitializer(ConstantFP::get(*context,APFloat(0.0)));
     }
-    
     SymTab[Name] = gVar;
 }
 
@@ -61,4 +68,8 @@ void CompundStatement::codeGen(){
 
 void VariableAssignment::codeGen(){
 
+}
+
+llvm::Value* BinaryExpression::codeGen(){
+    return nullptr;
 }

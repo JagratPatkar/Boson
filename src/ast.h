@@ -16,9 +16,19 @@ namespace AST{
         type_void = -3
     };
 
+
+    enum BinOps{
+        op_add = -1,
+        op_sub = -2,
+        op_mul = -3,
+        op_div = -4,
+        non_op = -5,
+    };
+
     Types TypesOnToken(int type);
 
     const char* TypesName(int t);
+   
 
     class Expression{
         protected:
@@ -61,6 +71,21 @@ namespace AST{
         Types getType() override { return ExpressionType; }
         llvm::Value* codeGen() override;
     };
+
+
+    class BinaryExpression : public Expression{
+        BinOps op;
+        unique_ptr<Expression> LVAL;
+        unique_ptr<Expression> RVAL;
+        public:
+        BinaryExpression(BinOps op,unique_ptr<Expression> LVAL,unique_ptr<Expression> RVAL,Types ExpressionType) : op(op) , LVAL(move(LVAL)) , RVAL(move(RVAL)) , Expression(ExpressionType) {
+
+        }
+        llvm::Value* codeGen() override;
+        Types getType() override { return ExpressionType; }
+    };
+
+
 
     class Statement{
         public:

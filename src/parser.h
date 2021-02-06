@@ -8,8 +8,14 @@ using namespace std;
 class Parser{
     Lexer lexer; 
     map<string,Types> SymbolTable;
+    map<char,int> OperatorPrecedence;
     public:
-    Parser(string Name) : lexer(Lexer(Name)) {}
+    Parser(string Name) : lexer(Lexer(Name)) {
+        OperatorPrecedence['+'] = 10;
+        OperatorPrecedence['-'] = 10;
+        OperatorPrecedence['*'] = 40;
+        OperatorPrecedence['/'] = 40;
+    }
     std::unique_ptr<AST::Expression> ParseExpression();
     std::unique_ptr<AST::Statement> ParseStatement();
     std::unique_ptr<AST::Statement> ParseCompundStatement();
@@ -17,14 +23,17 @@ class Parser{
     std::unique_ptr<AST::Expression> ParseIntNum();
     std::unique_ptr<AST::Expression> ParseIdentifier();
     std::unique_ptr<AST::Expression> ParseDoubleNum(); 
+    std::unique_ptr<AST::Expression> ParseBinOP(int,unique_ptr<Expression>);
     std::unique_ptr<AST::Statement> ParseVariableDeclarationStatement();
     unique_ptr<AST::Statement> ParseVariableAssignmentStatement();
     std::unique_ptr<AST::Expression> LogExpressionError(const char*);
     std::unique_ptr<AST::Statement> LogStatementError(const char*);
     std::unique_ptr<AST::Expression> LogTypeError(int,int);
+    int getOperatorPrecedence();
     void addVariable(const string&,Types);
     bool doesVariableExist(const string&);
     Types getVariableType(const string&);
+    BinOps returnBinOpsType();
     void parse();
     void driver();
 };

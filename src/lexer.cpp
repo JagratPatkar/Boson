@@ -47,6 +47,18 @@ int Lexer::getToken(){
     if(curChar == ';')
         return token_semi_colon;
 
+    if(curChar == '+')
+        return token_add_sym;
+    
+    if(curChar == '-')
+        return token_sub_sym;
+
+    if(curChar == '*')
+        return token_mul_sym;
+    
+    if(curChar == '/')
+        return token_div_sym;
+
     if(source.eof()) return token_eof;
     printf("Unknown token \n");
     exit(-1);
@@ -92,5 +104,26 @@ bool Lexer::isTokenAssignmentOp(){
 
 bool Lexer::isTokenSemiColon(){
     if(currentToken == token_semi_colon) return true;
+    return false;
+}
+
+
+bool Lexer::isTokenAddSym(){
+    if(currentToken == token_add_sym) return true;
+    return false;
+}
+
+bool Lexer::isTokenSubSym(){
+    if(currentToken == token_sub_sym) return true;
+    return false;
+}
+
+bool Lexer::isTokenMulSym(){
+    if(currentToken == token_mul_sym) return true;
+    return false;
+}
+
+bool Lexer::isTokenDivSym(){
+    if(currentToken == token_div_sym) return true;
     return false;
 }

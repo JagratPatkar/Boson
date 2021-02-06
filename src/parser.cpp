@@ -1,5 +1,8 @@
 #include "parser.h"
 
+extern unique_ptr<Module> module ;
+
+
 void Parser::addVariable(const string& name,Types type){ 
     SymbolTable[name] = type;
  }
@@ -11,31 +14,47 @@ Types Parser::getVariableType(const string& name){
     return SymbolTable[name];
 }
 
-extern unique_ptr<Module> module ;
+
+ BinOps Parser::returnBinOpsType(){
+    if(lexer.isTokenAddSym()) return op_add;
+    else if(lexer.isTokenSubSym()) return op_sub;
+    else if(lexer.isTokenMulSym()) return op_mul;
+    else if(lexer.isTokenDivSym()) return op_div;
+    return  non_op;
+ }
+
+int Parser::getOperatorPrecedence(){
+    if(lexer.isTokenAddSym()) return OperatorPrecedence['+'];
+    else if(lexer.isTokenSubSym()) return OperatorPrecedence['-'];
+    else if(lexer.isTokenMulSym()) return OperatorPrecedence['*'];
+    else if(lexer.isTokenDivSym()) return OperatorPrecedence['/'];
+    return -1;
+}
 
 void Parser::parse(){
     int token = lexer.getNextToken();
     while(true) 
     {   
         switch(token){
-            case -7 : 
-                if(ParseVariableAssignmentStatement()){
-                    printf("Parsed a Variable Assignment Statement \n");
-                }
-            break;
+            // case -7 : 
+            //     if(ParseVariableAssignmentStatement()){
+            //         printf("Parsed a Variable Assignment Statement \n");
+            //     }
+            // break;
             case -4 : 
                 if(auto VD = ParseVariableDeclarationStatement()){
                     printf("Parsed a variable declaration statement of type int \n");
-                    VD->codeGen();
+                    // VD->codeGen();
                 }
             break;
             case -5 :
-                if(ParseVariableDeclarationStatement()){
+                if(auto VD = ParseVariableDeclarationStatement()){
                     printf("Parsed a variable declaration statement of type double \n");
+                    // VD->codeGen();
                 }
             break;
             case -1 :printf("End of File \n");
-                     module->dump();
+                    //  module->dump();
                      lexer.closeFile();
                      exit(1);
                      break;
@@ -65,9 +84,7 @@ unique_ptr<Statement> Parser::ParseVariableDeclarationStatement(){
             LogTypeError(t1,t2);
             return nullptr;
         }
-        lexer.getNextToken();
     }
-    
     if(!lexer.isTokenSemiColon()) return LogStatementError("Expected ';' or '='");
     return make_unique<VariableDeclaration>(move(var),move(exp));
 }
@@ -111,8 +128,30 @@ unique_ptr<Expression> Parser::LogTypeError(int t1,int t2){
 unique_ptr<Expression> Parser::ParseExpression(){
     auto lvalue = ParsePrimary();
     if(!lvalue) return nullptr;
-    return lvalue;
+    return ParseBinOP(0,move(lvalue));
 }
+
+
+unique_ptr<Expression> Parser::ParseBinOP(int minPrec,unique_ptr<Expression> lvalue){
+    while(true)
+    {
+        int prevPrec = getOperatorPrecedence();
+        if(prevPrec < minPrec) return move(lvalue);
+        BinOps op_typ = returnBinOpsType();
+        lexer.getNextToken();
+        auto rvalue = ParsePrimary();
+        if(!rvalue) return nullptr;
+        Types t = lvalue->getType();
+        int t1 = (int)t;
+        int t2 = rvalue->getType();
+        if(t1 != t2) return LogTypeError(t1,t2);
+        if(prevPrec < getOperatorPrecedence()){
+            rvalue = ParseBinOP(prevPrec+1,move(rvalue));
+            if(!rvalue) return nullptr;
+        }
+        lvalue = make_unique<BinaryExpression>(op_typ,move(lvalue),move(rvalue),t);
+    }
+}   
 
 unique_ptr<Expression> Parser::ParsePrimary(){
     if(lexer.isTokenIntNum()) return ParseIntNum();
@@ -124,14 +163,19 @@ unique_ptr<Expression> Parser::ParsePrimary(){
 
 unique_ptr<Expression> Parser::ParseIdentifier(){
     string Name = lexer.getIdentifier();
-    if(doesVariableExist(Name)) return make_unique<Variable>(Name,getVariableType(Name));
+    if(doesVariableExist(Name)) {
+        lexer.getNextToken();
+        return make_unique<Variable>(Name,getVariableType(Name));
+    }
     return LogExpressionError("Undefined Variable");
 }
 
 unique_ptr<Expression>  Parser::ParseIntNum(){
+    lexer.getNextToken();
     return make_unique<IntNum>(lexer.getIntNum());
 }
 
 unique_ptr<Expression> Parser::ParseDoubleNum(){
+    lexer.getNextToken();
     return make_unique<DoubleNum>(lexer.getDoubleNum());
 }

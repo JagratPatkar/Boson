@@ -11,7 +11,13 @@ class Lexer
         token_double = -5,
         token_assignment_op = -6,
         token_identifier = -7,
-        token_semi_colon = -8
+        token_semi_colon = -8,
+        token_add_sym = -9,
+        token_sub_sym = -10,
+        token_div_sym = -11,
+        token_mul_sym = -12,
+        token_left_paren = -13,
+        token_right_paren = -14
     };
     string sourceName;
     std::ifstream source;
@@ -38,4 +44,10 @@ public:
     bool isTokenIdentifier();
     bool isTokenAssignmentOp();
     bool isTokenSemiColon();
+    bool isTokenAddSym();
+    bool isTokenSubSym();
+    bool isTokenMulSym();
+    bool isTokenDivSym();
+    bool isTokenLeftParen();
+    bool isTokenRightParen();
 };
