@@ -58,6 +58,12 @@ int Lexer::getToken(){
     
     if(curChar == '/')
         return token_div_sym;
+    
+    if(curChar == '(')
+        return token_left_paren;
+    
+     if(curChar == ')')
+        return token_right_paren;
 
     if(source.eof()) return token_eof;
     printf("Unknown token \n");
@@ -125,5 +131,15 @@ bool Lexer::isTokenMulSym(){
 
 bool Lexer::isTokenDivSym(){
     if(currentToken == token_div_sym) return true;
+    return false;
+}
+
+bool Lexer::isTokenLeftParen(){
+    if(currentToken == token_left_paren) return true;
+    return false;
+}
+
+bool Lexer::isTokenRightParen(){
+    if(currentToken == token_right_paren) return true;
     return false;
 }

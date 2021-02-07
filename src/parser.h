@@ -17,6 +17,7 @@ class Parser{
         OperatorPrecedence['/'] = 40;
     }
     std::unique_ptr<AST::Expression> ParseExpression();
+    std::unique_ptr<AST::Expression> ParseParen();
     std::unique_ptr<AST::Statement> ParseStatement();
     std::unique_ptr<AST::Statement> ParseCompundStatement();
     std::unique_ptr<AST::Expression> ParsePrimary();

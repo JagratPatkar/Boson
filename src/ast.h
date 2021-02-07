@@ -38,11 +38,13 @@ namespace AST{
         virtual ~Expression(){}
         virtual Types getType() = 0;
         virtual llvm::Value* codeGen() =0;
+        virtual void VarDecCodeGen(GlobalVariable*,Types) = 0;
     };
 
     class Value : public Expression {
         public:
         Value(Types ExpressionType) : Expression(ExpressionType) {} 
+        void VarDecCodeGen(GlobalVariable*,Types) override;
     };
 
     class IntNum : public Value {
@@ -69,6 +71,7 @@ namespace AST{
         }
         const string getName(){ return Name; }
         Types getType() override { return ExpressionType; }
+        void VarDecCodeGen(GlobalVariable*,Types) override {};
         llvm::Value* codeGen() override;
     };
 
@@ -82,6 +85,7 @@ namespace AST{
 
         }
         llvm::Value* codeGen() override;
+        void VarDecCodeGen(GlobalVariable*,Types) override;
         Types getType() override { return ExpressionType; }
     };
 

@@ -44,17 +44,17 @@ void Parser::parse(){
             case -4 : 
                 if(auto VD = ParseVariableDeclarationStatement()){
                     printf("Parsed a variable declaration statement of type int \n");
-                    // VD->codeGen();
+                    VD->codeGen();
                 }
             break;
             case -5 :
                 if(auto VD = ParseVariableDeclarationStatement()){
                     printf("Parsed a variable declaration statement of type double \n");
-                    // VD->codeGen();
+                    VD->codeGen();
                 }
             break;
             case -1 :printf("End of File \n");
-                    //  module->dump();
+                     module->dump();
                      lexer.closeFile();
                      exit(1);
                      break;
@@ -131,6 +131,14 @@ unique_ptr<Expression> Parser::ParseExpression(){
     return ParseBinOP(0,move(lvalue));
 }
 
+unique_ptr<Expression> Parser::ParseParen(){
+    lexer.getNextToken();
+    auto exp = ParseExpression();
+    if(!lexer.isTokenRightParen())  LogExpressionError("Expression might be missing ')'");
+    lexer.getNextToken();
+    return move(exp);
+}
+
 
 unique_ptr<Expression> Parser::ParseBinOP(int minPrec,unique_ptr<Expression> lvalue){
     while(true)
@@ -157,6 +165,7 @@ unique_ptr<Expression> Parser::ParsePrimary(){
     if(lexer.isTokenIntNum()) return ParseIntNum();
     if(lexer.isTokenDoubleNum()) return ParseDoubleNum();
     if(lexer.isTokenIdentifier()) return ParseIdentifier();
+    if(lexer.isTokenLeftParen()) return ParseParen();
     else return LogExpressionError("Unknown Expression!");
 }   
 
