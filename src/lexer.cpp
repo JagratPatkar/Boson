@@ -38,6 +38,12 @@ int Lexer::getToken(){
             return token_int;
         if(Identifier == "double")
             return token_double;
+        if(Identifier == "void")
+            return token_void;
+        if(Identifier == "fn")
+            return token_fn;
+        if(Identifier == "return")
+            return token_return;
         return token_identifier;
     }
 
@@ -64,6 +70,12 @@ int Lexer::getToken(){
     
      if(curChar == ')')
         return token_right_paren;
+    
+    if(curChar == '{')
+        return token_left_curly_brac;
+    
+     if(curChar == '}')
+        return token_right_curly_brac;
 
     if(source.eof()) return token_eof;
     printf("Unknown token \n");
@@ -85,6 +97,11 @@ bool Lexer::isTokenInt(){
 
 bool Lexer::isTokenDouble(){
     if(currentToken == token_double) return true;
+    return false;
+}
+
+bool Lexer::isTokenVoid(){
+    if(currentToken == token_void) return true;
     return false;
 }
 
@@ -142,4 +159,36 @@ bool Lexer::isTokenLeftParen(){
 bool Lexer::isTokenRightParen(){
     if(currentToken == token_right_paren) return true;
     return false;
+}
+
+bool Lexer::isTokenLeftCurlyBrace(){
+    if(currentToken == token_left_curly_brac) return true;
+    return false;
+}
+
+bool Lexer::isTokenRightCurlyBrace(){
+    if(currentToken == token_right_curly_brac) return true;
+    return false;
+}
+
+bool Lexer::isTokenFunctionKeyword(){
+    if(currentToken == token_fn) return true;
+    return false;
+}
+
+bool Lexer::isTokenReturnKeyword(){
+    if(currentToken == token_return) return true;
+    return false;
+}
+
+bool Lexer::isAnyType(){
+    if(currentToken == token_int) return true;
+    if(currentToken == token_double) return true;
+    if(currentToken == token_void) return true;
+    return false;
+}
+
+
+int Lexer::getVoidToken(){
+    return token_void;
 }

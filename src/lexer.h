@@ -17,7 +17,12 @@ class Lexer
         token_div_sym = -11,
         token_mul_sym = -12,
         token_left_paren = -13,
-        token_right_paren = -14
+        token_right_paren = -14,
+        token_void = -15,
+        token_fn = -16,
+        token_left_curly_brac = -17,
+        token_right_curly_brac = -18,
+        token_return = -19,
     };
     string sourceName;
     std::ifstream source;
@@ -40,6 +45,7 @@ public:
     bool isTokenInt();
     bool isTokenDouble();
     bool isTokenIntNum();
+    bool isTokenVoid();
     bool isTokenDoubleNum();
     bool isTokenIdentifier();
     bool isTokenAssignmentOp();
@@ -50,4 +56,10 @@ public:
     bool isTokenDivSym();
     bool isTokenLeftParen();
     bool isTokenRightParen();
+    bool isAnyType();
+    bool isTokenLeftCurlyBrace();
+    bool isTokenRightCurlyBrace();
+    bool isTokenFunctionKeyword();
+    bool isTokenReturnKeyword();
+    int getVoidToken();
 };

@@ -13,7 +13,8 @@ namespace AST{
     enum Types{
         type_int = -1,
         type_double = -2,
-        type_void = -3
+        type_void = -3,
+        type_err = -4,
     };
 
 
@@ -71,7 +72,7 @@ namespace AST{
         }
         const string getName(){ return Name; }
         Types getType() override { return ExpressionType; }
-        void VarDecCodeGen(GlobalVariable*,Types) override {};
+        void VarDecCodeGen(GlobalVariable*,Types) override;
         llvm::Value* codeGen() override;
     };
 
@@ -96,13 +97,37 @@ namespace AST{
         Statement() {}
         virtual ~Statement() {}
         virtual void codeGen() = 0;
+        virtual bool isReturnStatement() {return false;}
     };
 
-    class CompundStatement : public Statement{
-        vector<Statement> Statements;
+    class Return : public Statement{
+        unique_ptr<Expression> exp;
+
+        public :
+        Return(unique_ptr<Expression> Exp) : exp(move(Exp)) {}
+        bool isReturnStatement() override { return true; }
+        Types getExpType(){
+            if(exp) return exp->getType(); 
+            return type_void;
+        }
+        void codeGen() override;
+    };
+
+    class CompoundStatement : public Statement{
+        vector<unique_ptr<Statement>> Statements;
         public:
-        CompundStatement(vector<Statement> Statements) : Statements(move(Statements)) {}
-        void codeGen();
+        CompoundStatement(vector<unique_ptr<Statement>> Statements) : Statements(move(Statements)) {}
+        bool isLastElementReturnStatement() {
+            if(Statements.back().get()->isReturnStatement()) return true;
+            return false;
+        }
+        Types returnReturnStatementType(){
+             if(Statements.back().get()->isReturnStatement()){
+                return static_cast<Return*>(Statements.back().get())->getExpType();
+             } 
+             return type_err;
+        }
+        void codeGen() override;
     };
 
     class VariableDeclaration : public Statement {
@@ -113,7 +138,7 @@ namespace AST{
         VariableDeclaration(unique_ptr<Variable> var,unique_ptr<Expression> exp) : var(move(var)) , exp(move(exp)) {
 
         }
-        void codeGen();
+        void codeGen() override;
     };
 
     class VariableAssignment : public Statement {
@@ -123,6 +148,28 @@ namespace AST{
         public :
         VariableAssignment(unique_ptr<Variable> var,unique_ptr<Expression> exp) : var(move(var)) , exp(move(exp)) {
         }
-        void codeGen();
+        void codeGen() override;
+    };
+
+    
+
+
+    class FunctionSignature{
+        string Name;
+        Types retType;
+        public:
+        FunctionSignature(const string& Name,Types retType) : Name(Name) , retType(retType) {
+
+        } 
+        Types getRetType(){return retType;}
+    };
+
+    class FunctionDefinition{
+        unique_ptr<FunctionSignature> functionSignature;
+        unique_ptr<CompoundStatement> compoundStatements;
+        public:
+        FunctionDefinition(unique_ptr<FunctionSignature> funcSig,unique_ptr<CompoundStatement> cmpStat) : functionSignature(move(funcSig)), compoundStatements(move(cmpStat)){
+            
+        }
     };
 }

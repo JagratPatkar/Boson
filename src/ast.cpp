@@ -9,18 +9,30 @@ unique_ptr<LLVMContext> context = make_unique<LLVMContext>();
 unique_ptr<Module> module = make_unique<Module>("quark",*context);
 unique_ptr<IRBuilder<>> builder = make_unique<IRBuilder<>>(*context);
 map<std::string,GlobalVariable*> SymTab;
-vector<Function*> bin_op_funcs;
+FunctionType *funcType;
+Function *bin_func;
+BasicBlock *bb;
+
+
+void initialize(){
+    funcType = FunctionType::get(builder->getVoidTy(),false);
+    bin_func = Function::Create(funcType,Function::InternalLinkage,"op_func",*module); 
+    bb = BasicBlock::Create(*context,"entry",bin_func);
+    builder->CreateRetVoid();
+}
 
 Types AST::TypesOnToken(int type){
         if(type == -4) return  type_int;
         if(type == -5) return type_double;
-        return type_void;
+        if(type == -15)return type_void;
+        return type_err;
 }
 
 const char* AST::TypesName(int t){
     if(t == -1) return "int";
     if(t == -2) return "double";
-    return "void";
+    if(t == -2) return "void";
+    return "unknown type";
 }
 
 
@@ -34,11 +46,17 @@ llvm::Value* DoubleNum::codeGen(){
 }
 
 llvm::Value* Variable::codeGen(){
-    // Value* v = SymTab[Name];
-    // return builder->CreateLoad(v,Name.c_str());
+    GlobalVariable* gVar = SymTab[Name];
+    return builder->CreateAlignedLoad(gVar,MaybeAlign(4),Name.c_str());
     return nullptr;
 }
 
+void Variable::VarDecCodeGen(GlobalVariable* gVar,Types){
+    builder->SetInsertPoint(bb);
+    GlobalVariable* gvar = SymTab[Name];
+    llvm::Value* v = builder->CreateAlignedLoad(gvar,MaybeAlign(4),Name.c_str());
+    builder->CreateAlignedStore(v,gVar,MaybeAlign(4));
+}
 
 void AST::Value::VarDecCodeGen(GlobalVariable* gVar,Types){
     Constant* constant = dyn_cast<Constant>(codeGen());
@@ -57,11 +75,10 @@ void VariableDeclaration::codeGen(){
          if(vt == type_int) gVar->setInitializer(ConstantInt::get(Type::getInt32Ty(*context),0,true));
          else  gVar->setInitializer(ConstantFP::get(*context,APFloat(0.0)));
     }
-
     SymTab[Name] = gVar;
 }
 
-void CompundStatement::codeGen(){
+void CompoundStatement::codeGen(){
 
 }
 
@@ -70,18 +87,17 @@ void VariableAssignment::codeGen(){
 
 }
 
+
+void Return::codeGen(){
+
+}
+
 void BinaryExpression::VarDecCodeGen(GlobalVariable* gVar,Types vt){
-    fprintf(stderr,"here");
     if(vt == type_int) gVar->setInitializer(ConstantInt::get(Type::getInt32Ty(*context),0,true));
     else  gVar->setInitializer(ConstantFP::get(*context,APFloat(0.0)));
-    FunctionType *funcType = FunctionType::get(builder->getVoidTy(),false);
-    Function *bin_func = Function::Create(funcType,Function::InternalLinkage,"bin_func",*module); 
-    BasicBlock *bb = BasicBlock::Create(*context,"entry",bin_func);
     builder->SetInsertPoint(bb);
     llvm::Value* v = codeGen();
     builder->CreateAlignedStore(v,gVar,MaybeAlign(4));
-    builder->CreateRetVoid();
-    bin_op_funcs.push_back(bin_func);
 }
 
 llvm::Value* BinaryExpression::codeGen(){
@@ -99,10 +115,10 @@ llvm::Value* BinaryExpression::codeGen(){
     }
 
     switch(op){
-        case op_add : return builder->CreateFAdd(lhs,rhs,"additmp");
-        case op_sub : return builder->CreateFSub(lhs,rhs,"subitmp");
-        case op_mul : return builder->CreateFMul(lhs,rhs,"mulitmp");
-        case op_div : return builder->CreateFDiv(lhs,rhs,"divitmp");
+        case op_add : return builder->CreateFAdd(lhs,rhs,"addftmp");
+        case op_sub : return builder->CreateFSub(lhs,rhs,"subftmp");
+        case op_mul : return builder->CreateFMul(lhs,rhs,"mulftmp");
+        case op_div : return builder->CreateFDiv(lhs,rhs,"divftmp");
         case non_op : return nullptr;
     }
     return nullptr;

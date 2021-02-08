@@ -1,7 +1,7 @@
 #include "parser.h"
 
 extern unique_ptr<Module> module ;
-
+extern void initialize();
 
 void Parser::addVariable(const string& name,Types type){ 
     SymbolTable[name] = type;
@@ -33,6 +33,7 @@ int Parser::getOperatorPrecedence(){
 
 void Parser::parse(){
     int token = lexer.getNextToken();
+    initialize();
     while(true) 
     {   
         switch(token){
@@ -51,6 +52,11 @@ void Parser::parse(){
                 if(auto VD = ParseVariableDeclarationStatement()){
                     printf("Parsed a variable declaration statement of type double \n");
                     VD->codeGen();
+                }
+            break;
+            case -16 :
+                if(ParseFunctionDefinition()){
+                    printf("Parsed a function definition \n");
                 }
             break;
             case -1 :printf("End of File \n");
@@ -116,6 +122,18 @@ unique_ptr<Expression> Parser::LogExpressionError(const char* errmsg){
 }
 
 unique_ptr<Statement> Parser::LogStatementError(const char* errmsg){
+    fprintf(stderr,"Error : %s\n",errmsg);
+    return nullptr;
+}
+
+
+unique_ptr<FunctionSignature> Parser::LogFuncSigError(const char* errmsg){
+    fprintf(stderr,"Error : %s\n",errmsg);
+    return nullptr;
+}
+
+
+unique_ptr<FunctionDefinition> Parser::LogFuncDefError(const char* errmsg){
     fprintf(stderr,"Error : %s\n",errmsg);
     return nullptr;
 }
@@ -187,4 +205,70 @@ unique_ptr<Expression>  Parser::ParseIntNum(){
 unique_ptr<Expression> Parser::ParseDoubleNum(){
     lexer.getNextToken();
     return make_unique<DoubleNum>(lexer.getDoubleNum());
+}
+
+
+unique_ptr<Statement> Parser::ParseStatement(){
+    if(lexer.isTokenIdentifier()) return ParseVariableAssignmentStatement();
+    if(lexer.isTokenInt() || lexer.isTokenDouble()) return ParseVariableDeclarationStatement();
+    if(lexer.isTokenReturnKeyword()) return ParseReturnStatement();
+    return LogStatementError("Unknown statement!");
+}
+
+unique_ptr<Statement> Parser::ParseReturnStatement(){
+    lexer.getNextToken();
+    if(lexer.isTokenSemiColon()) return make_unique<Return>(nullptr);
+    auto exp = ParseExpression();
+    if(!exp) return nullptr;
+    return make_unique<Return>(move(exp));
+}
+
+unique_ptr<FunctionSignature> Parser::ParseFunctionSignature(){
+    if(!lexer.isTokenIdentifier()) return LogFuncSigError("Expected an Identifier");
+    string Name = lexer.getIdentifier();
+    lexer.getNextToken();
+    if(!lexer.isTokenLeftParen()) return LogFuncSigError("Missing '(' in declaration");
+
+    //Parse Parameters Later here
+
+    lexer.getNextToken();
+    if(!lexer.isTokenRightParen()) return LogFuncSigError("Missing ')' in declaration");
+
+    lexer.getNextToken();
+    if(!lexer.isAnyType()) return LogFuncSigError("Incomplete Type Specification in Function Declaration"); 
+    Types type = AST::TypesOnToken(lexer.getCurrentToken());
+
+    return make_unique<FunctionSignature>(move(Name),move(type)); 
+}
+
+unique_ptr<Statement> Parser::ParseCompoundStatement(){
+    if(!lexer.isTokenLeftCurlyBrace()) return LogStatementError("Missing '{' in Statement");
+    lexer.getNextToken();
+    vector<unique_ptr<Statement>> statements;
+    while(!lexer.isTokenRightCurlyBrace()){
+        auto stat = ParseStatement();
+        if(!stat) return LogStatementError("Statement Might be missing '}'");
+        statements.push_back(stat);
+        lexer.getNextToken();
+    }
+    return make_unique<CompoundStatement>(move(statements));
+}
+
+unique_ptr<FunctionDefinition> Parser::ParseFunctionDefinition(){
+    lexer.getNextToken();
+    auto FH = ParseFunctionSignature();
+    if(!FH) return nullptr;
+    lexer.getNextToken();
+    auto CS = ParseCompoundStatement();
+    if(!CS) return nullptr;
+    CompoundStatement* csptr = static_cast<CompoundStatement*>(CS.get());
+    if(!csptr->isLastElementReturnStatement()) 
+        return LogFuncDefError("Missing 'return' statement at the end of Function Definition");
+    int t1 = csptr->returnReturnStatementType();
+    int t2 = FH->getRetType();  
+    if(t1 != t2) {
+        LogTypeError(t1,t2);
+        return LogFuncDefError("Type mismatch in 'return' statement and return 'type'");
+    } 
+    return make_unique<FunctionDefinition>(move(FH),move(CS));
 }

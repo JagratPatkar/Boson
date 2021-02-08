@@ -19,7 +19,7 @@ class Parser{
     std::unique_ptr<AST::Expression> ParseExpression();
     std::unique_ptr<AST::Expression> ParseParen();
     std::unique_ptr<AST::Statement> ParseStatement();
-    std::unique_ptr<AST::Statement> ParseCompundStatement();
+    std::unique_ptr<AST::Statement> ParseCompoundStatement();
     std::unique_ptr<AST::Expression> ParsePrimary();
     std::unique_ptr<AST::Expression> ParseIntNum();
     std::unique_ptr<AST::Expression> ParseIdentifier();
@@ -27,9 +27,14 @@ class Parser{
     std::unique_ptr<AST::Expression> ParseBinOP(int,unique_ptr<Expression>);
     std::unique_ptr<AST::Statement> ParseVariableDeclarationStatement();
     unique_ptr<AST::Statement> ParseVariableAssignmentStatement();
+    unique_ptr<AST::Statement> ParseReturnStatement();
+    std::unique_ptr<FunctionSignature> ParseFunctionSignature();
+    std::unique_ptr<FunctionDefinition> ParseFunctionDefinition();
     std::unique_ptr<AST::Expression> LogExpressionError(const char*);
     std::unique_ptr<AST::Statement> LogStatementError(const char*);
     std::unique_ptr<AST::Expression> LogTypeError(int,int);
+    unique_ptr<FunctionSignature> LogFuncSigError(const char* errmsg);
+    unique_ptr<FunctionDefinition> LogFuncDefError(const char* errmsg);
     int getOperatorPrecedence();
     void addVariable(const string&,Types);
     bool doesVariableExist(const string&);
