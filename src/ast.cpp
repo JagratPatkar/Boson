@@ -9,9 +9,11 @@ unique_ptr<LLVMContext> context = make_unique<LLVMContext>();
 unique_ptr<Module> module = make_unique<Module>("quark",*context);
 unique_ptr<IRBuilder<>> builder = make_unique<IRBuilder<>>(*context);
 map<std::string,GlobalVariable*> SymTab;
+map<std::string,AllocaInst*> SymTabLoc;
 FunctionType *funcType;
 Function *bin_func;
 BasicBlock *bb;
+static bool generatingFunction = false;
 
 
 void initialize(){
@@ -63,7 +65,7 @@ void AST::Value::VarDecCodeGen(GlobalVariable* gVar,Types){
     gVar->setInitializer(constant);
 }
 
-void VariableDeclaration::codeGen(){
+void GlobalVariableDeclaration::codeGen(){
     string Name = var->getName();
     Types vt = var->getType();
     if(vt == type_int) {  module->getOrInsertGlobal(Name,Type::getInt32Ty(*context)); } 
@@ -78,18 +80,56 @@ void VariableDeclaration::codeGen(){
     SymTab[Name] = gVar;
 }
 
-void CompoundStatement::codeGen(){
 
+void LocalVariableDeclaration::codeGen(){
+    string Name = var->getName();
+    Types vt = var->getType();
+    Function * Function = builder->GetInsertBlock()->getParent();
+    llvm::Value* val;
+    if(exp){
+        val = exp->codeGen();
+    }
+    else{ 
+        if(vt == type_int) val =  ConstantInt::get(IntegerType::getInt32Ty(*context),0,true);  
+        else val = ConstantFP::get(*context,APFloat(0.0));
+    }
+    AllocaInst* alloca;
+    if(vt == type_int) alloca = new AllocaInst(IntegerType::getInt32Ty(*context),0,0,Align(4),Name.c_str(),builder->GetInsertBlock());
+    else if(vt == type_double) alloca = builder->CreateAlloca(builder->getDoubleTy(),0,Name.c_str());
+
+    builder->CreateAlignedStore(val,alloca,MaybeAlign(4));
+    SymTabLoc[Name] = alloca;
+}
+
+void CompoundStatement::codeGen(){
+    for(auto stat = Statements.begin(); stat!=Statements.end(); stat++){
+        stat->get()->codeGen();
+    }
 }
 
 
 void VariableAssignment::codeGen(){
-
+    string Name = var->getName();
+    llvm::Value* val = exp->codeGen();
+    if(!val) return;
+    llvm::Value* dest = SymTabLoc[Name];
+    builder->CreateAlignedStore(val,dest,MaybeAlign(4));
+    if(!dest){
+         GlobalVariable* globalDest = SymTab[Name];
+         
+         builder->CreateAlignedStore(val,globalDest,MaybeAlign(4));
+    }
+    
 }
 
 
 void Return::codeGen(){
-
+    if(exp){
+        llvm::Value* v = exp->codeGen();
+        if(!v) return;
+        Types t = exp->getType();
+        builder->CreateRet(v);
+    }else{ builder->CreateRetVoid(); }
 }
 
 void BinaryExpression::VarDecCodeGen(GlobalVariable* gVar,Types vt){
@@ -122,4 +162,15 @@ llvm::Value* BinaryExpression::codeGen(){
         case non_op : return nullptr;
     }
     return nullptr;
+}
+
+void FunctionDefinition::codeGen(){
+    FunctionType *funcType;
+    if(functionSignature->getRetType() == type_int) funcType = FunctionType::get(builder->getInt32Ty(),false);
+    else if(functionSignature->getRetType() == type_double) funcType = FunctionType::get(builder->getDoubleTy(),false);
+    else if(functionSignature->getRetType() == type_void) funcType = FunctionType::get(builder->getVoidTy(),false);
+    Function* function = Function::Create(funcType,Function::InternalLinkage,functionSignature->getName(),*module); 
+    BasicBlock* bb = BasicBlock::Create(*context,"entry",function);
+    builder->SetInsertPoint(bb);
+    compoundStatements->codeGen();
 }

@@ -8,6 +8,7 @@ using namespace std;
 class Parser{
     Lexer lexer; 
     map<string,Types> SymbolTable;
+    map<string,Types> SymbolTableLocal;
     map<char,int> OperatorPrecedence;
     public:
     Parser(string Name) : lexer(Lexer(Name)) {
@@ -26,6 +27,7 @@ class Parser{
     std::unique_ptr<AST::Expression> ParseDoubleNum(); 
     std::unique_ptr<AST::Expression> ParseBinOP(int,unique_ptr<Expression>);
     std::unique_ptr<AST::Statement> ParseVariableDeclarationStatement();
+    std::unique_ptr<AST::Statement> ParseLocalVariableDeclarationStatement();
     unique_ptr<AST::Statement> ParseVariableAssignmentStatement();
     unique_ptr<AST::Statement> ParseReturnStatement();
     std::unique_ptr<FunctionSignature> ParseFunctionSignature();
@@ -40,6 +42,10 @@ class Parser{
     void addVariable(const string&,Types);
     bool doesVariableExist(const string&);
     Types getVariableType(const string&);
+    void addVariableLocally(const string&,Types);
+    bool doesVariableExistLocally(const string&);
+    Types getVariableTypeLocally(const string&);
+    void clearVariablesLocally();
     BinOps returnBinOpsType();
     void parse();
     void driver();

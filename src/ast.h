@@ -131,6 +131,7 @@ namespace AST{
     };
 
     class VariableDeclaration : public Statement {
+        protected:
         unique_ptr<Variable> var;
         unique_ptr<Expression> exp;
 
@@ -138,7 +139,21 @@ namespace AST{
         VariableDeclaration(unique_ptr<Variable> var,unique_ptr<Expression> exp) : var(move(var)) , exp(move(exp)) {
 
         }
+       virtual void codeGen() override {};
+    };
+
+
+    class GlobalVariableDeclaration : public VariableDeclaration {
+        public:
+        GlobalVariableDeclaration(unique_ptr<Variable> var,unique_ptr<Expression> exp) : VariableDeclaration(move(var),move(exp)){}
         void codeGen() override;
+    };
+
+
+    class LocalVariableDeclaration : public VariableDeclaration {
+        public:
+        LocalVariableDeclaration(unique_ptr<Variable> var,unique_ptr<Expression> exp) : VariableDeclaration(move(var),move(exp)){}
+         void codeGen() override;
     };
 
     class VariableAssignment : public Statement {
@@ -161,6 +176,7 @@ namespace AST{
         FunctionSignature(const string& Name,Types retType) : Name(Name) , retType(retType) {
 
         } 
+        const string getName() {return Name;}
         Types getRetType(){return retType;}
     };
 
@@ -171,5 +187,6 @@ namespace AST{
         FunctionDefinition(unique_ptr<FunctionSignature> funcSig,unique_ptr<CompoundStatement> cmpStat) : functionSignature(move(funcSig)), compoundStatements(move(cmpStat)){
             
         }
+        void codeGen();
     };
 }
