@@ -127,6 +127,11 @@ unique_ptr<Statement> Parser::LogStatementError(const char* errmsg){
 }
 
 
+unique_ptr<CompoundStatement> Parser::LogCompStatementError(const char* errmsg){
+    fprintf(stderr,"Error : %s\n",errmsg);
+    return nullptr;
+}
+
 unique_ptr<FunctionSignature> Parser::LogFuncSigError(const char* errmsg){
     fprintf(stderr,"Error : %s\n",errmsg);
     return nullptr;
@@ -241,14 +246,14 @@ unique_ptr<FunctionSignature> Parser::ParseFunctionSignature(){
     return make_unique<FunctionSignature>(move(Name),move(type)); 
 }
 
-unique_ptr<Statement> Parser::ParseCompoundStatement(){
-    if(!lexer.isTokenLeftCurlyBrace()) return LogStatementError("Missing '{' in Statement");
+unique_ptr<CompoundStatement> Parser::ParseCompoundStatement(){
+    if(!lexer.isTokenLeftCurlyBrace()) return LogCompStatementError("Missing '{' in Statement");
     lexer.getNextToken();
     vector<unique_ptr<Statement>> statements;
     while(!lexer.isTokenRightCurlyBrace()){
         auto stat = ParseStatement();
-        if(!stat) return LogStatementError("Statement Might be missing '}'");
-        statements.push_back(stat);
+        if(!stat) return LogCompStatementError("Statement Might be missing '}'");
+        statements.push_back(move(stat));
         lexer.getNextToken();
     }
     return make_unique<CompoundStatement>(move(statements));
@@ -261,10 +266,9 @@ unique_ptr<FunctionDefinition> Parser::ParseFunctionDefinition(){
     lexer.getNextToken();
     auto CS = ParseCompoundStatement();
     if(!CS) return nullptr;
-    CompoundStatement* csptr = static_cast<CompoundStatement*>(CS.get());
-    if(!csptr->isLastElementReturnStatement()) 
+    if(!CS->isLastElementReturnStatement()) 
         return LogFuncDefError("Missing 'return' statement at the end of Function Definition");
-    int t1 = csptr->returnReturnStatementType();
+    int t1 = CS->returnReturnStatementType();
     int t2 = FH->getRetType();  
     if(t1 != t2) {
         LogTypeError(t1,t2);
