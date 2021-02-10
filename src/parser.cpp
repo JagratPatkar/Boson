@@ -51,11 +51,6 @@ void Parser::parse(){
     while(true) 
     {   
         switch(token){
-            // case -7 : 
-            //     if(ParseVariableAssignmentStatement()){
-            //         printf("Parsed a Variable Assignment Statement \n");
-            //     }
-            // break;
             case -4 : 
                 if(auto VD = ParseVariableDeclarationStatement()){
                     printf("Parsed a variable declaration statement of type int \n");
@@ -82,7 +77,6 @@ void Parser::parse(){
         }
         token = lexer.getNextToken();
     }
-    lexer.closeFile();
 }  
 
 unique_ptr<Statement> Parser::ParseVariableDeclarationStatement(){
