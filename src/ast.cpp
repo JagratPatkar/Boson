@@ -48,9 +48,13 @@ llvm::Value* DoubleNum::codeGen(){
 }
 
 llvm::Value* Variable::codeGen(){
+    if(generatingFunction){
+        llvm::Value* v = SymTabLoc[Name];
+        if(v) return builder->CreateAlignedLoad(v,MaybeAlign(4),Name.c_str());
+    }
     GlobalVariable* gVar = SymTab[Name];
+    if(!gVar) return nullptr;
     return builder->CreateAlignedLoad(gVar,MaybeAlign(4),Name.c_str());
-    return nullptr;
 }
 
 void Variable::VarDecCodeGen(GlobalVariable* gVar,Types){
@@ -96,9 +100,9 @@ void LocalVariableDeclaration::codeGen(){
     AllocaInst* alloca;
     if(vt == type_int) alloca = new AllocaInst(IntegerType::getInt32Ty(*context),0,0,Align(4),Name.c_str(),builder->GetInsertBlock());
     else if(vt == type_double) alloca = builder->CreateAlloca(builder->getDoubleTy(),0,Name.c_str());
-
-    builder->CreateAlignedStore(val,alloca,MaybeAlign(4));
     SymTabLoc[Name] = alloca;
+    builder->CreateAlignedStore(val,alloca,MaybeAlign(4));
+   
 }
 
 void CompoundStatement::codeGen(){
@@ -113,13 +117,13 @@ void VariableAssignment::codeGen(){
     llvm::Value* val = exp->codeGen();
     if(!val) return;
     llvm::Value* dest = SymTabLoc[Name];
-    builder->CreateAlignedStore(val,dest,MaybeAlign(4));
     if(!dest){
          GlobalVariable* globalDest = SymTab[Name];
-         
+         if(!globalDest) return;
          builder->CreateAlignedStore(val,globalDest,MaybeAlign(4));
+    }else{
+        builder->CreateAlignedStore(val,dest,MaybeAlign(4));
     }
-    
 }
 
 
@@ -165,12 +169,33 @@ llvm::Value* BinaryExpression::codeGen(){
 }
 
 void FunctionDefinition::codeGen(){
+    generatingFunction = true;
     FunctionType *funcType;
-    if(functionSignature->getRetType() == type_int) funcType = FunctionType::get(builder->getInt32Ty(),false);
-    else if(functionSignature->getRetType() == type_double) funcType = FunctionType::get(builder->getDoubleTy(),false);
-    else if(functionSignature->getRetType() == type_void) funcType = FunctionType::get(builder->getVoidTy(),false);
+    vector<Type*> Args;
+    for(auto i = functionSignature->args.begin();i!=functionSignature->args.end();i++){
+        Types t = i->get()->getType();
+        if(t == type_int) Args.push_back(builder->getInt32Ty());
+        else  Args.push_back(builder->getDoubleTy());
+    }
+    if(functionSignature->getRetType() == type_int) funcType = FunctionType::get(builder->getInt32Ty(),Args,false);
+    else if(functionSignature->getRetType() == type_double) funcType = FunctionType::get(builder->getDoubleTy(),Args,false);
+    else if(functionSignature->getRetType() == type_void) funcType = FunctionType::get(builder->getVoidTy(),Args,false);
     Function* function = Function::Create(funcType,Function::InternalLinkage,functionSignature->getName(),*module); 
     BasicBlock* bb = BasicBlock::Create(*context,"entry",function);
     builder->SetInsertPoint(bb);
+    Function::arg_iterator ai,ae;
+    auto n = functionSignature->args.begin();
+    for(ai = function->arg_begin(), ae = function->arg_end(); ai != ae; ++ai, ++n){
+        string name = n->get()->getName();
+        Types t = n->get()->getType();
+        AllocaInst* alloca;
+        if(t == type_int) alloca = new AllocaInst(IntegerType::getInt32Ty(*context),0,0,Align(4),name,builder->GetInsertBlock());
+        else alloca = builder->CreateAlloca(builder->getDoubleTy(),0,name);
+        builder->CreateAlignedStore(ai,alloca,MaybeAlign(4));
+        SymTabLoc[name] = alloca;
+        ai->setName(name);
+    }
     compoundStatements->codeGen();
+    generatingFunction = false;
+    SymTabLoc.clear();
 }

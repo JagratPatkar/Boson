@@ -280,17 +280,30 @@ unique_ptr<FunctionSignature> Parser::ParseFunctionSignature(){
     string Name = lexer.getIdentifier();
     lexer.getNextToken();
     if(!lexer.isTokenLeftParen()) return LogFuncSigError("Missing '(' in declaration");
-
-    //Parse Parameters Later here
-
     lexer.getNextToken();
+    vector<unique_ptr<Variable>> args;
+    while(lexer.isTokenInt() || lexer.isTokenDouble()){
+        int type = lexer.getCurrentToken();
+        lexer.getNextToken();
+        if(!lexer.isTokenIdentifier()) return LogFuncSigError("Identifier Expected"); 
+        string name = lexer.getIdentifier();
+        if(doesVariableExistLocally(name)) return LogFuncSigError("Illegal Re-declaration");
+        Types typedType = AST::TypesOnToken(type);
+        addVariableLocally(name,typedType);
+        auto var = make_unique<Variable>(name,typedType);
+        args.push_back(move(var));
+        lexer.getNextToken();
+        if(lexer.isTokenRightParen()) break;
+        if(!lexer.isTokenComma()) return LogFuncSigError("Expected a ',' between arguments");
+        lexer.getNextToken(); 
+    }
     if(!lexer.isTokenRightParen()) return LogFuncSigError("Missing ')' in declaration");
 
     lexer.getNextToken();
     if(!lexer.isAnyType()) return LogFuncSigError("Incomplete Type Specification in Function Declaration"); 
     Types type = AST::TypesOnToken(lexer.getCurrentToken());
 
-    return make_unique<FunctionSignature>(move(Name),move(type)); 
+    return make_unique<FunctionSignature>(move(Name),move(type),move(args)); 
 }
 
 unique_ptr<CompoundStatement> Parser::ParseCompoundStatement(){

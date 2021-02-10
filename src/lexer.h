@@ -23,6 +23,7 @@ class Lexer
         token_left_curly_brac = -17,
         token_right_curly_brac = -18,
         token_return = -19,
+        token_comma = -20,
     };
     string sourceName;
     std::ifstream source;
@@ -61,5 +62,6 @@ public:
     bool isTokenRightCurlyBrace();
     bool isTokenFunctionKeyword();
     bool isTokenReturnKeyword();
+    bool isTokenComma();
     int getVoidToken();
 };

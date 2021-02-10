@@ -74,8 +74,11 @@ int Lexer::getToken(){
     if(curChar == '{')
         return token_left_curly_brac;
     
-     if(curChar == '}')
+    if(curChar == '}')
         return token_right_curly_brac;
+    
+    if(curChar == ',')
+        return token_comma;
 
     if(source.eof()) return token_eof;
     printf("Unknown token \n");
@@ -188,6 +191,10 @@ bool Lexer::isAnyType(){
     return false;
 }
 
+bool Lexer::isTokenComma(){
+    if(currentToken == token_comma) return true;
+    return false;
+}
 
 int Lexer::getVoidToken(){
     return token_void;

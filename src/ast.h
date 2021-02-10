@@ -168,12 +168,15 @@ namespace AST{
 
     
 
-
+    class FunctionDefinition;
+    
     class FunctionSignature{
         string Name;
         Types retType;
+        vector<unique_ptr<Variable>> args;
+        friend FunctionDefinition;
         public:
-        FunctionSignature(const string& Name,Types retType) : Name(Name) , retType(retType) {
+        FunctionSignature(const string& Name,Types retType,vector<unique_ptr<Variable>> args) : Name(Name) , retType(retType), args(move(args)) {
 
         } 
         const string getName() {return Name;}
