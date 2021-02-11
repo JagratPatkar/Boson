@@ -3,6 +3,7 @@
 extern unique_ptr<Module> module ;
 extern void initialize();
 static bool parsingFuncDef = false;
+
 void Parser::addVariable(const string& name,Types type){ 
     SymbolTable[name] = type;
  }
@@ -10,6 +11,15 @@ bool Parser::doesVariableExist(const string& name){
     if(SymbolTable[name]) return true;
     return false;
 }
+bool Parser::doesFunctionExist(const string& name){ 
+    if(FuncSymTab.find(name) == FuncSymTab.end()) return false;
+    return true;
+}
+
+bool Parser::doesStartExist(){
+    return doesFunctionExist("start");
+}
+
 Types Parser::getVariableType(const string& name){
     return SymbolTable[name]; 
 }
@@ -54,13 +64,13 @@ void Parser::parse(){
             case -4 : 
                 if(auto VD = ParseVariableDeclarationStatement()){
                     printf("Parsed a variable declaration statement of type int \n");
-                    VD->codeGen();
+                    VD->codegen();
                 }
             break;
             case -5 :
                 if(auto VD = ParseVariableDeclarationStatement()){
                     printf("Parsed a variable declaration statement of type double \n");
-                    VD->codeGen();
+                    VD->codegen();
                 }
             break;
             case -16 :
@@ -69,7 +79,8 @@ void Parser::parse(){
                     FD->codeGen();
                 }
             break;
-            case -1 :printf("End of File \n");
+            case -1 :
+                     if(!doesStartExist()) LogError("Start Function Not Found");
                      module->dump();
                      lexer.closeFile();
                      exit(1);
@@ -129,14 +140,12 @@ unique_ptr<Statement> Parser::ParseLocalVariableDeclarationStatement(){
     return make_unique<LocalVariableDeclaration>(move(var),move(exp));
 }
 
-unique_ptr<Statement> Parser::ParseVariableAssignmentStatement(){
-    string name = lexer.getIdentifier();
+unique_ptr<Statement> Parser::ParseVariableAssignmentStatement(const string& name){
     int t1 ;
     if(doesVariableExistLocally(name)) t1 = getVariableTypeLocally(name);
     else if(doesVariableExist(name)) t1 = getVariableType(name);
     else return LogStatementError("Undefined Variable");
     auto var = make_unique<Variable>(name,(Types)t1);
-    lexer.getNextToken();
     if(!lexer.isTokenAssignmentOp()) return LogStatementError("Missing '=' operator");
     lexer.getNextToken();
     auto exp = ParseExpression();
@@ -149,6 +158,9 @@ unique_ptr<Statement> Parser::ParseVariableAssignmentStatement(){
     return make_unique<VariableAssignment>(move(var),move(exp));
 }
 
+void Parser::LogError(const char* errmsg){
+    fprintf(stderr,"Error : %s\n",errmsg);
+}
 
 unique_ptr<Expression> Parser::LogExpressionError(const char* errmsg){
     fprintf(stderr,"Error : %s\n",errmsg);
@@ -227,19 +239,53 @@ unique_ptr<Expression> Parser::ParsePrimary(){
 }   
 
 
-unique_ptr<Expression> Parser::ParseIdentifier(){
-    string Name = lexer.getIdentifier();
+unique_ptr<Expression> Parser::ParseVariable(const string& Name){
     if(parsingFuncDef){
         if(doesVariableExistLocally(Name)){
-            lexer.getNextToken();
             return make_unique<Variable>(Name,getVariableTypeLocally(Name));
         }
     }
     if(doesVariableExist(Name)) {
-        lexer.getNextToken();
         return make_unique<Variable>(Name,getVariableType(Name));
     }
     return LogExpressionError("Undefined Variable");
+}
+
+bool Parser::isExpression(){
+    return (lexer.isTokenIntNum() || lexer.isTokenDoubleNum() || 
+    lexer.isTokenIdentifier() || lexer.isTokenLeftParen());
+}
+
+unique_ptr<Expression> Parser::ParseCallExpression(const string& Name){
+    if(!doesFunctionExist(Name)) return LogExpressionError("Undefined Function!");
+    lexer.getNextToken();
+    vector<unique_ptr<Expression>> Args;
+    vector<Types> ArgType;
+    while(isExpression()){
+        auto Exp = ParseExpression();
+        if(!lexer.isTokenComma() && !lexer.isTokenRightParen()) 
+            return LogExpressionError("Expression might be missing a ','  or a ')'");
+        ArgType.push_back(Exp.get()->getType());
+        Args.push_back(move(Exp));
+        if(!lexer.isTokenRightParen())lexer.getNextToken();
+        else break;
+    } 
+    pair<vector<Types>,Types> p = FuncSymTab[Name];
+    if(ArgType.size() != p.first.size()) return LogExpressionError("Illegal Number of Arguments");
+    for(auto a = ArgType.begin(), b = p.first.begin(); a!=ArgType.end(); a++,b++){
+        if(*a != *b){
+            return LogTypeError(*a,*b);
+        }
+    }
+    lexer.getNextToken();
+    return make_unique<FunctionCall>(Name,move(Args),move(p.second));
+}   
+
+unique_ptr<Expression> Parser::ParseIdentifier(){
+    string Name = lexer.getIdentifier();
+    lexer.getNextToken();
+    if(lexer.isTokenLeftParen()) return ParseCallExpression(Name);
+    else return ParseVariable(Name);
 }
 
 unique_ptr<Expression>  Parser::ParseIntNum(){
@@ -253,8 +299,42 @@ unique_ptr<Expression> Parser::ParseDoubleNum(){
 }
 
 
+unique_ptr<Statement> Parser::ParseCallStatement(const string& name){
+    if(!doesFunctionExist(name)) return LogStatementError("Undefined Function!");
+    vector<unique_ptr<Expression>> Args;
+    vector<Types> ArgType;
+    lexer.getNextToken();
+    while(isExpression()){
+        auto Exp = ParseExpression();
+        if(!lexer.isTokenComma() && !lexer.isTokenRightParen()) 
+            return LogStatementError("Statement might be missing a ','  or a ')'");
+        ArgType.push_back(Exp.get()->getType());
+        Args.push_back(move(Exp));
+        if(!lexer.isTokenRightParen())lexer.getNextToken();
+        else break;
+    } 
+    lexer.getNextToken();
+    if(!lexer.isTokenSemiColon()) return LogStatementError("Expected a ';' at the end of statement");
+    pair<vector<Types>,Types> p = FuncSymTab[name];
+    if(ArgType.size() != p.first.size()) return LogStatementError("Illegal Number of Arguments");
+    for(auto a = ArgType.begin(), b = p.first.begin(); a!=ArgType.end(); a++,b++){
+        if(*a != *b){
+            LogTypeError(*a,*b);
+            return LogStatementError("Type mismatch in statement");
+        }
+    }
+    return make_unique<FunctionCall>(name,move(Args),p.second);
+}
+
+unique_ptr<Statement> Parser::ParseStatementIdentifier(){
+    string Name = lexer.getIdentifier();
+    lexer.getNextToken();
+    if(lexer.isTokenLeftParen()) return ParseCallStatement(Name);
+    else return ParseVariableAssignmentStatement(Name);
+}
+
 unique_ptr<Statement> Parser::ParseStatement(){
-    if(lexer.isTokenIdentifier()) return ParseVariableAssignmentStatement();
+    if(lexer.isTokenIdentifier()) return ParseStatementIdentifier();
     if(lexer.isTokenInt()) return ParseLocalVariableDeclarationStatement();
     if(lexer.isTokenDouble()) return ParseLocalVariableDeclarationStatement();
     if(lexer.isTokenReturnKeyword()) return ParseReturnStatement();
@@ -272,6 +352,7 @@ unique_ptr<Statement> Parser::ParseReturnStatement(){
 unique_ptr<FunctionSignature> Parser::ParseFunctionSignature(){
     if(!lexer.isTokenIdentifier()) return LogFuncSigError("Expected an Identifier");
     string Name = lexer.getIdentifier();
+    vector<Types> argType;
     lexer.getNextToken();
     if(!lexer.isTokenLeftParen()) return LogFuncSigError("Missing '(' in declaration");
     lexer.getNextToken();
@@ -283,6 +364,7 @@ unique_ptr<FunctionSignature> Parser::ParseFunctionSignature(){
         string name = lexer.getIdentifier();
         if(doesVariableExistLocally(name)) return LogFuncSigError("Illegal Re-declaration");
         Types typedType = AST::TypesOnToken(type);
+        argType.push_back(typedType);
         addVariableLocally(name,typedType);
         auto var = make_unique<Variable>(name,typedType);
         args.push_back(move(var));
@@ -292,11 +374,11 @@ unique_ptr<FunctionSignature> Parser::ParseFunctionSignature(){
         lexer.getNextToken(); 
     }
     if(!lexer.isTokenRightParen()) return LogFuncSigError("Missing ')' in declaration");
-
     lexer.getNextToken();
     if(!lexer.isAnyType()) return LogFuncSigError("Incomplete Type Specification in Function Declaration"); 
     Types type = AST::TypesOnToken(lexer.getCurrentToken());
-
+    Types typecopy2 = AST::TypesOnToken(lexer.getCurrentToken());
+    FuncSymTab[Name] = make_pair(move(argType),move(typecopy2));
     return make_unique<FunctionSignature>(move(Name),move(type),move(args)); 
 }
 

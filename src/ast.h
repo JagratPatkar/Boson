@@ -96,7 +96,7 @@ namespace AST{
         public:
         Statement() {}
         virtual ~Statement() {}
-        virtual void codeGen() = 0;
+        virtual void codegen() = 0;
         virtual bool isReturnStatement() {return false;}
     };
 
@@ -110,7 +110,7 @@ namespace AST{
             if(exp) return exp->getType(); 
             return type_void;
         }
-        void codeGen() override;
+        void codegen() override;
     };
 
     class CompoundStatement : public Statement{
@@ -127,7 +127,7 @@ namespace AST{
              } 
              return type_err;
         }
-        void codeGen() override;
+        void codegen() override;
     };
 
     class VariableDeclaration : public Statement {
@@ -139,21 +139,21 @@ namespace AST{
         VariableDeclaration(unique_ptr<Variable> var,unique_ptr<Expression> exp) : var(move(var)) , exp(move(exp)) {
 
         }
-       virtual void codeGen() override {};
+       virtual void codegen() override {};
     };
 
 
     class GlobalVariableDeclaration : public VariableDeclaration {
         public:
         GlobalVariableDeclaration(unique_ptr<Variable> var,unique_ptr<Expression> exp) : VariableDeclaration(move(var),move(exp)){}
-        void codeGen() override;
+        void codegen() override;
     };
 
 
     class LocalVariableDeclaration : public VariableDeclaration {
         public:
         LocalVariableDeclaration(unique_ptr<Variable> var,unique_ptr<Expression> exp) : VariableDeclaration(move(var),move(exp)){}
-         void codeGen() override;
+         void codegen() override;
     };
 
     class VariableAssignment : public Statement {
@@ -163,13 +163,13 @@ namespace AST{
         public :
         VariableAssignment(unique_ptr<Variable> var,unique_ptr<Expression> exp) : var(move(var)) , exp(move(exp)) {
         }
-        void codeGen() override;
+        void codegen() override;
     };
 
     
 
     class FunctionDefinition;
-    
+
     class FunctionSignature{
         string Name;
         Types retType;
@@ -191,5 +191,17 @@ namespace AST{
             
         }
         void codeGen();
+    };
+
+    class FunctionCall : public Expression,public Statement {
+        string Name;
+        vector<unique_ptr<Expression>> args;
+        public:
+        FunctionCall(const string& Name,vector<unique_ptr<Expression>> args,Types type) : Expression(type) , Name(Name), args(move(args)){
+        }
+        void codegen() override;
+        llvm::Value* codeGen() override;
+        Types getType() override {return ExpressionType;}
+        void VarDecCodeGen(GlobalVariable*,Types) override ;
     };
 }

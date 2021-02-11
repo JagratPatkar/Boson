@@ -33,7 +33,7 @@ Types AST::TypesOnToken(int type){
 const char* AST::TypesName(int t){
     if(t == -1) return "int";
     if(t == -2) return "double";
-    if(t == -2) return "void";
+    if(t == -3) return "void";
     return "unknown type";
 }
 
@@ -45,6 +45,23 @@ llvm::Value* IntNum::codeGen(){
 }
 llvm::Value* DoubleNum::codeGen(){
     return ConstantFP::get(*context,APFloat(Number));
+}
+
+llvm::Value* FunctionCall::codeGen(){
+    Function* func = module->getFunction(Name);
+    vector<llvm::Value*> ArgsValue;
+    for(auto i = args.begin(); i!=args.end(); i++){
+        ArgsValue.push_back(i->get()->codeGen());
+        if(!ArgsValue.back()) return nullptr;
+    }
+    return builder->CreateCall(func,ArgsValue,"callres");
+}
+
+void FunctionCall::VarDecCodeGen(GlobalVariable* gVar,Types){
+    builder->SetInsertPoint(bb);
+    GlobalVariable* gvar = SymTab[Name];
+    llvm::Value* v = codeGen();
+    builder->CreateAlignedStore(v,gVar,MaybeAlign(4));
 }
 
 llvm::Value* Variable::codeGen(){
@@ -69,7 +86,7 @@ void AST::Value::VarDecCodeGen(GlobalVariable* gVar,Types){
     gVar->setInitializer(constant);
 }
 
-void GlobalVariableDeclaration::codeGen(){
+void GlobalVariableDeclaration::codegen(){
     string Name = var->getName();
     Types vt = var->getType();
     if(vt == type_int) {  module->getOrInsertGlobal(Name,Type::getInt32Ty(*context)); } 
@@ -85,7 +102,7 @@ void GlobalVariableDeclaration::codeGen(){
 }
 
 
-void LocalVariableDeclaration::codeGen(){
+void LocalVariableDeclaration::codegen(){
     string Name = var->getName();
     Types vt = var->getType();
     Function * Function = builder->GetInsertBlock()->getParent();
@@ -105,14 +122,14 @@ void LocalVariableDeclaration::codeGen(){
    
 }
 
-void CompoundStatement::codeGen(){
+void CompoundStatement::codegen(){
     for(auto stat = Statements.begin(); stat!=Statements.end(); stat++){
-        stat->get()->codeGen();
+        stat->get()->codegen();
     }
 }
 
 
-void VariableAssignment::codeGen(){
+void VariableAssignment::codegen(){
     string Name = var->getName();
     llvm::Value* val = exp->codeGen();
     if(!val) return;
@@ -127,13 +144,23 @@ void VariableAssignment::codeGen(){
 }
 
 
-void Return::codeGen(){
+void Return::codegen(){
     if(exp){
         llvm::Value* v = exp->codeGen();
         if(!v) return;
         Types t = exp->getType();
         builder->CreateRet(v);
     }else{ builder->CreateRetVoid(); }
+}
+
+void FunctionCall::codegen(){
+    Function* func = module->getFunction(Name);
+    vector<llvm::Value*> ArgsValue;
+    for(auto i = args.begin(); i!=args.end(); i++){
+        ArgsValue.push_back(i->get()->codeGen());
+        if(!ArgsValue.back()) return ;
+    }
+    builder->CreateCall(func,ArgsValue);
 }
 
 void BinaryExpression::VarDecCodeGen(GlobalVariable* gVar,Types vt){
@@ -183,6 +210,10 @@ void FunctionDefinition::codeGen(){
     Function* function = Function::Create(funcType,Function::InternalLinkage,functionSignature->getName(),*module); 
     BasicBlock* bb = BasicBlock::Create(*context,"entry",function);
     builder->SetInsertPoint(bb);
+    if(functionSignature->getName() == "start"){
+        vector<llvm::Value*> args;
+        builder->CreateCall(bin_func,args);
+    }
     Function::arg_iterator ai,ae;
     auto n = functionSignature->args.begin();
     for(ai = function->arg_begin(), ae = function->arg_end(); ai != ae; ++ai, ++n){
@@ -195,7 +226,9 @@ void FunctionDefinition::codeGen(){
         SymTabLoc[name] = alloca;
         ai->setName(name);
     }
-    compoundStatements->codeGen();
+    compoundStatements->codegen();
     generatingFunction = false;
     SymTabLoc.clear();
 }
+
+
