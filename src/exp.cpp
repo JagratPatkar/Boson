@@ -1,5 +1,6 @@
 #include <stdio.h>
-
+int k = 10;
+int j = k + 10;
 int main(){
     bool j = false;
     bool k =  true || false && (j && j) || (j && true);

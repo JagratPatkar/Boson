@@ -223,6 +223,15 @@ namespace AST{
     };
 
     class ForStatement : public Statement {
-        
+        unique_ptr<LocalVariableDeclaration> lvd;
+        unique_ptr<VariableAssignment> va;
+        unique_ptr<Expression> cond;
+        unique_ptr<VariableAssignment> vastep;
+        unique_ptr<CompoundStatement> compoundStatement;
+        public:
+        ForStatement(unique_ptr<LocalVariableDeclaration> lvd,unique_ptr<VariableAssignment> va,unique_ptr<Expression> cond,unique_ptr<VariableAssignment> vastep,unique_ptr<CompoundStatement> compoundStatement) : lvd(move(lvd)), va(move(va)), cond(move(cond)), vastep(move(vastep)) , compoundStatement(move(compoundStatement)){
+
+        }
+        void codegen() override;
     };
 }

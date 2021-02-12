@@ -30,7 +30,8 @@ class Lexer
         token_greater_than_eq = -24,
         token_equal_to = -25,
         token_if = -26,
-        token_else = -27
+        token_else = -27,
+        token_for = -28
     };
     string sourceName;
     std::ifstream source;
@@ -76,6 +77,7 @@ public:
     bool isTokenEqualTo(){ return currentToken == token_equal_to; }
     bool isTokenIf(){ return currentToken == token_if; }
     bool isTokenElse(){ return currentToken == token_else; }
+    bool isTokenFor(){ return currentToken == token_for; }
     bool isTokenComma();
     int getVoidToken();
 };
