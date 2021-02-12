@@ -44,14 +44,24 @@ Types Parser::getVariableTypeLocally(const string& name){
     else if(lexer.isTokenSubSym()) return op_sub;
     else if(lexer.isTokenMulSym()) return op_mul;
     else if(lexer.isTokenDivSym()) return op_div;
+    else if(lexer.isTokenLessThan()) return op_less_than;
+    else if(lexer.isTokenLessThanEq()) return op_less_than_eq;
+    else if(lexer.isTokenGreaterThan()) return op_greater_than;
+    else if(lexer.isTokenGreaterThanEq()) return op_greater_than_eq;
+    else if(lexer.isTokenEqualTo()) return op_equal_to;
     return  non_op;
  }
 
 int Parser::getOperatorPrecedence(){
-    if(lexer.isTokenAddSym()) return OperatorPrecedence['+'];
-    else if(lexer.isTokenSubSym()) return OperatorPrecedence['-'];
-    else if(lexer.isTokenMulSym()) return OperatorPrecedence['*'];
-    else if(lexer.isTokenDivSym()) return OperatorPrecedence['/'];
+    if(lexer.isTokenAddSym()) return OperatorPrecedence["+"];
+    else if(lexer.isTokenSubSym()) return OperatorPrecedence["-"];
+    else if(lexer.isTokenMulSym()) return OperatorPrecedence["*"];
+    else if(lexer.isTokenDivSym()) return OperatorPrecedence["/"];
+    else if(lexer.isTokenLessThan()) return OperatorPrecedence["<"];
+    else if(lexer.isTokenLessThanEq()) return OperatorPrecedence["<="];
+    else if(lexer.isTokenGreaterThan()) return OperatorPrecedence[">"];
+    else if(lexer.isTokenGreaterThanEq()) return OperatorPrecedence[">="];
+    else if(lexer.isTokenEqualTo()) return OperatorPrecedence["=="];
     return -1;
 }
 
@@ -338,6 +348,7 @@ unique_ptr<Statement> Parser::ParseStatement(){
     if(lexer.isTokenInt()) return ParseLocalVariableDeclarationStatement();
     if(lexer.isTokenDouble()) return ParseLocalVariableDeclarationStatement();
     if(lexer.isTokenReturnKeyword()) return ParseReturnStatement();
+    if(lexer.isTokenIf()) return ParseIfElseStatement();
     return LogStatementError("Unknown statement!");
 }
 
@@ -349,9 +360,26 @@ unique_ptr<Statement> Parser::ParseReturnStatement(){
     return make_unique<Return>(move(exp));
 }
 
+
+unique_ptr<Statement> Parser::ParseIfElseStatement(){
+    lexer.getNextToken();
+    if(!lexer.isTokenLeftParen()) return LogStatementError("Expected a '(' befor expression");
+    lexer.getNextToken();
+    auto Exp = ParseExpression();
+    if(!lexer.isTokenRightParen()) return LogStatementError("Expected a ')' after expression");
+    lexer.getNextToken();
+    auto CmpStat = ParseCompoundStatement();
+    lexer.getNextToken();
+    if(!lexer.isTokenElse()) return LogStatementError("Expected a 'else' after 'if'");
+    lexer.getNextToken();
+    auto elseCmpStat = ParseCompoundStatement();
+    return make_unique<IfElseStatement>(move(Exp),move(CmpStat),move(elseCmpStat));
+}
+
 unique_ptr<FunctionSignature> Parser::ParseFunctionSignature(){
     if(!lexer.isTokenIdentifier()) return LogFuncSigError("Expected an Identifier");
     string Name = lexer.getIdentifier();
+    if(doesFunctionExist(Name)) return LogFuncSigError("Function Already Defined");
     vector<Types> argType;
     lexer.getNextToken();
     if(!lexer.isTokenLeftParen()) return LogFuncSigError("Missing '(' in declaration");

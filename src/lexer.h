@@ -24,6 +24,13 @@ class Lexer
         token_right_curly_brac = -18,
         token_return = -19,
         token_comma = -20,
+        token_less_then = -21,
+        token_greater_then = -22,
+        token_less_than_eq = -23,
+        token_greater_than_eq = -24,
+        token_equal_to = -25,
+        token_if = -26,
+        token_else = -27
     };
     string sourceName;
     std::ifstream source;
@@ -40,11 +47,11 @@ public:
     double getDoubleNum(){ return DoubleNum; }
     int getIntNum(){ return IntNum; }
     string getIdentifier() {return Identifier.c_str();}
-    int getNextToken();
-    int getCurrentToken();
+    int getNextToken(){ return (currentToken = getToken()); }
+    int getCurrentToken(){ return currentToken; };
     void closeFile() { source.close(); }
-    bool isTokenInt();
-    bool isTokenDouble();
+    bool isTokenInt(){ return currentToken == token_int; }
+    bool isTokenDouble(){ return currentToken == token_double; }
     bool isTokenIntNum();
     bool isTokenVoid();
     bool isTokenDoubleNum();
@@ -62,6 +69,13 @@ public:
     bool isTokenRightCurlyBrace();
     bool isTokenFunctionKeyword();
     bool isTokenReturnKeyword();
+    bool isTokenLessThan(){ return currentToken == token_less_then; }
+    bool isTokenGreaterThan(){ return currentToken == token_greater_then; }
+    bool isTokenLessThanEq(){ return currentToken == token_less_than_eq; }
+    bool isTokenGreaterThanEq(){ return currentToken == token_greater_than_eq; }
+    bool isTokenEqualTo(){ return currentToken == token_equal_to; }
+    bool isTokenIf(){ return currentToken == token_if; }
+    bool isTokenElse(){ return currentToken == token_else; }
     bool isTokenComma();
     int getVoidToken();
 };

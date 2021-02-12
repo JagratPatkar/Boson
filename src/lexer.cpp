@@ -44,11 +44,21 @@ int Lexer::getToken(){
             return token_fn;
         if(Identifier == "return")
             return token_return;
+        if(Identifier == "if")
+            return token_if;
+        if(Identifier == "else")
+            return token_else;
         return token_identifier;
     }
 
-    if(curChar == '=')
+    if(curChar == '='){
+        if(source.peek() == '='){
+            source.get(curChar);
+            return token_equal_to;
+        }
         return token_assignment_op;
+    }
+        
 
     if(curChar == ';')
         return token_semi_colon;
@@ -79,33 +89,27 @@ int Lexer::getToken(){
     
     if(curChar == ',')
         return token_comma;
+    
+    if(curChar == '<'){
+        if(source.peek() == '=') {
+            source.get(curChar);
+            return token_less_than_eq;
+        }
+        return token_less_then;
+    }
+
+    if(curChar == '>'){
+        if(source.peek() == '=') {
+            source.get(curChar);
+            return token_greater_than_eq;
+        }
+        return token_greater_then;
+    }    
+
 
     if(source.eof()) return token_eof;
     printf("Unknown token \n");
     exit(-1);
-}
-
-int Lexer::getNextToken() {
-    return (currentToken = getToken());
-}
-
-int Lexer::getCurrentToken() {
-    return currentToken;
-}
-
-bool Lexer::isTokenInt(){
-    if(currentToken == token_int) return true;
-    return false;
-}
-
-bool Lexer::isTokenDouble(){
-    if(currentToken == token_double) return true;
-    return false;
-}
-
-bool Lexer::isTokenVoid(){
-    if(currentToken == token_void) return true;
-    return false;
 }
 
 bool Lexer::isTokenIdentifier(){
@@ -195,6 +199,7 @@ bool Lexer::isTokenComma(){
     if(currentToken == token_comma) return true;
     return false;
 }
+
 
 int Lexer::getVoidToken(){
     return token_void;

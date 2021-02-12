@@ -11,19 +11,25 @@ class Parser{
     map<string,Types> SymbolTable;
     map<string,Types> SymbolTableLocal;
     map<string,pair<vector<Types>,Types>> FuncSymTab;
-    map<char,int> OperatorPrecedence;
+    map<string,int> OperatorPrecedence;
     public:
     Parser(string Name) : lexer(Lexer(Name)) {
-        OperatorPrecedence['+'] = 10;
-        OperatorPrecedence['-'] = 10;
-        OperatorPrecedence['*'] = 40;
-        OperatorPrecedence['/'] = 40;
+        OperatorPrecedence["+"] = 10;
+        OperatorPrecedence["-"] = 10;
+        OperatorPrecedence["*"] = 40;
+        OperatorPrecedence["/"] = 40;
+        OperatorPrecedence["<"] = 10;
+        OperatorPrecedence["<="] = 10;
+        OperatorPrecedence[">"] = 10;
+        OperatorPrecedence[">="] = 10;
+        OperatorPrecedence["=="] = 10; 
     }
     std::unique_ptr<AST::Expression> ParseExpression();
     std::unique_ptr<AST::Expression> ParseParen();
     std::unique_ptr<AST::Statement> ParseStatement();
     std::unique_ptr<AST::Statement> ParseStatementIdentifier();
     std::unique_ptr<CompoundStatement> ParseCompoundStatement();
+    std::unique_ptr<Statement> ParseIfElseStatement();
     std::unique_ptr<AST::Expression> ParsePrimary();
     std::unique_ptr<AST::Expression> ParseCallExpression(const string&);
     std::unique_ptr<AST::Expression> ParseVariable(const string&);

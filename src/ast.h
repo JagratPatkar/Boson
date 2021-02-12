@@ -23,7 +23,12 @@ namespace AST{
         op_sub = -2,
         op_mul = -3,
         op_div = -4,
-        non_op = -5,
+        op_less_than = -5,
+        op_greater_than = -6,
+        op_less_than_eq = -7,
+        op_greater_than_eq = -9,
+        op_equal_to = -10,
+        non_op = -11
     };
 
     Types TypesOnToken(int type);
@@ -203,5 +208,17 @@ namespace AST{
         llvm::Value* codeGen() override;
         Types getType() override {return ExpressionType;}
         void VarDecCodeGen(GlobalVariable*,Types) override ;
+    };
+
+
+     class IfElseStatement : public Statement{
+        unique_ptr<Expression> Condition;
+        unique_ptr<CompoundStatement> compoundStatements;
+        unique_ptr<CompoundStatement> elseCompoundStatements;
+        public:
+        IfElseStatement(unique_ptr<Expression> cond,unique_ptr<CompoundStatement> cmpStat,unique_ptr<CompoundStatement> ecmpStat) : Condition(move(cond)) , compoundStatements(move(cmpStat)) , elseCompoundStatements(move(ecmpStat)) {
+            
+        }
+        void codegen() override;
     };
 }

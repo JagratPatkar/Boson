@@ -105,7 +105,7 @@ void GlobalVariableDeclaration::codegen(){
 void LocalVariableDeclaration::codegen(){
     string Name = var->getName();
     Types vt = var->getType();
-    Function * Function = builder->GetInsertBlock()->getParent();
+   
     llvm::Value* val;
     if(exp){
         val = exp->codeGen();
@@ -163,6 +163,22 @@ void FunctionCall::codegen(){
     builder->CreateCall(func,ArgsValue);
 }
 
+
+void IfElseStatement::codegen(){
+    BasicBlock* bb =  builder->GetInsertBlock();
+    Function* func =  bb->getParent();
+    llvm::Value* cmp = Condition->codeGen();
+    llvm::Value* cond = builder->CreateFCmpUNE(cmp,ConstantFP::get(*context,APFloat(0.0)),"ifcond");
+    BasicBlock* ThenBB = BasicBlock::Create(*context,"then",func);
+    BasicBlock* ElseBB =  BasicBlock::Create(*context,"else",func);
+    builder->CreateCondBr(cond,ThenBB,ElseBB);
+    builder->SetInsertPoint(ThenBB);
+    compoundStatements->codegen();
+    builder->SetInsertPoint(ElseBB);
+    elseCompoundStatements->codegen();
+    builder->SetInsertPoint(bb);
+}
+
 void BinaryExpression::VarDecCodeGen(GlobalVariable* gVar,Types vt){
     if(vt == type_int) gVar->setInitializer(ConstantInt::get(Type::getInt32Ty(*context),0,true));
     else  gVar->setInitializer(ConstantFP::get(*context,APFloat(0.0)));
@@ -181,6 +197,21 @@ llvm::Value* BinaryExpression::codeGen(){
             case op_sub : return builder->CreateSub(lhs,rhs,"subitmp");
             case op_mul : return builder->CreateMul(lhs,rhs,"mulitmp");
             case op_div : return builder->CreateSDiv(lhs,rhs,"divitmp");
+            case op_less_than : 
+                                lhs = builder->CreateICmpULT(lhs,rhs,"ltcmpi");
+                                return builder->CreateUIToFP(lhs,Type::getDoubleTy(*context),"convtoFP");
+            case op_greater_than : 
+                                lhs =  builder->CreateICmpUGT(lhs,rhs,"gtcmpi");
+                                return builder->CreateUIToFP(lhs,Type::getDoubleTy(*context),"convtoFP");
+            case op_less_than_eq : 
+                                lhs = builder->CreateICmpULE(lhs,rhs,"lecmpi");
+                                return builder->CreateUIToFP(lhs,Type::getDoubleTy(*context),"convtoFP");
+            case op_greater_than_eq : 
+                                lhs =  builder->CreateICmpUGE(lhs,rhs,"gecmpi");
+                                return builder->CreateUIToFP(lhs,Type::getDoubleTy(*context),"convtoFP");
+            case op_equal_to :  
+                                lhs =  builder->CreateICmpEQ(lhs,rhs,"eqi");
+                                return builder->CreateUIToFP(lhs,Type::getDoubleTy(*context),"convtoFP");
             case non_op : return nullptr;
         }
     }
@@ -190,6 +221,21 @@ llvm::Value* BinaryExpression::codeGen(){
         case op_sub : return builder->CreateFSub(lhs,rhs,"subftmp");
         case op_mul : return builder->CreateFMul(lhs,rhs,"mulftmp");
         case op_div : return builder->CreateFDiv(lhs,rhs,"divftmp");
+        case op_less_than : 
+                            lhs = builder->CreateFCmpULT(lhs,rhs,"ltcmpd");
+                            return builder->CreateUIToFP(lhs,Type::getDoubleTy(*context),"convtoFP");
+        case op_greater_than :   
+                            lhs = builder->CreateFCmpUGT(lhs,rhs,"gtcmpd");
+                            return builder->CreateUIToFP(lhs,Type::getDoubleTy(*context),"convtoFP");
+        case op_less_than_eq : 
+                            lhs = builder->CreateFCmpULE(lhs,rhs,"lecmpd");
+                            return builder->CreateUIToFP(lhs,Type::getDoubleTy(*context),"convtoFP");
+        case op_greater_than_eq : 
+                            lhs = builder->CreateFCmpUGE(lhs,rhs,"gecmpd");
+                            return builder->CreateUIToFP(lhs,Type::getDoubleTy(*context),"convtoFP");
+        case op_equal_to : 
+                            lhs = builder->CreateFCmpUEQ(lhs,rhs,"eqcmp");
+                            return builder->CreateUIToFP(lhs,Type::getDoubleTy(*context),"convtoFP");
         case non_op : return nullptr;
     }
     return nullptr;
