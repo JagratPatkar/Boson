@@ -171,12 +171,15 @@ void IfElseStatement::codegen(){
     llvm::Value* cond = builder->CreateFCmpUNE(cmp,ConstantFP::get(*context,APFloat(0.0)),"ifcond");
     BasicBlock* ThenBB = BasicBlock::Create(*context,"then",func);
     BasicBlock* ElseBB =  BasicBlock::Create(*context,"else",func);
+    BasicBlock* AfterIfElse = BasicBlock::Create(*context,"after",func);
     builder->CreateCondBr(cond,ThenBB,ElseBB);
     builder->SetInsertPoint(ThenBB);
     compoundStatements->codegen();
+    builder->CreateBr(AfterIfElse);
     builder->SetInsertPoint(ElseBB);
     elseCompoundStatements->codegen();
-    builder->SetInsertPoint(bb);
+    builder->CreateBr(AfterIfElse);
+    builder->SetInsertPoint(AfterIfElse);
 }
 
 void BinaryExpression::VarDecCodeGen(GlobalVariable* gVar,Types vt){
@@ -276,5 +279,3 @@ void FunctionDefinition::codeGen(){
     generatingFunction = false;
     SymTabLoc.clear();
 }
-
-

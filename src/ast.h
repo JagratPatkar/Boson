@@ -221,4 +221,8 @@ namespace AST{
         }
         void codegen() override;
     };
+
+    class ForStatement : public Statement {
+        
+    };
 }
