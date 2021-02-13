@@ -349,6 +349,7 @@ unique_ptr<Statement> Parser::ParseStatement(){
     if(lexer.isTokenDouble()) return ParseLocalVariableDeclarationStatement();
     if(lexer.isTokenReturnKeyword()) return ParseReturnStatement();
     if(lexer.isTokenIf()) return ParseIfElseStatement();
+    if(lexer.isTokenFor()) return ParseForStatement();
     return LogStatementError("Unknown statement!");
 }
 
@@ -374,6 +375,91 @@ unique_ptr<Statement> Parser::ParseIfElseStatement(){
     lexer.getNextToken();
     auto elseCmpStat = ParseCompoundStatement();
     return make_unique<IfElseStatement>(move(Exp),move(CmpStat),move(elseCmpStat));
+}
+
+
+
+unique_ptr<VariableAssignment> Parser::VariableAssignmentStatementHelper(const string& name){
+    int t1;
+    if(doesVariableExistLocally(name)) t1 = getVariableTypeLocally(name);
+    else if(doesVariableExist(name)) t1 = getVariableType(name);
+    else {
+        LogStatementError("Undefined Variable");
+        return nullptr;
+    } 
+    auto var = make_unique<Variable>(name,(Types)t1);
+    if(!lexer.isTokenAssignmentOp()) {
+        LogStatementError("Missing '=' operator");
+        return nullptr;
+    } 
+    lexer.getNextToken();
+    auto exp = ParseExpression();
+    int t2 = exp->getType();
+    if(t1 != t2){
+        LogTypeError(t1,t2);
+        return nullptr;
+    }
+    return make_unique<VariableAssignment>(move(var),move(exp));
+}
+
+unique_ptr<Statement> Parser::ParseForStatement(){
+    unique_ptr<LocalVariableDeclaration> lvd;
+    unique_ptr<VariableAssignment> va;
+    unique_ptr<VariableAssignment> vastep;
+    lexer.getNextToken();
+    if(!lexer.isTokenLeftParen()) return LogStatementError("Expected a '(' in 'for'");
+    lexer.getNextToken();
+    if(lexer.isTokenInt() || lexer.isTokenDouble()) {
+        int type = lexer.getCurrentToken();
+        lexer.getNextToken();
+        if(!lexer.isTokenIdentifier()) return LogStatementError("Identifier Expected"); 
+        string name = lexer.getIdentifier();
+        if(doesVariableExistLocally(name)) return LogStatementError("Illegal Re-declaration");
+        Types typedType = AST::TypesOnToken(type);
+        addVariableLocally(name,typedType);
+        auto var = make_unique<Variable>(name,typedType);
+        lexer.getNextToken();
+        unique_ptr<Expression> exp = nullptr;
+        if(lexer.isTokenAssignmentOp()) {
+            lexer.getNextToken();
+            exp = ParseExpression();
+            int t1 = (int)var->getType();
+            int t2 = (int)exp->getType();
+            if(t1 != t2) {
+                LogTypeError(t1,t2);
+                return nullptr;
+            }
+        }
+        if(!lexer.isTokenSemiColon()) return LogStatementError("Expected ';' or '='");
+        lvd =  make_unique<LocalVariableDeclaration>(move(var),move(exp));
+    }
+    else if(lexer.isTokenIdentifier()) {
+        string Name = lexer.getIdentifier();
+        lexer.getNextToken();
+        va = VariableAssignmentStatementHelper(Name);
+        lexer.getNextToken();
+        if(!lexer.isTokenSemiColon()) return LogStatementError("Expected a ';' in 'for'");
+        lvd = nullptr;
+    }
+    else if(lexer.isTokenSemiColon()) lvd = nullptr;
+    else return LogStatementError("Unknown Statement in 'for'");
+
+    lexer.getNextToken();
+    auto cond = ParseExpression();
+    if(!cond) return LogStatementError("Illegal condition in 'for'");
+    if(!lexer.isTokenSemiColon()) return LogStatementError("");
+
+    lexer.getNextToken();
+    if(lexer.isTokenIdentifier()){
+        string Name = lexer.getIdentifier();
+        lexer.getNextToken();
+        va = VariableAssignmentStatementHelper(Name);
+        if(!lexer.isTokenRightParen()) return LogStatementError("Expected a ')' in 'for'");
+    } 
+    else if(!lexer.isTokenRightParen()) return LogStatementError("Expected a ')' in 'for'");
+    lexer.getNextToken();
+    auto cmpStat = ParseCompoundStatement();
+    return make_unique<ForStatement>(move(lvd),move(va),move(cond),move(vastep),move(cmpStat));
 }
 
 unique_ptr<FunctionSignature> Parser::ParseFunctionSignature(){

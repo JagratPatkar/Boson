@@ -30,6 +30,7 @@ class Parser{
     std::unique_ptr<AST::Statement> ParseStatementIdentifier();
     std::unique_ptr<CompoundStatement> ParseCompoundStatement();
     std::unique_ptr<Statement> ParseIfElseStatement();
+    std::unique_ptr<Statement> ParseForStatement();
     std::unique_ptr<AST::Expression> ParsePrimary();
     std::unique_ptr<AST::Expression> ParseCallExpression(const string&);
     std::unique_ptr<AST::Expression> ParseVariable(const string&);
@@ -40,6 +41,7 @@ class Parser{
     std::unique_ptr<AST::Statement> ParseVariableDeclarationStatement();
     std::unique_ptr<AST::Statement> ParseLocalVariableDeclarationStatement();
     unique_ptr<AST::Statement> ParseVariableAssignmentStatement(const string&);
+    unique_ptr<AST::VariableAssignment> VariableAssignmentStatementHelper(const string&);
     unique_ptr<AST::Statement> ParseCallStatement(const string&);
     unique_ptr<AST::Statement> ParseReturnStatement();
     std::unique_ptr<FunctionSignature> ParseFunctionSignature();

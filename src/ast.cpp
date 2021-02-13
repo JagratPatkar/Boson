@@ -168,6 +168,7 @@ void IfElseStatement::codegen(){
     BasicBlock* bb =  builder->GetInsertBlock();
     Function* func =  bb->getParent();
     llvm::Value* cmp = Condition->codeGen();
+    cmp =  builder->CreateUIToFP(cmp,Type::getDoubleTy(*context),"convtoFP");
     llvm::Value* cond = builder->CreateFCmpUNE(cmp,ConstantFP::get(*context,APFloat(0.0)),"ifcond");
     BasicBlock* ThenBB = BasicBlock::Create(*context,"then",func);
     BasicBlock* ElseBB =  BasicBlock::Create(*context,"else",func);
@@ -183,7 +184,19 @@ void IfElseStatement::codegen(){
 }
 
 void ForStatement::codegen(){
-
+    BasicBlock* bb =  builder->GetInsertBlock();
+    Function* func =  bb->getParent();
+    BasicBlock* LoopBB = BasicBlock::Create(*context,"loop",func);
+    BasicBlock* AfterLoopBB = BasicBlock::Create(*context,"afterloop",func);
+    if(lvd) lvd->codegen();
+    if(va) va->codegen();
+    builder->CreateBr(LoopBB);
+    builder->SetInsertPoint(LoopBB);
+    compoundStatement->codegen();
+    if(vastep) vastep->codegen();
+    llvm::Value* condition = cond->codeGen();
+    builder->CreateCondBr(condition,LoopBB,AfterLoopBB);
+    builder->SetInsertPoint(AfterLoopBB);
 }
 
 void BinaryExpression::VarDecCodeGen(GlobalVariable* gVar,Types vt){
@@ -204,21 +217,11 @@ llvm::Value* BinaryExpression::codeGen(){
             case op_sub : return builder->CreateSub(lhs,rhs,"subitmp");
             case op_mul : return builder->CreateMul(lhs,rhs,"mulitmp");
             case op_div : return builder->CreateSDiv(lhs,rhs,"divitmp");
-            case op_less_than : 
-                                lhs = builder->CreateICmpULT(lhs,rhs,"ltcmpi");
-                                return builder->CreateUIToFP(lhs,Type::getDoubleTy(*context),"convtoFP");
-            case op_greater_than : 
-                                lhs =  builder->CreateICmpUGT(lhs,rhs,"gtcmpi");
-                                return builder->CreateUIToFP(lhs,Type::getDoubleTy(*context),"convtoFP");
-            case op_less_than_eq : 
-                                lhs = builder->CreateICmpULE(lhs,rhs,"lecmpi");
-                                return builder->CreateUIToFP(lhs,Type::getDoubleTy(*context),"convtoFP");
-            case op_greater_than_eq : 
-                                lhs =  builder->CreateICmpUGE(lhs,rhs,"gecmpi");
-                                return builder->CreateUIToFP(lhs,Type::getDoubleTy(*context),"convtoFP");
-            case op_equal_to :  
-                                lhs =  builder->CreateICmpEQ(lhs,rhs,"eqi");
-                                return builder->CreateUIToFP(lhs,Type::getDoubleTy(*context),"convtoFP");
+            case op_less_than : return builder->CreateICmpULT(lhs,rhs,"ltcmpi");
+            case op_greater_than : return  builder->CreateICmpUGT(lhs,rhs,"gtcmpi");
+            case op_less_than_eq : return builder->CreateICmpULE(lhs,rhs,"lecmpi");
+            case op_greater_than_eq : return  builder->CreateICmpUGE(lhs,rhs,"gecmpi");
+            case op_equal_to : return  builder->CreateICmpEQ(lhs,rhs,"eqi");
             case non_op : return nullptr;
         }
     }
@@ -228,21 +231,11 @@ llvm::Value* BinaryExpression::codeGen(){
         case op_sub : return builder->CreateFSub(lhs,rhs,"subftmp");
         case op_mul : return builder->CreateFMul(lhs,rhs,"mulftmp");
         case op_div : return builder->CreateFDiv(lhs,rhs,"divftmp");
-        case op_less_than : 
-                            lhs = builder->CreateFCmpULT(lhs,rhs,"ltcmpd");
-                            return builder->CreateUIToFP(lhs,Type::getDoubleTy(*context),"convtoFP");
-        case op_greater_than :   
-                            lhs = builder->CreateFCmpUGT(lhs,rhs,"gtcmpd");
-                            return builder->CreateUIToFP(lhs,Type::getDoubleTy(*context),"convtoFP");
-        case op_less_than_eq : 
-                            lhs = builder->CreateFCmpULE(lhs,rhs,"lecmpd");
-                            return builder->CreateUIToFP(lhs,Type::getDoubleTy(*context),"convtoFP");
-        case op_greater_than_eq : 
-                            lhs = builder->CreateFCmpUGE(lhs,rhs,"gecmpd");
-                            return builder->CreateUIToFP(lhs,Type::getDoubleTy(*context),"convtoFP");
-        case op_equal_to : 
-                            lhs = builder->CreateFCmpUEQ(lhs,rhs,"eqcmp");
-                            return builder->CreateUIToFP(lhs,Type::getDoubleTy(*context),"convtoFP");
+        case op_less_than : return builder->CreateFCmpULT(lhs,rhs,"ltcmpd");
+        case op_greater_than : return builder->CreateFCmpUGT(lhs,rhs,"gtcmpd");
+        case op_less_than_eq : return builder->CreateFCmpULE(lhs,rhs,"lecmpd");
+        case op_greater_than_eq : return builder->CreateFCmpUGE(lhs,rhs,"gecmpd");
+        case op_equal_to : return builder->CreateFCmpUEQ(lhs,rhs,"eqcmp");
         case non_op : return nullptr;
     }
     return nullptr;

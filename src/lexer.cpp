@@ -48,6 +48,8 @@ int Lexer::getToken(){
             return token_if;
         if(Identifier == "else")
             return token_else;
+        if(Identifier == "for")
+            return token_for;
         return token_identifier;
     }
 
