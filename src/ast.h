@@ -186,6 +186,7 @@ namespace AST{
         } 
         const string getName() {return Name;}
         Types getRetType(){return retType;}
+        void codegen();
     };
 
     class FunctionDefinition{

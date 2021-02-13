@@ -241,6 +241,20 @@ llvm::Value* BinaryExpression::codeGen(){
     return nullptr;
 }
 
+void FunctionSignature::codegen(){
+    FunctionType *funcType;
+    vector<Type*> Args;
+    for(auto i = args.begin();i!=args.end();i++){
+        Types t = i->get()->getType();
+        if(t == type_int) Args.push_back(builder->getInt32Ty());
+        else  Args.push_back(builder->getDoubleTy());
+    }
+    if(getRetType() == type_int) funcType = FunctionType::get(builder->getInt32Ty(),Args,false);
+    else if(getRetType() == type_double) funcType = FunctionType::get(builder->getDoubleTy(),Args,false);
+    else if(getRetType() == type_void) funcType = FunctionType::get(builder->getVoidTy(),Args,false);
+    Function* function = Function::Create(funcType,Function::ExternalLinkage,getName(),*module); 
+}
+
 void FunctionDefinition::codeGen(){
     generatingFunction = true;
     FunctionType *funcType;

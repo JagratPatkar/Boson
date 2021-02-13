@@ -32,6 +32,7 @@ class Parser{
     std::unique_ptr<Statement> ParseIfElseStatement();
     std::unique_ptr<Statement> ParseForStatement();
     std::unique_ptr<AST::Expression> ParsePrimary();
+    std::unique_ptr<FunctionSignature> ParseConsume();
     std::unique_ptr<AST::Expression> ParseCallExpression(const string&);
     std::unique_ptr<AST::Expression> ParseVariable(const string&);
     std::unique_ptr<AST::Expression> ParseIntNum();

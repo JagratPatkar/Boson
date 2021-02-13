@@ -50,6 +50,8 @@ int Lexer::getToken(){
             return token_else;
         if(Identifier == "for")
             return token_for;
+        if(Identifier == "consume")
+            return token_consume;
         return token_identifier;
     }
 

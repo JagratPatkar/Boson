@@ -89,6 +89,13 @@ void Parser::parse(){
                     FD->codeGen();
                 }
             break;
+            case -29 : 
+                if(auto CF = ParseConsume())
+                {
+                    printf("Parsed consume \n");
+                    CF->codegen();
+                }
+            break;
             case -1 :
                      if(!doesStartExist()) LogError("Start Function Not Found");
                      module->dump();
@@ -460,6 +467,16 @@ unique_ptr<Statement> Parser::ParseForStatement(){
     lexer.getNextToken();
     auto cmpStat = ParseCompoundStatement();
     return make_unique<ForStatement>(move(lvd),move(va),move(cond),move(vastep),move(cmpStat));
+}
+
+unique_ptr<FunctionSignature> Parser::ParseConsume(){
+    lexer.getNextToken();
+    if(!lexer.isTokenFunctionKeyword()) return  LogFuncSigError("Expected keyword 'fn'");
+    lexer.getNextToken();
+    auto fs =  ParseFunctionSignature();
+    lexer.getNextToken();
+    if(!lexer.isTokenSemiColon()) return LogFuncSigError("Expected a ';' after 'consume'");
+    return fs;
 }
 
 unique_ptr<FunctionSignature> Parser::ParseFunctionSignature(){

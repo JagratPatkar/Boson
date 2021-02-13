@@ -31,7 +31,8 @@ class Lexer
         token_equal_to = -25,
         token_if = -26,
         token_else = -27,
-        token_for = -28
+        token_for = -28,
+        token_consume = -29
     };
     string sourceName;
     std::ifstream source;
@@ -70,6 +71,7 @@ public:
     bool isTokenRightCurlyBrace();
     bool isTokenFunctionKeyword();
     bool isTokenReturnKeyword();
+    bool isTokenConsume(){return currentToken == token_consume; }
     bool isTokenLessThan(){ return currentToken == token_less_then; }
     bool isTokenGreaterThan(){ return currentToken == token_greater_then; }
     bool isTokenLessThanEq(){ return currentToken == token_less_than_eq; }
