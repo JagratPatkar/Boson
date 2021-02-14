@@ -24,7 +24,7 @@ int main(){
     parser.parse();
 
     if(verifyModule(*module)){
-        printf("Error in CodeGen");
+        printf("Error in CodeGen \n");
     }
 
     auto TargetTriple = sys::getDefaultTargetTriple();
@@ -69,7 +69,6 @@ int main(){
     pass.run(*module);
 
     dest.flush();
-    dest.close();
     printf("Successfully Compiled");
     return 0;
 }   

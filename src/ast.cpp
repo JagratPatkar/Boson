@@ -1,5 +1,6 @@
 #include "ast.h"
 #include <vector>
+#include "llvm/IR/Verifier.h"
 using namespace std;
 using namespace llvm;
 
@@ -20,7 +21,6 @@ void initialize(){
     funcType = FunctionType::get(builder->getVoidTy(),false);
     bin_func = Function::Create(funcType,Function::InternalLinkage,"op_func",*module); 
     bb = BasicBlock::Create(*context,"entry",bin_func);
-    builder->CreateRetVoid();
 }
 
 Types AST::TypesOnToken(int type){
@@ -190,11 +190,12 @@ void ForStatement::codegen(){
     BasicBlock* AfterLoopBB = BasicBlock::Create(*context,"afterloop",func);
     if(lvd) lvd->codegen();
     if(va) va->codegen();
-    builder->CreateBr(LoopBB);
+    llvm::Value* condition = cond->codeGen();
+    builder->CreateCondBr(condition,LoopBB,AfterLoopBB);
     builder->SetInsertPoint(LoopBB);
     compoundStatement->codegen();
     if(vastep) vastep->codegen();
-    llvm::Value* condition = cond->codeGen();
+    condition = cond->codeGen();
     builder->CreateCondBr(condition,LoopBB,AfterLoopBB);
     builder->SetInsertPoint(AfterLoopBB);
 }
@@ -257,17 +258,8 @@ void FunctionSignature::codegen(){
 
 void FunctionDefinition::codeGen(){
     generatingFunction = true;
-    FunctionType *funcType;
-    vector<Type*> Args;
-    for(auto i = functionSignature->args.begin();i!=functionSignature->args.end();i++){
-        Types t = i->get()->getType();
-        if(t == type_int) Args.push_back(builder->getInt32Ty());
-        else  Args.push_back(builder->getDoubleTy());
-    }
-    if(functionSignature->getRetType() == type_int) funcType = FunctionType::get(builder->getInt32Ty(),Args,false);
-    else if(functionSignature->getRetType() == type_double) funcType = FunctionType::get(builder->getDoubleTy(),Args,false);
-    else if(functionSignature->getRetType() == type_void) funcType = FunctionType::get(builder->getVoidTy(),Args,false);
-    Function* function = Function::Create(funcType,Function::InternalLinkage,functionSignature->getName(),*module); 
+    functionSignature->codegen();
+    Function* function = module->getFunction(functionSignature->getName());
     BasicBlock* bb = BasicBlock::Create(*context,"entry",function);
     builder->SetInsertPoint(bb);
     if(functionSignature->getName() == "start"){
@@ -289,4 +281,8 @@ void FunctionDefinition::codeGen(){
     compoundStatements->codegen();
     generatingFunction = false;
     SymTabLoc.clear();
+    if(verifyFunction(*function)){
+        string str = functionSignature->getName();
+        printf("Error in %s \n",str.c_str());
+    }
 }

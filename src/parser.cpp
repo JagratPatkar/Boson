@@ -1,6 +1,8 @@
 #include "parser.h"
 
-extern unique_ptr<Module> module ;
+extern unique_ptr<Module> module;
+extern unique_ptr<IRBuilder<>> builder;
+extern BasicBlock *bb;
 extern void initialize();
 static bool parsingFuncDef = false;
 
@@ -92,13 +94,14 @@ void Parser::parse(){
             case -29 : 
                 if(auto CF = ParseConsume())
                 {
-                    // printf("Parsed consume \n");
                     CF->codegen();
                 }
             break;
             case -1 :
                      if(!doesStartExist()) LogError("Start Function Not Found");
-                    //  module->dump();
+                     module->dump();
+                     builder->SetInsertPoint(bb);
+                     builder->CreateRetVoid();
                      lexer.closeFile();
                      return;
                      break;
@@ -444,23 +447,25 @@ unique_ptr<Statement> Parser::ParseForStatement(){
         string Name = lexer.getIdentifier();
         lexer.getNextToken();
         va = VariableAssignmentStatementHelper(Name);
-        lexer.getNextToken();
         if(!lexer.isTokenSemiColon()) return LogStatementError("Expected a ';' in 'for'");
         lvd = nullptr;
     }
-    else if(lexer.isTokenSemiColon()) lvd = nullptr;
+    else if(lexer.isTokenSemiColon()) {
+        lvd = nullptr;
+        va = nullptr;
+    }
     else return LogStatementError("Unknown Statement in 'for'");
 
     lexer.getNextToken();
     auto cond = ParseExpression();
     if(!cond) return LogStatementError("Illegal condition in 'for'");
-    if(!lexer.isTokenSemiColon()) return LogStatementError("");
+    if(!lexer.isTokenSemiColon()) return LogStatementError("Expected a ';' in 'for'");
 
     lexer.getNextToken();
     if(lexer.isTokenIdentifier()){
         string Name = lexer.getIdentifier();
         lexer.getNextToken();
-        va = VariableAssignmentStatementHelper(Name);
+        vastep = VariableAssignmentStatementHelper(Name);
         if(!lexer.isTokenRightParen()) return LogStatementError("Expected a ')' in 'for'");
     } 
     else if(!lexer.isTokenRightParen()) return LogStatementError("Expected a ')' in 'for'");
