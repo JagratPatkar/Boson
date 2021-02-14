@@ -73,34 +73,34 @@ void Parser::parse(){
         switch(token){
             case -4 : 
                 if(auto VD = ParseVariableDeclarationStatement()){
-                    printf("Parsed a variable declaration statement of type int \n");
+                    // printf("Parsed a variable declaration statement of type int \n");
                     VD->codegen();
                 }
             break;
             case -5 :
                 if(auto VD = ParseVariableDeclarationStatement()){
-                    printf("Parsed a variable declaration statement of type double \n");
+                    // printf("Parsed a variable declaration statement of type double \n");
                     VD->codegen();
                 }
             break;
             case -16 :
                 if(auto FD = ParseFunctionDefinition()){
-                    printf("Parsed a function definition \n");
+                    // printf("Parsed a function definition \n");
                     FD->codeGen();
                 }
             break;
             case -29 : 
                 if(auto CF = ParseConsume())
                 {
-                    printf("Parsed consume \n");
+                    // printf("Parsed consume \n");
                     CF->codegen();
                 }
             break;
             case -1 :
                      if(!doesStartExist()) LogError("Start Function Not Found");
-                     module->dump();
+                    //  module->dump();
                      lexer.closeFile();
-                     exit(1);
+                     return;
                      break;
         }
         token = lexer.getNextToken();
