@@ -3,7 +3,7 @@ using namespace std;
 int Lexer::getToken(){
     char curChar = ' ';
     
-    while(isspace(curChar) && !source.eof())source.get(curChar);
+    while(isspace(curChar) && !source.eof()) source.get(curChar);
     if(isdigit(curChar)){
         NumberString = "";
         NumberString += curChar;

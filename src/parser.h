@@ -8,9 +8,9 @@ using namespace std;
 
 class Parser{
     Lexer lexer; 
-    map<string,Types> SymbolTable;
-    map<string,Types> SymbolTableLocal;
-    map<string,pair<vector<Types>,Types>> FuncSymTab;
+    AST::SymbolTable<string,Types> GlobalVarTable;
+    AST::SymbolTable<string,Types> LocalVarTable;
+    AST::SymbolTable<string,pair<vector<Types>,Types>> FunctionTable;
     map<string,int> OperatorPrecedence;
     public:
     Parser(string Name) : lexer(Lexer(Name)) {
@@ -23,7 +23,10 @@ class Parser{
         OperatorPrecedence[">"] = 10;
         OperatorPrecedence[">="] = 10;
         OperatorPrecedence["=="] = 10; 
-        OperatorPrecedence["!="] = 10; 
+        OperatorPrecedence["!="] = 10;
+        GlobalVarTable = AST::SymbolTable<string,Types>();
+        LocalVarTable = AST::SymbolTable<string,Types>();
+        FunctionTable = AST::SymbolTable<string,pair<vector<Types>,Types>>();
     }
     std::unique_ptr<AST::Expression> ParseExpression();
     std::unique_ptr<AST::Expression> ParseParen();
@@ -48,25 +51,10 @@ class Parser{
     unique_ptr<AST::Statement> ParseReturnStatement();
     std::unique_ptr<FunctionSignature> ParseFunctionSignature();
     std::unique_ptr<FunctionDefinition> ParseFunctionDefinition();
-    void LogError(const char*);
-    std::unique_ptr<AST::Expression> LogExpressionError(const char*);
-    std::unique_ptr<AST::Statement> LogStatementError(const char*);
+    void LogError(const char* errmsg){ fprintf(stderr,"Error : %s\n",errmsg); }
     std::unique_ptr<AST::Expression> LogTypeError(int,int);
-    unique_ptr<FunctionSignature> LogFuncSigError(const char*);
-    unique_ptr<FunctionDefinition> LogFuncDefError(const char*);
-    unique_ptr<CompoundStatement> LogCompStatementError(const char*);
     int getOperatorPrecedence();
-    void addVariable(const string&,Types);
-    bool doesVariableExist(const string&);
-    Types getVariableType(const string&);
-    void addVariableLocally(const string&,Types);
-    bool doesVariableExistLocally(const string&);
-    Types getVariableTypeLocally(const string&);
-    void clearVariablesLocally();
     BinOps returnBinOpsType();
     bool isExpression();
-    bool doesFunctionExist(const string&);
-    bool doesStartExist();
     void parse();
-    void driver();
 };
