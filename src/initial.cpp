@@ -16,14 +16,14 @@ using namespace llvm;
 #include "parser.h"
 extern unique_ptr<Module> module;
 
-int main(){
-    
-   
+int main()
+{
 
     Parser parser("srcf.qk");
     parser.parse();
 
-    if(verifyModule(*module)){
+    if (verifyModule(*module))
+    {
         printf("Error in CodeGen \n");
     }
 
@@ -35,11 +35,11 @@ int main(){
     InitializeAllAsmParsers();
     InitializeAllAsmPrinters();
 
-
     string Error;
-    auto Target = TargetRegistry::lookupTarget(TargetTriple,Error);
+    auto Target = TargetRegistry::lookupTarget(TargetTriple, Error);
 
-    if(!Target){
+    if (!Target)
+    {
         errs() << Error;
         return 1;
     }
@@ -48,21 +48,22 @@ int main(){
 
     TargetOptions opt;
     auto RM = Optional<Reloc::Model>();
-    auto TargetMachine = Target->createTargetMachine(TargetTriple,CPU,Features,opt,RM);
+    auto TargetMachine = Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM);
     module->setDataLayout(TargetMachine->createDataLayout());
     module->setTargetTriple(TargetTriple);
 
     auto Filename = "output.o";
     error_code EC;
-    raw_fd_ostream dest(Filename,EC,sys::fs::OF_None);
-    if(EC)
+    raw_fd_ostream dest(Filename, EC, sys::fs::OF_None);
+    if (EC)
     {
         errs() << "Could not open file: " << EC.message();
         return 0;
     }
     legacy::PassManager pass;
     auto FileType = CGFT_ObjectFile;
-    if(TargetMachine->addPassesToEmitFile(pass,dest,nullptr,FileType)){
+    if (TargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType))
+    {
         errs() << "TargetMachine can't emit a file of this type";
         return 0;
     }
@@ -71,4 +72,4 @@ int main(){
     dest.flush();
     printf("Successfully Compiled");
     return 0;
-}   
+}
