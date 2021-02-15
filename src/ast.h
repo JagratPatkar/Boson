@@ -28,7 +28,8 @@ namespace AST{
         op_less_than_eq = -7,
         op_greater_than_eq = -9,
         op_equal_to = -10,
-        non_op = -11
+        op_not_equal_to = -11,
+        non_op = -12
     };
 
     Types TypesOnToken(int type);

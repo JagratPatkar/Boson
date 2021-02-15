@@ -23,6 +23,7 @@ class Parser{
         OperatorPrecedence[">"] = 10;
         OperatorPrecedence[">="] = 10;
         OperatorPrecedence["=="] = 10; 
+        OperatorPrecedence["!="] = 10; 
     }
     std::unique_ptr<AST::Expression> ParseExpression();
     std::unique_ptr<AST::Expression> ParseParen();

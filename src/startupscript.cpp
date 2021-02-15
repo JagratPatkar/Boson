@@ -9,6 +9,6 @@ extern "C" void printchar(int ascii){
 }
 
 int main(){
-    printf("Start Retured :- %d \n", start());
+    start();
     return 0;   
 }

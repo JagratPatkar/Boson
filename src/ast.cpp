@@ -223,6 +223,7 @@ llvm::Value* BinaryExpression::codeGen(){
             case op_less_than_eq : return builder->CreateICmpULE(lhs,rhs,"lecmpi");
             case op_greater_than_eq : return  builder->CreateICmpUGE(lhs,rhs,"gecmpi");
             case op_equal_to : return  builder->CreateICmpEQ(lhs,rhs,"eqi");
+            case op_not_equal_to : return builder->CreateICmpNE(lhs,rhs,"neqcmpi");
             case non_op : return nullptr;
         }
     }
@@ -236,7 +237,8 @@ llvm::Value* BinaryExpression::codeGen(){
         case op_greater_than : return builder->CreateFCmpUGT(lhs,rhs,"gtcmpd");
         case op_less_than_eq : return builder->CreateFCmpULE(lhs,rhs,"lecmpd");
         case op_greater_than_eq : return builder->CreateFCmpUGE(lhs,rhs,"gecmpd");
-        case op_equal_to : return builder->CreateFCmpUEQ(lhs,rhs,"eqcmp");
+        case op_equal_to : return builder->CreateFCmpUEQ(lhs,rhs,"eqcmpd");
+        case op_not_equal_to : return builder->CreateFCmpUNE(lhs,rhs,"neqcmpd");
         case non_op : return nullptr;
     }
     return nullptr;

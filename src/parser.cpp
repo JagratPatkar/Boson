@@ -5,6 +5,7 @@ extern unique_ptr<IRBuilder<>> builder;
 extern BasicBlock *bb;
 extern void initialize();
 static bool parsingFuncDef = false;
+static bool parsingIf_or_For = false;
 
 void Parser::addVariable(const string& name,Types type){ 
     SymbolTable[name] = type;
@@ -50,6 +51,7 @@ Types Parser::getVariableTypeLocally(const string& name){
     else if(lexer.isTokenLessThanEq()) return op_less_than_eq;
     else if(lexer.isTokenGreaterThan()) return op_greater_than;
     else if(lexer.isTokenGreaterThanEq()) return op_greater_than_eq;
+    else if(lexer.isTokenNotEqualTo()) return op_not_equal_to;
     else if(lexer.isTokenEqualTo()) return op_equal_to;
     return  non_op;
  }
@@ -64,6 +66,7 @@ int Parser::getOperatorPrecedence(){
     else if(lexer.isTokenGreaterThan()) return OperatorPrecedence[">"];
     else if(lexer.isTokenGreaterThanEq()) return OperatorPrecedence[">="];
     else if(lexer.isTokenEqualTo()) return OperatorPrecedence["=="];
+     else if(lexer.isTokenNotEqualTo()) return OperatorPrecedence["!="];
     return -1;
 }
 
@@ -364,6 +367,7 @@ unique_ptr<Statement> Parser::ParseStatement(){
 }
 
 unique_ptr<Statement> Parser::ParseReturnStatement(){
+    if(parsingIf_or_For) return LogStatementError("Illeagal use of 'return' statement");
     lexer.getNextToken();
     if(lexer.isTokenSemiColon()) return make_unique<Return>(nullptr);
     auto exp = ParseExpression();
@@ -373,6 +377,7 @@ unique_ptr<Statement> Parser::ParseReturnStatement(){
 
 
 unique_ptr<Statement> Parser::ParseIfElseStatement(){
+    parsingIf_or_For = true;
     lexer.getNextToken();
     if(!lexer.isTokenLeftParen()) return LogStatementError("Expected a '(' befor expression");
     lexer.getNextToken();
@@ -384,6 +389,7 @@ unique_ptr<Statement> Parser::ParseIfElseStatement(){
     if(!lexer.isTokenElse()) return LogStatementError("Expected a 'else' after 'if'");
     lexer.getNextToken();
     auto elseCmpStat = ParseCompoundStatement();
+    parsingIf_or_For = false;
     return make_unique<IfElseStatement>(move(Exp),move(CmpStat),move(elseCmpStat));
 }
 
@@ -413,6 +419,7 @@ unique_ptr<VariableAssignment> Parser::VariableAssignmentStatementHelper(const s
 }
 
 unique_ptr<Statement> Parser::ParseForStatement(){
+    parsingIf_or_For = true;
     unique_ptr<LocalVariableDeclaration> lvd;
     unique_ptr<VariableAssignment> va;
     unique_ptr<VariableAssignment> vastep;
@@ -471,6 +478,7 @@ unique_ptr<Statement> Parser::ParseForStatement(){
     else if(!lexer.isTokenRightParen()) return LogStatementError("Expected a ')' in 'for'");
     lexer.getNextToken();
     auto cmpStat = ParseCompoundStatement();
+    parsingIf_or_For = false;
     return make_unique<ForStatement>(move(lvd),move(va),move(cond),move(vastep),move(cmpStat));
 }
 

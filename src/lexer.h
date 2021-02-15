@@ -1,4 +1,5 @@
 #include <fstream>
+#include <map>
 using namespace std;
 class Lexer
 {
@@ -32,8 +33,11 @@ class Lexer
         token_if = -26,
         token_else = -27,
         token_for = -28,
-        token_consume = -29
+        token_consume = -29,
+        token_not_equal_to = -30
     };
+    map<string,token> KeywordRegistry;
+    map<char,token> SymbolRegistry;
     string sourceName;
     std::ifstream source;
     double DoubleNum;
@@ -44,8 +48,30 @@ class Lexer
 public:
     Lexer(string name) : sourceName(name){
         source.open(sourceName);
+        KeywordRegistry["int"] = token_int;
+        KeywordRegistry["double"] = token_double;
+        KeywordRegistry["void"] = token_void;
+        KeywordRegistry["fn"] = token_fn;
+        KeywordRegistry["return"] = token_return;
+        KeywordRegistry["if"] = token_if;
+        KeywordRegistry["else"] = token_else;
+        KeywordRegistry["for"] = token_for;
+        KeywordRegistry["consume"] = token_consume;
+        SymbolRegistry[';'] = token_semi_colon;
+        SymbolRegistry['+'] = token_add_sym;
+        SymbolRegistry['-'] = token_sub_sym;
+        SymbolRegistry['*'] = token_mul_sym;
+        SymbolRegistry['/'] = token_div_sym;
+        SymbolRegistry['('] = token_left_paren;
+        SymbolRegistry[')'] = token_right_paren;
+        SymbolRegistry['{'] = token_left_curly_brac;
+        SymbolRegistry['}'] = token_right_curly_brac;
+        SymbolRegistry[','] = token_comma;
     }
     int getToken();
+    int extractIdentifier();
+    int extractNumber();
+    int peekOneAhead(char sym,token tok);
     double getDoubleNum(){ return DoubleNum; }
     int getIntNum(){ return IntNum; }
     string getIdentifier() {return Identifier.c_str();}
@@ -54,23 +80,23 @@ public:
     void closeFile() { source.close(); }
     bool isTokenInt(){ return currentToken == token_int; }
     bool isTokenDouble(){ return currentToken == token_double; }
-    bool isTokenIntNum();
-    bool isTokenVoid();
-    bool isTokenDoubleNum();
-    bool isTokenIdentifier();
-    bool isTokenAssignmentOp();
-    bool isTokenSemiColon();
-    bool isTokenAddSym();
-    bool isTokenSubSym();
-    bool isTokenMulSym();
-    bool isTokenDivSym();
-    bool isTokenLeftParen();
-    bool isTokenRightParen();
-    bool isAnyType();
-    bool isTokenLeftCurlyBrace();
-    bool isTokenRightCurlyBrace();
-    bool isTokenFunctionKeyword();
-    bool isTokenReturnKeyword();
+    bool isTokenIntNum(){ return currentToken == token_int_num; }
+    bool isTokenVoid(){ return currentToken == token_void; }
+    bool isTokenDoubleNum(){ return currentToken == token_double_num; }
+    bool isTokenIdentifier(){ return currentToken == token_identifier; }
+    bool isTokenAssignmentOp(){ return currentToken == token_assignment_op; }
+    bool isTokenSemiColon(){ return currentToken == token_semi_colon; }
+    bool isTokenAddSym(){ return currentToken == token_add_sym; }
+    bool isTokenSubSym(){ return currentToken == token_sub_sym; }
+    bool isTokenMulSym(){ return currentToken == token_mul_sym; }
+    bool isTokenDivSym(){ return currentToken == token_div_sym; }
+    bool isTokenLeftParen(){ return currentToken == token_left_paren; }
+    bool isTokenRightParen(){ return currentToken == token_right_paren; }
+    bool isAnyType(){ return (isTokenInt() || isTokenDouble() || isTokenVoid()); }
+    bool isTokenLeftCurlyBrace(){ return currentToken == token_left_curly_brac; }
+    bool isTokenRightCurlyBrace(){ return currentToken == token_right_curly_brac; }
+    bool isTokenFunctionKeyword(){ return currentToken == token_fn; }
+    bool isTokenReturnKeyword(){ return currentToken == token_return; }
     bool isTokenConsume(){return currentToken == token_consume; }
     bool isTokenLessThan(){ return currentToken == token_less_then; }
     bool isTokenGreaterThan(){ return currentToken == token_greater_then; }
@@ -80,6 +106,6 @@ public:
     bool isTokenIf(){ return currentToken == token_if; }
     bool isTokenElse(){ return currentToken == token_else; }
     bool isTokenFor(){ return currentToken == token_for; }
-    bool isTokenComma();
-    int getVoidToken();
+    bool isTokenNotEqualTo(){ return currentToken == token_not_equal_to; }
+    bool isTokenComma(){ return currentToken == token_comma; }
 };

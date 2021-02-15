@@ -7,108 +7,25 @@ int Lexer::getToken(){
         source.get(curChar);
 
     if(isdigit(curChar)){
-        bool isDouble = false;
         NumberString = "";
         NumberString += curChar;
-        char dummy = source.peek();
-        while(dummy == '.' || isdigit(dummy)){
-            source.get(curChar);
-            if(curChar == '.') isDouble = true;
-            NumberString += curChar;
-            dummy = source.peek();
-        }
-        if(isDouble){
-            DoubleNum = strtod(NumberString.c_str(), 0);
-            return token_double_num;
-        }
-        IntNum = stoi(NumberString.c_str(),0);
-        return token_int_num;
+        return extractNumber();
     }
 
     if(isalpha(curChar)){
         Identifier = "";
         Identifier += curChar;
-        char dummy = source.peek();
-        while(isalnum(dummy)){
-            source.get(curChar);
-            Identifier += curChar;
-            dummy = source.peek();
-        }
-        if(Identifier == "int")
-            return token_int;
-        if(Identifier == "double")
-            return token_double;
-        if(Identifier == "void")
-            return token_void;
-        if(Identifier == "fn")
-            return token_fn;
-        if(Identifier == "return")
-            return token_return;
-        if(Identifier == "if")
-            return token_if;
-        if(Identifier == "else")
-            return token_else;
-        if(Identifier == "for")
-            return token_for;
-        if(Identifier == "consume")
-            return token_consume;
-        return token_identifier;
+        return extractIdentifier();
     }
 
-    if(curChar == '='){
-        if(source.peek() == '='){
-            source.get(curChar);
-            return token_equal_to;
-        }
-        return token_assignment_op;
-    }
-        
+    auto it = SymbolRegistry.find(curChar);
+    if(it != SymbolRegistry.end()) return it->second;
+    int tmp;
 
-    if(curChar == ';')
-        return token_semi_colon;
-
-    if(curChar == '+')
-        return token_add_sym;
-    
-    if(curChar == '-')
-        return token_sub_sym;
-
-    if(curChar == '*')
-        return token_mul_sym;
-    
-    if(curChar == '/')
-        return token_div_sym;
-    
-    if(curChar == '(')
-        return token_left_paren;
-    
-     if(curChar == ')')
-        return token_right_paren;
-    
-    if(curChar == '{')
-        return token_left_curly_brac;
-    
-    if(curChar == '}')
-        return token_right_curly_brac;
-    
-    if(curChar == ',')
-        return token_comma;
-    
-    if(curChar == '<'){
-        if(source.peek() == '=') {
-            source.get(curChar);
-            return token_less_than_eq;
-        }
-        return token_less_then;
-    }
-
-    if(curChar == '>'){
-        if(source.peek() == '=') {
-            source.get(curChar);
-            return token_greater_than_eq;
-        }
-        return token_greater_then;
-    }    
+    if(curChar == '=') return (tmp = peekOneAhead('=',token_equal_to)) ? tmp : token_assignment_op;
+    if(curChar == '<') return (tmp = peekOneAhead('=',token_less_than_eq)) ? tmp : token_less_then;
+    if(curChar == '>') return (tmp = peekOneAhead('=',token_greater_than_eq)) ? tmp : token_greater_then;  
+    if(curChar == '!'){ if((tmp = peekOneAhead('=',token_less_than_eq))) return tmp; }    
 
 
     if(source.eof()) return token_eof;
@@ -116,95 +33,41 @@ int Lexer::getToken(){
     exit(-1);
 }
 
-bool Lexer::isTokenIdentifier(){
-    if(currentToken == token_identifier) return true;
-    return false;
+int Lexer::extractNumber(){
+    bool isDouble = false;
+    char curChar;
+    char dummy = source.peek();
+    while(dummy == '.' || isdigit(dummy)){
+        source.get(curChar);
+        if(curChar == '.') isDouble = true;
+        NumberString += curChar;
+        dummy = source.peek();
+    }
+    if(isDouble){
+        DoubleNum = strtod(NumberString.c_str(), 0);
+        return token_double_num;
+    }
+    IntNum = stoi(NumberString.c_str(),0);
+    return token_int_num;
 }
 
-bool Lexer::isTokenIntNum(){
-    if(currentToken == token_int_num) return true;
-    return false;
+int Lexer::extractIdentifier(){
+    char curChar;
+    char dummy = source.peek();
+    while(isalnum(dummy)){
+        source.get(curChar);
+        Identifier += curChar;
+        dummy = source.peek();
+    }
+    auto it = KeywordRegistry.find(Identifier);
+    if(it != KeywordRegistry.end()) return it->second;
+    else return token_identifier;
 }
 
-bool Lexer::isTokenDoubleNum(){
-    if(currentToken == token_double_num) return true;
-    return false;
-}
-
-bool Lexer::isTokenAssignmentOp(){
-    if(currentToken == token_assignment_op) return true;
-    return false;
-}
-
-bool Lexer::isTokenSemiColon(){
-    if(currentToken == token_semi_colon) return true;
-    return false;
-}
-
-
-bool Lexer::isTokenAddSym(){
-    if(currentToken == token_add_sym) return true;
-    return false;
-}
-
-bool Lexer::isTokenSubSym(){
-    if(currentToken == token_sub_sym) return true;
-    return false;
-}
-
-bool Lexer::isTokenMulSym(){
-    if(currentToken == token_mul_sym) return true;
-    return false;
-}
-
-bool Lexer::isTokenDivSym(){
-    if(currentToken == token_div_sym) return true;
-    return false;
-}
-
-bool Lexer::isTokenLeftParen(){
-    if(currentToken == token_left_paren) return true;
-    return false;
-}
-
-bool Lexer::isTokenRightParen(){
-    if(currentToken == token_right_paren) return true;
-    return false;
-}
-
-bool Lexer::isTokenLeftCurlyBrace(){
-    if(currentToken == token_left_curly_brac) return true;
-    return false;
-}
-
-bool Lexer::isTokenRightCurlyBrace(){
-    if(currentToken == token_right_curly_brac) return true;
-    return false;
-}
-
-bool Lexer::isTokenFunctionKeyword(){
-    if(currentToken == token_fn) return true;
-    return false;
-}
-
-bool Lexer::isTokenReturnKeyword(){
-    if(currentToken == token_return) return true;
-    return false;
-}
-
-bool Lexer::isAnyType(){
-    if(currentToken == token_int) return true;
-    if(currentToken == token_double) return true;
-    if(currentToken == token_void) return true;
-    return false;
-}
-
-bool Lexer::isTokenComma(){
-    if(currentToken == token_comma) return true;
-    return false;
-}
-
-
-int Lexer::getVoidToken(){
-    return token_void;
+int Lexer::peekOneAhead(char sym,token tok){
+    if(source.peek() == sym) {
+            source.get();
+            return tok;
+    }
+    return 0;
 }
