@@ -3,4 +3,7 @@
 </p>
 
 #
-A General Purpose Programming Language on LLVM
+A General Purpose Programming Language on LLVM. Boson is envisioned to be multi-paradigm
+language, with a Statically Typed and Strong Type System. It currently has a Type System 
+and the idioms of structural paradigm implemented.
+
