@@ -15,9 +15,11 @@ class CodeGen{
         funcType = FunctionType::get(builder->getVoidTy(), false);
         bin_func = Function::Create(funcType, Function::InternalLinkage, "op_func", *module);
         bb = BasicBlock::Create(*context, "entry", bin_func);
+        generatingFunction = false;
     }
     FunctionType *funcType;
     Function *bin_func;
+    bool generatingFunction;
     BasicBlock *bb;
     public:
     unique_ptr<LLVMContext> context;
@@ -25,6 +27,7 @@ class CodeGen{
     unique_ptr<IRBuilder<>> builder;
     SymbolTable<std::string, GlobalVariable *> GlobalVarTable;
     SymbolTable<std::string, AllocaInst *> LocalVarTable;
+  
     static CodeGen* GetInstance(){
         if(counter) return obj;
         else {
@@ -41,4 +44,8 @@ class CodeGen{
         builder->CreateRetVoid();
     }
     Function* getCOPFP() { return bin_func; }
+
+    void generatingFunctionOn(){ generatingFunction = true; }
+    void generatingFunctionOff() { generatingFunction = false; }
+    bool getGeneratingFunction() { return generatingFunction; }
 };

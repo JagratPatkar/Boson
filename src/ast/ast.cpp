@@ -9,12 +9,6 @@ using namespace AST;
 
 static CodeGen* cg = CodeGen::GetInstance();
 
-
-// map<std::string, GlobalVariable *> SymTab;
-// map<std::string, AllocaInst *> SymTabLoc;
-
-static bool generatingFunction = false;
-
 Types AST::TypesOnToken(int type)
 {
     if (type == -4)
@@ -70,7 +64,7 @@ void FunctionCall::VarDecCodeGen(GlobalVariable *gVar, Types)
 
 llvm::Value *Variable::codeGen()
 {
-    if (generatingFunction)
+    if (cg->getGeneratingFunction())
     {
         llvm::Value *v = cg->LocalVarTable.getElement(Name);
         if (v)
@@ -340,7 +334,7 @@ void FunctionSignature::codegen()
 
 void FunctionDefinition::codeGen()
 {
-    generatingFunction = true;
+    cg->generatingFunctionOn();
     functionSignature->codegen();
     Function *function = cg->module->getFunction(functionSignature->getName());
     BasicBlock *bb = BasicBlock::Create(*(cg->context), "entry", function);
@@ -366,7 +360,7 @@ void FunctionDefinition::codeGen()
         ai->setName(name);
     }
     compoundStatements->codegen();
-    generatingFunction = false;
+    cg->generatingFunctionOff();
     cg->LocalVarTable.clearTable();
     if (verifyFunction(*function))
     {

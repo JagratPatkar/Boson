@@ -18,7 +18,6 @@ void Parser::parse()
         {
             if (!FunctionTable.doesElementExist("start"))
                 LogError("Start Function Not Found");
-            cg->dumpIR();
             cg->terminateCOPBB();
             lexer.closeFile();
             return;

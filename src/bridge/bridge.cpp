@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <iostream>
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/LegacyPassManager.h"
@@ -13,19 +14,27 @@
 #include "llvm/Target/TargetOptions.h"
 using namespace std;
 using namespace llvm;
-#include "parser/parser.h"
+#include "../parser/parser.h"
 
-int main()
-{
 
-    Parser parser("srcf.qk");
-    parser.parse();
-    CodeGen* cg = CodeGen::GetInstance();
-    if (verifyModule(*(cg->module)))
-    {
-        printf("Error in CodeGen \n");
+
+class Bridge{
+    string FileName;
+    Parser parser;
+    CodeGen* cg;
+    public:
+    Bridge(const string& fn) : FileName(fn), parser(fn) {  
+         cg = CodeGen::GetInstance();
     }
+    void startCompilation(){ parser.parse(); }
+    void verifyIR() { if (verifyModule(*(cg->module))) cerr << "Error in CodeGen " << endl; }
+    
+    void createObjFile();
 
+};
+
+
+void Bridge::createObjFile(){
     auto TargetTriple = sys::getDefaultTargetTriple();
 
     InitializeAllTargetInfos();
@@ -37,11 +46,13 @@ int main()
     string Error;
     auto Target = TargetRegistry::lookupTarget(TargetTriple, Error);
 
+
     if (!Target)
     {
-        errs() << Error;
-        return 1;
+        cerr << Error;
+        return;
     }
+
     auto CPU = "generic";
     auto Features = "";
 
@@ -56,19 +67,33 @@ int main()
     raw_fd_ostream dest(Filename, EC, sys::fs::OF_None);
     if (EC)
     {
-        errs() << "Could not open file: " << EC.message();
-        return 0;
+        cerr << "Could not open file: " << EC.message();
+        return;
     }
+
     legacy::PassManager pass;
     auto FileType = CGFT_ObjectFile;
     if (TargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType))
     {
-        errs() << "TargetMachine can't emit a file of this type";
-        return 0;
+        cerr << "TargetMachine can't emit a file of this type";
+        return;
     }
-    pass.run(*(cg->module));
 
+    pass.run(*(cg->module));
     dest.flush();
+}
+
+int main(int argc,char** argv)
+{
+    if(argc < 2){
+        cerr << "Target File Not Specified" << endl;
+        return 0;
+    }   
+    string FileName(argv[1]);
+    Bridge bridge(FileName);
+    bridge.startCompilation();
+    bridge.verifyIR();
+    bridge.createObjFile();
     printf("Successfully Compiled");
     return 0;
 }
