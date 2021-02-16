@@ -4,15 +4,16 @@
 #include <utility>
 #include "../codegen/codegen.h"
 #include "../lexer/lexer.h"
+#include "../symboltable/symboltable.h"
 using namespace AST;
 using namespace std;
 
 class Parser
 {
     Lexer lexer;
-    AST::SymbolTable<string, Types> GlobalVarTable;
-    AST::SymbolTable<string, Types> LocalVarTable;
-    AST::SymbolTable<string, pair<vector<Types>, Types>> FunctionTable;
+    SymbolTable<string, Types> GlobalVarTable;
+    SymbolTable<string, Types> LocalVarTable;
+    SymbolTable<string, pair<vector<Types>, Types>> FunctionTable;
     map<string, int> OperatorPrecedence;
     bool parsingFuncDef;
     bool parsingIf_or_For;
@@ -30,9 +31,9 @@ public:
         OperatorPrecedence[">="] = 10;
         OperatorPrecedence["=="] = 10;
         OperatorPrecedence["!="] = 10;
-        GlobalVarTable = AST::SymbolTable<string, Types>();
-        LocalVarTable = AST::SymbolTable<string, Types>();
-        FunctionTable = AST::SymbolTable<string, pair<vector<Types>, Types>>();
+        GlobalVarTable = SymbolTable<string, Types>();
+        LocalVarTable = SymbolTable<string, Types>();
+        FunctionTable = SymbolTable<string, pair<vector<Types>, Types>>();
     }
     void parse();
     int getOperatorPrecedence();

@@ -10,8 +10,8 @@ using namespace AST;
 static CodeGen* cg = CodeGen::GetInstance();
 
 
-map<std::string, GlobalVariable *> SymTab;
-map<std::string, AllocaInst *> SymTabLoc;
+// map<std::string, GlobalVariable *> SymTab;
+// map<std::string, AllocaInst *> SymTabLoc;
 
 static bool generatingFunction = false;
 
@@ -63,7 +63,7 @@ llvm::Value *FunctionCall::codeGen()
 void FunctionCall::VarDecCodeGen(GlobalVariable *gVar, Types)
 {
     cg->builder->SetInsertPoint(cg->getCOPBB());
-    GlobalVariable *gvar = SymTab[Name];
+    GlobalVariable *gvar = cg->GlobalVarTable.getElement(Name);
     llvm::Value *v = codeGen();
     cg->builder->CreateAlignedStore(v, gVar, MaybeAlign(4));
 }
@@ -72,11 +72,11 @@ llvm::Value *Variable::codeGen()
 {
     if (generatingFunction)
     {
-        llvm::Value *v = SymTabLoc[Name];
+        llvm::Value *v = cg->LocalVarTable.getElement(Name);
         if (v)
             return cg->builder->CreateAlignedLoad(v, MaybeAlign(4), Name.c_str());
     }
-    GlobalVariable *gVar = SymTab[Name];
+    GlobalVariable *gVar = cg->GlobalVarTable.getElement(Name);
     if (!gVar)
         return nullptr;
     return cg->builder->CreateAlignedLoad(gVar, MaybeAlign(4), Name.c_str());
@@ -85,7 +85,7 @@ llvm::Value *Variable::codeGen()
 void Variable::VarDecCodeGen(GlobalVariable *gVar, Types)
 {
     cg->builder->SetInsertPoint(cg->getCOPBB());
-    GlobalVariable *gvar = SymTab[Name];
+    GlobalVariable *gvar = cg->GlobalVarTable.getElement(Name);
     llvm::Value *v = cg->builder->CreateAlignedLoad(gvar, MaybeAlign(4), Name.c_str());
     cg->builder->CreateAlignedStore(v, gVar, MaybeAlign(4));
 }
@@ -117,7 +117,7 @@ void GlobalVariableDeclaration::codegen()
         else
             gVar->setInitializer(ConstantFP::get(*(cg->context), APFloat(0.0)));
     }
-    SymTab[Name] = gVar;
+    cg->GlobalVarTable.addElement(Name,gVar);
 }
 
 void LocalVariableDeclaration::codegen()
@@ -142,7 +142,7 @@ void LocalVariableDeclaration::codegen()
         alloca = new AllocaInst(IntegerType::getInt32Ty(*(cg->context)), 0, 0, Align(4), Name.c_str(), cg->builder->GetInsertBlock());
     else if (vt == type_double)
         alloca = cg->builder->CreateAlloca(cg->builder->getDoubleTy(), 0, Name.c_str());
-    SymTabLoc[Name] = alloca;
+    cg->LocalVarTable.addElement(Name,alloca);
     cg->builder->CreateAlignedStore(val, alloca, MaybeAlign(4));
 }
 
@@ -160,10 +160,10 @@ void VariableAssignment::codegen()
     llvm::Value *val = exp->codeGen();
     if (!val)
         return;
-    llvm::Value *dest = SymTabLoc[Name];
+    llvm::Value *dest = cg->LocalVarTable.getElement(Name);
     if (!dest)
     {
-        GlobalVariable *globalDest = SymTab[Name];
+        GlobalVariable *globalDest = cg->GlobalVarTable.getElement(Name);
         if (!globalDest)
             return;
         cg->builder->CreateAlignedStore(val, globalDest, MaybeAlign(4));
@@ -362,12 +362,12 @@ void FunctionDefinition::codeGen()
         else
             alloca = cg->builder->CreateAlloca(cg->builder->getDoubleTy(), 0, name);
         cg->builder->CreateAlignedStore(ai, alloca, MaybeAlign(4));
-        SymTabLoc[name] = alloca;
+        cg->LocalVarTable.addElement(name, alloca);
         ai->setName(name);
     }
     compoundStatements->codegen();
     generatingFunction = false;
-    SymTabLoc.clear();
+    cg->LocalVarTable.clearTable();
     if (verifyFunction(*function))
     {
         string str = functionSignature->getName();

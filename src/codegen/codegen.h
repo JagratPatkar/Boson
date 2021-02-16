@@ -2,6 +2,7 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
+#include "../symboltable/symboltable.h"
 using namespace std;
 using namespace llvm;
 class CodeGen{
@@ -22,7 +23,8 @@ class CodeGen{
     unique_ptr<LLVMContext> context;
     unique_ptr<Module> module;
     unique_ptr<IRBuilder<>> builder;
-
+    SymbolTable<std::string, GlobalVariable *> GlobalVarTable;
+    SymbolTable<std::string, AllocaInst *> LocalVarTable;
     static CodeGen* GetInstance(){
         if(counter) return obj;
         else {
