@@ -1,14 +1,11 @@
 #include "parser.h"
 
-extern unique_ptr<Module> module;
-extern unique_ptr<IRBuilder<>> builder;
-extern BasicBlock *bb;
-extern void initialize();
+
+static CodeGen* cg = CodeGen::GetInstance();
 
 void Parser::parse()
 {
     lexer.getNextToken();
-    initialize();
     while (true)
     {
         if (lexer.isTokenInt() || lexer.isTokenDouble())
@@ -21,9 +18,8 @@ void Parser::parse()
         {
             if (!FunctionTable.doesElementExist("start"))
                 LogError("Start Function Not Found");
-            module->dump();
-            builder->SetInsertPoint(bb);
-            builder->CreateRetVoid();
+            cg->dumpIR();
+            cg->terminateCOPBB();
             lexer.closeFile();
             return;
         }

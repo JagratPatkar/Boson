@@ -2,6 +2,7 @@
 #include <memory>
 #include <map>
 #include <utility>
+#include "../codegen/codegen.h"
 #include "../lexer/lexer.h"
 using namespace AST;
 using namespace std;

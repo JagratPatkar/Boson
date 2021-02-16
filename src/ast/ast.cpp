@@ -1,27 +1,19 @@
 #include "ast.h"
+#include "../codegen/codegen.h"
 #include <vector>
 #include "llvm/IR/Verifier.h"
 using namespace std;
 using namespace llvm;
-
 using namespace AST;
 
-unique_ptr<LLVMContext> context = make_unique<LLVMContext>();
-unique_ptr<Module> module = make_unique<Module>("boson", *context);
-unique_ptr<IRBuilder<>> builder = make_unique<IRBuilder<>>(*context);
+
+static CodeGen* cg = CodeGen::GetInstance();
+
+
 map<std::string, GlobalVariable *> SymTab;
 map<std::string, AllocaInst *> SymTabLoc;
-FunctionType *funcType;
-Function *bin_func;
-BasicBlock *bb;
-static bool generatingFunction = false;
 
-void initialize()
-{
-    funcType = FunctionType::get(builder->getVoidTy(), false);
-    bin_func = Function::Create(funcType, Function::InternalLinkage, "op_func", *module);
-    bb = BasicBlock::Create(*context, "entry", bin_func);
-}
+static bool generatingFunction = false;
 
 Types AST::TypesOnToken(int type)
 {
@@ -47,17 +39,17 @@ const char *AST::TypesName(int t)
 
 llvm::Value *IntNum::codeGen()
 {
-    Type *type = IntegerType::getInt32Ty(*context);
+    Type *type = IntegerType::getInt32Ty(*(cg->context));
     return ConstantInt::get(type, Number, true);
 }
 llvm::Value *DoubleNum::codeGen()
 {
-    return ConstantFP::get(*context, APFloat(Number));
+    return ConstantFP::get(*(cg->context), APFloat(Number));
 }
 
 llvm::Value *FunctionCall::codeGen()
 {
-    Function *func = module->getFunction(Name);
+    Function *func = cg->module->getFunction(Name);
     vector<llvm::Value *> ArgsValue;
     for (auto i = args.begin(); i != args.end(); i++)
     {
@@ -65,15 +57,15 @@ llvm::Value *FunctionCall::codeGen()
         if (!ArgsValue.back())
             return nullptr;
     }
-    return builder->CreateCall(func, ArgsValue, "callres");
+    return cg->builder->CreateCall(func, ArgsValue, "callres");
 }
 
 void FunctionCall::VarDecCodeGen(GlobalVariable *gVar, Types)
 {
-    builder->SetInsertPoint(bb);
+    cg->builder->SetInsertPoint(cg->getCOPBB());
     GlobalVariable *gvar = SymTab[Name];
     llvm::Value *v = codeGen();
-    builder->CreateAlignedStore(v, gVar, MaybeAlign(4));
+    cg->builder->CreateAlignedStore(v, gVar, MaybeAlign(4));
 }
 
 llvm::Value *Variable::codeGen()
@@ -82,20 +74,20 @@ llvm::Value *Variable::codeGen()
     {
         llvm::Value *v = SymTabLoc[Name];
         if (v)
-            return builder->CreateAlignedLoad(v, MaybeAlign(4), Name.c_str());
+            return cg->builder->CreateAlignedLoad(v, MaybeAlign(4), Name.c_str());
     }
     GlobalVariable *gVar = SymTab[Name];
     if (!gVar)
         return nullptr;
-    return builder->CreateAlignedLoad(gVar, MaybeAlign(4), Name.c_str());
+    return cg->builder->CreateAlignedLoad(gVar, MaybeAlign(4), Name.c_str());
 }
 
 void Variable::VarDecCodeGen(GlobalVariable *gVar, Types)
 {
-    builder->SetInsertPoint(bb);
+    cg->builder->SetInsertPoint(cg->getCOPBB());
     GlobalVariable *gvar = SymTab[Name];
-    llvm::Value *v = builder->CreateAlignedLoad(gvar, MaybeAlign(4), Name.c_str());
-    builder->CreateAlignedStore(v, gVar, MaybeAlign(4));
+    llvm::Value *v = cg->builder->CreateAlignedLoad(gvar, MaybeAlign(4), Name.c_str());
+    cg->builder->CreateAlignedStore(v, gVar, MaybeAlign(4));
 }
 
 void AST::Value::VarDecCodeGen(GlobalVariable *gVar, Types)
@@ -110,20 +102,20 @@ void GlobalVariableDeclaration::codegen()
     Types vt = var->getType();
     if (vt == type_int)
     {
-        module->getOrInsertGlobal(Name, Type::getInt32Ty(*context));
+        cg->module->getOrInsertGlobal(Name, Type::getInt32Ty(*(cg->context)));
     }
     else
-        module->getOrInsertGlobal(Name, Type::getDoubleTy(*context));
-    GlobalVariable *gVar = module->getNamedGlobal(Name);
+        cg->module->getOrInsertGlobal(Name, Type::getDoubleTy(*(cg->context)));
+    GlobalVariable *gVar = cg->module->getNamedGlobal(Name);
     gVar->setAlignment(MaybeAlign(4));
     if (exp)
         exp->VarDecCodeGen(gVar, vt);
     else
     {
         if (vt == type_int)
-            gVar->setInitializer(ConstantInt::get(Type::getInt32Ty(*context), 0, true));
+            gVar->setInitializer(ConstantInt::get(Type::getInt32Ty(*(cg->context)), 0, true));
         else
-            gVar->setInitializer(ConstantFP::get(*context, APFloat(0.0)));
+            gVar->setInitializer(ConstantFP::get(*(cg->context), APFloat(0.0)));
     }
     SymTab[Name] = gVar;
 }
@@ -141,17 +133,17 @@ void LocalVariableDeclaration::codegen()
     else
     {
         if (vt == type_int)
-            val = ConstantInt::get(IntegerType::getInt32Ty(*context), 0, true);
+            val = ConstantInt::get(IntegerType::getInt32Ty(*(cg->context)), 0, true);
         else
-            val = ConstantFP::get(*context, APFloat(0.0));
+            val = ConstantFP::get(*(cg->context), APFloat(0.0));
     }
     AllocaInst *alloca;
     if (vt == type_int)
-        alloca = new AllocaInst(IntegerType::getInt32Ty(*context), 0, 0, Align(4), Name.c_str(), builder->GetInsertBlock());
+        alloca = new AllocaInst(IntegerType::getInt32Ty(*(cg->context)), 0, 0, Align(4), Name.c_str(), cg->builder->GetInsertBlock());
     else if (vt == type_double)
-        alloca = builder->CreateAlloca(builder->getDoubleTy(), 0, Name.c_str());
+        alloca = cg->builder->CreateAlloca(cg->builder->getDoubleTy(), 0, Name.c_str());
     SymTabLoc[Name] = alloca;
-    builder->CreateAlignedStore(val, alloca, MaybeAlign(4));
+    cg->builder->CreateAlignedStore(val, alloca, MaybeAlign(4));
 }
 
 void CompoundStatement::codegen()
@@ -174,11 +166,11 @@ void VariableAssignment::codegen()
         GlobalVariable *globalDest = SymTab[Name];
         if (!globalDest)
             return;
-        builder->CreateAlignedStore(val, globalDest, MaybeAlign(4));
+        cg->builder->CreateAlignedStore(val, globalDest, MaybeAlign(4));
     }
     else
     {
-        builder->CreateAlignedStore(val, dest, MaybeAlign(4));
+        cg->builder->CreateAlignedStore(val, dest, MaybeAlign(4));
     }
 }
 
@@ -190,17 +182,17 @@ void Return::codegen()
         if (!v)
             return;
         Types t = exp->getType();
-        builder->CreateRet(v);
+        cg->builder->CreateRet(v);
     }
     else
     {
-        builder->CreateRetVoid();
+        cg->builder->CreateRetVoid();
     }
 }
 
 void FunctionCall::codegen()
 {
-    Function *func = module->getFunction(Name);
+    Function *func = cg->module->getFunction(Name);
     vector<llvm::Value *> ArgsValue;
     for (auto i = args.begin(); i != args.end(); i++)
     {
@@ -208,59 +200,59 @@ void FunctionCall::codegen()
         if (!ArgsValue.back())
             return;
     }
-    builder->CreateCall(func, ArgsValue);
+    cg->builder->CreateCall(func, ArgsValue);
 }
 
 void IfElseStatement::codegen()
 {
-    BasicBlock *bb = builder->GetInsertBlock();
+    BasicBlock *bb = cg->builder->GetInsertBlock();
     Function *func = bb->getParent();
     llvm::Value *cmp = Condition->codeGen();
-    cmp = builder->CreateUIToFP(cmp, Type::getDoubleTy(*context), "convtoFP");
-    llvm::Value *cond = builder->CreateFCmpUNE(cmp, ConstantFP::get(*context, APFloat(0.0)), "ifcond");
-    BasicBlock *ThenBB = BasicBlock::Create(*context, "then", func);
-    BasicBlock *ElseBB = BasicBlock::Create(*context, "else", func);
-    BasicBlock *AfterIfElse = BasicBlock::Create(*context, "afterif", func);
-    builder->CreateCondBr(cond, ThenBB, ElseBB);
-    builder->SetInsertPoint(ThenBB);
+    cmp = cg->builder->CreateUIToFP(cmp, Type::getDoubleTy(*(cg->context)), "convtoFP");
+    llvm::Value *cond = cg->builder->CreateFCmpUNE(cmp, ConstantFP::get(*(cg->context), APFloat(0.0)), "ifcond");
+    BasicBlock *ThenBB = BasicBlock::Create(*(cg->context), "then", func);
+    BasicBlock *ElseBB = BasicBlock::Create(*(cg->context), "else", func);
+    BasicBlock *AfterIfElse = BasicBlock::Create(*(cg->context), "afterif", func);
+    cg->builder->CreateCondBr(cond, ThenBB, ElseBB);
+    cg->builder->SetInsertPoint(ThenBB);
     compoundStatements->codegen();
-    builder->CreateBr(AfterIfElse);
-    builder->SetInsertPoint(ElseBB);
+    cg->builder->CreateBr(AfterIfElse);
+    cg->builder->SetInsertPoint(ElseBB);
     elseCompoundStatements->codegen();
-    builder->CreateBr(AfterIfElse);
-    builder->SetInsertPoint(AfterIfElse);
+    cg->builder->CreateBr(AfterIfElse);
+    cg->builder->SetInsertPoint(AfterIfElse);
 }
 
 void ForStatement::codegen()
 {
-    BasicBlock *bb = builder->GetInsertBlock();
+    BasicBlock *bb = cg->builder->GetInsertBlock();
     Function *func = bb->getParent();
-    BasicBlock *LoopBB = BasicBlock::Create(*context, "loop", func);
-    BasicBlock *AfterLoopBB = BasicBlock::Create(*context, "afterloop", func);
+    BasicBlock *LoopBB = BasicBlock::Create(*(cg->context), "loop", func);
+    BasicBlock *AfterLoopBB = BasicBlock::Create(*(cg->context), "afterloop", func);
     if (lvd)
         lvd->codegen();
     if (va)
         va->codegen();
     llvm::Value *condition = cond->codeGen();
-    builder->CreateCondBr(condition, LoopBB, AfterLoopBB);
-    builder->SetInsertPoint(LoopBB);
+    cg->builder->CreateCondBr(condition, LoopBB, AfterLoopBB);
+    cg->builder->SetInsertPoint(LoopBB);
     compoundStatement->codegen();
     if (vastep)
         vastep->codegen();
     condition = cond->codeGen();
-    builder->CreateCondBr(condition, LoopBB, AfterLoopBB);
-    builder->SetInsertPoint(AfterLoopBB);
+    cg->builder->CreateCondBr(condition, LoopBB, AfterLoopBB);
+    cg->builder->SetInsertPoint(AfterLoopBB);
 }
 
 void BinaryExpression::VarDecCodeGen(GlobalVariable *gVar, Types vt)
 {
     if (vt == type_int)
-        gVar->setInitializer(ConstantInt::get(Type::getInt32Ty(*context), 0, true));
+        gVar->setInitializer(ConstantInt::get(Type::getInt32Ty(*(cg->context)), 0, true));
     else
-        gVar->setInitializer(ConstantFP::get(*context, APFloat(0.0)));
-    builder->SetInsertPoint(bb);
+        gVar->setInitializer(ConstantFP::get(*(cg->context), APFloat(0.0)));
+    cg->builder->SetInsertPoint(cg->getCOPBB());
     llvm::Value *v = codeGen();
-    builder->CreateAlignedStore(v, gVar, MaybeAlign(4));
+    cg->builder->CreateAlignedStore(v, gVar, MaybeAlign(4));
 }
 
 llvm::Value *BinaryExpression::codeGen()
@@ -273,25 +265,25 @@ llvm::Value *BinaryExpression::codeGen()
         switch (op)
         {
         case op_add:
-            return builder->CreateAdd(lhs, rhs, "additmp");
+            return cg->builder->CreateAdd(lhs, rhs, "additmp");
         case op_sub:
-            return builder->CreateSub(lhs, rhs, "subitmp");
+            return cg->builder->CreateSub(lhs, rhs, "subitmp");
         case op_mul:
-            return builder->CreateMul(lhs, rhs, "mulitmp");
+            return cg->builder->CreateMul(lhs, rhs, "mulitmp");
         case op_div:
-            return builder->CreateSDiv(lhs, rhs, "divitmp");
+            return cg->builder->CreateSDiv(lhs, rhs, "divitmp");
         case op_less_than:
-            return builder->CreateICmpULT(lhs, rhs, "ltcmpi");
+            return cg->builder->CreateICmpULT(lhs, rhs, "ltcmpi");
         case op_greater_than:
-            return builder->CreateICmpUGT(lhs, rhs, "gtcmpi");
+            return cg->builder->CreateICmpUGT(lhs, rhs, "gtcmpi");
         case op_less_than_eq:
-            return builder->CreateICmpULE(lhs, rhs, "lecmpi");
+            return cg->builder->CreateICmpULE(lhs, rhs, "lecmpi");
         case op_greater_than_eq:
-            return builder->CreateICmpUGE(lhs, rhs, "gecmpi");
+            return cg->builder->CreateICmpUGE(lhs, rhs, "gecmpi");
         case op_equal_to:
-            return builder->CreateICmpEQ(lhs, rhs, "eqi");
+            return cg->builder->CreateICmpEQ(lhs, rhs, "eqi");
         case op_not_equal_to:
-            return builder->CreateICmpNE(lhs, rhs, "neqcmpi");
+            return cg->builder->CreateICmpNE(lhs, rhs, "neqcmpi");
         case non_op:
             return nullptr;
         }
@@ -300,25 +292,25 @@ llvm::Value *BinaryExpression::codeGen()
     switch (op)
     {
     case op_add:
-        return builder->CreateFAdd(lhs, rhs, "addftmp");
+        return cg->builder->CreateFAdd(lhs, rhs, "addftmp");
     case op_sub:
-        return builder->CreateFSub(lhs, rhs, "subftmp");
+        return cg->builder->CreateFSub(lhs, rhs, "subftmp");
     case op_mul:
-        return builder->CreateFMul(lhs, rhs, "mulftmp");
+        return cg->builder->CreateFMul(lhs, rhs, "mulftmp");
     case op_div:
-        return builder->CreateFDiv(lhs, rhs, "divftmp");
+        return cg->builder->CreateFDiv(lhs, rhs, "divftmp");
     case op_less_than:
-        return builder->CreateFCmpULT(lhs, rhs, "ltcmpd");
+        return cg->builder->CreateFCmpULT(lhs, rhs, "ltcmpd");
     case op_greater_than:
-        return builder->CreateFCmpUGT(lhs, rhs, "gtcmpd");
+        return cg->builder->CreateFCmpUGT(lhs, rhs, "gtcmpd");
     case op_less_than_eq:
-        return builder->CreateFCmpULE(lhs, rhs, "lecmpd");
+        return cg->builder->CreateFCmpULE(lhs, rhs, "lecmpd");
     case op_greater_than_eq:
-        return builder->CreateFCmpUGE(lhs, rhs, "gecmpd");
+        return cg->builder->CreateFCmpUGE(lhs, rhs, "gecmpd");
     case op_equal_to:
-        return builder->CreateFCmpUEQ(lhs, rhs, "eqcmpd");
+        return cg->builder->CreateFCmpUEQ(lhs, rhs, "eqcmpd");
     case op_not_equal_to:
-        return builder->CreateFCmpUNE(lhs, rhs, "neqcmpd");
+        return cg->builder->CreateFCmpUNE(lhs, rhs, "neqcmpd");
     case non_op:
         return nullptr;
     }
@@ -333,30 +325,30 @@ void FunctionSignature::codegen()
     {
         Types t = i->get()->getType();
         if (t == type_int)
-            Args.push_back(builder->getInt32Ty());
+            Args.push_back(cg->builder->getInt32Ty());
         else
-            Args.push_back(builder->getDoubleTy());
+            Args.push_back(cg->builder->getDoubleTy());
     }
     if (getRetType() == type_int)
-        funcType = FunctionType::get(builder->getInt32Ty(), Args, false);
+        funcType = FunctionType::get(cg->builder->getInt32Ty(), Args, false);
     else if (getRetType() == type_double)
-        funcType = FunctionType::get(builder->getDoubleTy(), Args, false);
+        funcType = FunctionType::get(cg->builder->getDoubleTy(), Args, false);
     else if (getRetType() == type_void)
-        funcType = FunctionType::get(builder->getVoidTy(), Args, false);
-    Function *function = Function::Create(funcType, Function::ExternalLinkage, getName(), *module);
+        funcType = FunctionType::get(cg->builder->getVoidTy(), Args, false);
+    Function *function = Function::Create(funcType, Function::ExternalLinkage, getName(), *(cg->module));
 }
 
 void FunctionDefinition::codeGen()
 {
     generatingFunction = true;
     functionSignature->codegen();
-    Function *function = module->getFunction(functionSignature->getName());
-    BasicBlock *bb = BasicBlock::Create(*context, "entry", function);
-    builder->SetInsertPoint(bb);
+    Function *function = cg->module->getFunction(functionSignature->getName());
+    BasicBlock *bb = BasicBlock::Create(*(cg->context), "entry", function);
+    cg->builder->SetInsertPoint(bb);
     if (functionSignature->getName() == "start")
     {
         vector<llvm::Value *> args;
-        builder->CreateCall(bin_func, args);
+        cg->builder->CreateCall(cg->getCOPFP(), args);
     }
     Function::arg_iterator ai, ae;
     auto n = functionSignature->args.begin();
@@ -366,10 +358,10 @@ void FunctionDefinition::codeGen()
         Types t = n->get()->getType();
         AllocaInst *alloca;
         if (t == type_int)
-            alloca = new AllocaInst(IntegerType::getInt32Ty(*context), 0, 0, Align(4), name, builder->GetInsertBlock());
+            alloca = new AllocaInst(IntegerType::getInt32Ty(*(cg->context)), 0, 0, Align(4), name, cg->builder->GetInsertBlock());
         else
-            alloca = builder->CreateAlloca(builder->getDoubleTy(), 0, name);
-        builder->CreateAlignedStore(ai, alloca, MaybeAlign(4));
+            alloca = cg->builder->CreateAlloca(cg->builder->getDoubleTy(), 0, name);
+        cg->builder->CreateAlignedStore(ai, alloca, MaybeAlign(4));
         SymTabLoc[name] = alloca;
         ai->setName(name);
     }

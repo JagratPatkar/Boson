@@ -14,15 +14,14 @@
 using namespace std;
 using namespace llvm;
 #include "parser/parser.h"
-extern unique_ptr<Module> module;
 
 int main()
 {
 
     Parser parser("srcf.qk");
     parser.parse();
-
-    if (verifyModule(*module))
+    CodeGen* cg = CodeGen::GetInstance();
+    if (verifyModule(*(cg->module)))
     {
         printf("Error in CodeGen \n");
     }
@@ -49,8 +48,8 @@ int main()
     TargetOptions opt;
     auto RM = Optional<Reloc::Model>();
     auto TargetMachine = Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM);
-    module->setDataLayout(TargetMachine->createDataLayout());
-    module->setTargetTriple(TargetTriple);
+    cg->module->setDataLayout(TargetMachine->createDataLayout());
+    cg->module->setTargetTriple(TargetTriple);
 
     auto Filename = "output.o";
     error_code EC;
@@ -67,7 +66,7 @@ int main()
         errs() << "TargetMachine can't emit a file of this type";
         return 0;
     }
-    pass.run(*module);
+    pass.run(*(cg->module));
 
     dest.flush();
     printf("Successfully Compiled");
