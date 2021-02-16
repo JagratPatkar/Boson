@@ -13,7 +13,7 @@
 #include "llvm/Target/TargetOptions.h"
 using namespace std;
 using namespace llvm;
-#include "parser.h"
+#include "parser/parser.h"
 extern unique_ptr<Module> module;
 
 int main()
