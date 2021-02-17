@@ -24,7 +24,8 @@ class CodeGen{
     Function *bin_func;
     bool generatingFunction;
     BasicBlock *bb;
-    public:
+    public: 
+    
     unique_ptr<LLVMContext> context;
     unique_ptr<Module> module;
     unique_ptr<IRBuilder<>> builder;

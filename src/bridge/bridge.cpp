@@ -30,7 +30,6 @@ class Bridge{
     void verifyIR() { if (verifyModule(*(cg->module))) cerr << "Error in CodeGen " << endl; }
     
     void createObjFile();
-
 };
 
 

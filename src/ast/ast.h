@@ -286,7 +286,6 @@ namespace AST
         VariableDeclaration(unique_ptr<Variable> var, unique_ptr<Expression> exp) : var(move(var)), exp(move(exp))
         {
         }
-        virtual void codegen() override{};
     };
 
     class GlobalVariableDeclaration : public VariableDeclaration
