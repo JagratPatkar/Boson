@@ -26,48 +26,6 @@ void Parser::parse()
     }
 }
 
-unique_ptr<Statement> Parser::ParseVariableDeclarationStatement()
-{
-    int type = lexer.getCurrentToken();
-    lexer.getNextToken();
-    if (!lexer.isTokenIdentifier())
-    {
-        LogError("Identifier Expected");
-        return nullptr;
-    }
-    string name = lexer.getIdentifier();
-    if (GlobalVarTable.doesElementExist(name))
-    {
-        LogError("Illegal Re-declaration");
-        return nullptr;
-    }
-    Types typedType = AST::TypesOnToken(type);
-    GlobalVarTable.addElement(name, typedType);
-    auto var = make_unique<Variable>(name, typedType);
-    lexer.getNextToken();
-    unique_ptr<Expression> exp = nullptr;
-    if (lexer.isTokenAssignmentOp())
-    {
-        lexer.getNextToken();
-        exp = ParseExpression();
-        int t1 = (int)var->getType();
-        int t2 = (int)exp->getType();
-        if (t1 != t2)
-        {
-            LogTypeError(t1, t2);
-            return nullptr;
-        }
-    }
-    if (!lexer.isTokenSemiColon())
-    {
-        LogError("Expected ';' or '='");
-        return nullptr;
-    }
-    return make_unique<GlobalVariableDeclaration>(move(var), move(exp));
-}
-
-
-
 
 unique_ptr<Expression> Parser::LogTypeError(int t1, int t2)
 {
@@ -295,36 +253,13 @@ unique_ptr<Statement> Parser::ParseStatementIdentifier()
 
 unique_ptr<Statement> Parser::ParseVariableAssignmentStatement(const string &name)
 {
-    int t1;
-    if (LocalVarTable.doesElementExist(name))
-        t1 = LocalVarTable.getElement(name);
-    else if (GlobalVarTable.doesElementExist(name))
-        t1 = GlobalVarTable.getElement(name);
-    else
-    {
-        LogError("Undefined Variable");
-        return nullptr;
-    }
-    auto var = make_unique<Variable>(name, (Types)t1);
-    if (!lexer.isTokenAssignmentOp())
-    {
-        LogError("Missing '=' operator");
-        return nullptr;
-    }
-    lexer.getNextToken();
-    auto exp = ParseExpression();
-    int t2 = exp->getType();
-    if (t1 != t2)
-    {
-        LogTypeError(t1, t2);
-        return nullptr;
-    }
+    auto VA = VariableAssignmentStatementHelper(name);
     if (!lexer.isTokenSemiColon())
     {
         LogError("Expected a end of statement");
         return nullptr;
     }
-    return make_unique<VariableAssignment>(move(var), move(exp));
+    return move(VA);
 }
 
 
@@ -377,6 +312,45 @@ unique_ptr<Statement> Parser::ParseCallStatement(const string &name)
     return make_unique<FunctionCall>(name, move(Args), p.second);
 }
 
+unique_ptr<Statement> Parser::ParseVariableDeclarationStatement()
+{
+    int type = lexer.getCurrentToken();
+    lexer.getNextToken();
+    if (!lexer.isTokenIdentifier())
+    {
+        LogError("Identifier Expected");
+        return nullptr;
+    }
+    string name = lexer.getIdentifier();
+    if (GlobalVarTable.doesElementExist(name))
+    {
+        LogError("Illegal Re-declaration");
+        return nullptr;
+    }
+    Types typedType = AST::TypesOnToken(type);
+    GlobalVarTable.addElement(name, typedType);
+    auto var = make_unique<Variable>(name, typedType);
+    lexer.getNextToken();
+    unique_ptr<Expression> exp = nullptr;
+    if (lexer.isTokenAssignmentOp())
+    {
+        lexer.getNextToken();
+        exp = ParseExpression();
+        int t1 = (int)var->getType();
+        int t2 = (int)exp->getType();
+        if (t1 != t2)
+        {
+            LogTypeError(t1, t2);
+            return nullptr;
+        }
+    }
+    if (!lexer.isTokenSemiColon())
+    {
+        LogError("Expected ';' or '='");
+        return nullptr;
+    }
+    return make_unique<GlobalVariableDeclaration>(move(var), move(exp));
+}
 
 unique_ptr<Statement> Parser::ParseLocalVariableDeclarationStatement()
 {
@@ -508,53 +482,16 @@ unique_ptr<Statement> Parser::ParseForStatement()
     lexer.getNextToken();
     if (lexer.isTokenInt() || lexer.isTokenDouble())
     {
-        int type = lexer.getCurrentToken();
-        lexer.getNextToken();
-        if (!lexer.isTokenIdentifier())
-        {
-            LogError("Identifier Expected");
-            return nullptr;
-        }
-        string name = lexer.getIdentifier();
-        if (LocalVarTable.doesElementExist(name))
-        {
-            LogError("Illegal Re-declaration");
-            return nullptr;
-        }
-        Types typedType = AST::TypesOnToken(type);
-        LocalVarTable.addElement(name, typedType);
-        auto var = make_unique<Variable>(name, typedType);
-        lexer.getNextToken();
-        unique_ptr<Expression> exp = nullptr;
-        if (lexer.isTokenAssignmentOp())
-        {
-            lexer.getNextToken();
-            exp = ParseExpression();
-            int t1 = (int)var->getType();
-            int t2 = (int)exp->getType();
-            if (t1 != t2)
-            {
-                LogTypeError(t1, t2);
-                return nullptr;
-            }
-        }
-        if (!lexer.isTokenSemiColon())
-        {
-            LogError("Expected ';' or '='");
-            return nullptr;
-        }
-        lvd = make_unique<LocalVariableDeclaration>(move(var), move(exp));
+
+        auto rtl = ParseLocalVariableDeclarationStatement();
+        LocalVariableDeclaration* ptrlvd = (LocalVariableDeclaration*)rtl.release();
+        lvd.reset(ptrlvd);
     }
     else if (lexer.isTokenIdentifier())
     {
         string Name = lexer.getIdentifier();
         lexer.getNextToken();
-        va = VariableAssignmentStatementHelper(Name);
-        if (!lexer.isTokenSemiColon())
-        {
-            LogError("Expected a ';' in 'for'");
-            return nullptr;
-        }
+        va.reset(((VariableAssignment*)ParseVariableAssignmentStatement(Name).release()));
         lvd = nullptr;
     }
     else if (lexer.isTokenSemiColon())
