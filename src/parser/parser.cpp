@@ -331,7 +331,7 @@ unique_ptr<Statement> Parser::ParseVariableDeclarationStatement()
             return nullptr;
         }
     }else{
-        if ((LocalVarTable.doesElementExist(name) && parsingFuncDef) || GlobalVarTable.doesElementExist(name))
+        if (GlobalVarTable.doesElementExist(name))
         {
             LogError("Illegal Re-declaration");
             return nullptr;
