@@ -6,6 +6,7 @@
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/IR/Module.h"
+#include "../codegen/codegen.h"
 using namespace llvm;
 using namespace std;
 namespace AST
@@ -19,26 +20,145 @@ namespace AST
         type_err = -4,
     };
 
-    enum BinOps
+    class BinOps
     {
-        op_add = -1,
-        op_sub = -2,
-        op_mul = -3,
-        op_div = -4,
-        op_less_than = -5,
-        op_greater_than = -6,
-        op_less_than_eq = -7,
-        op_greater_than_eq = -9,
-        op_equal_to = -10,
-        op_not_equal_to = -11,
-        non_op = -12
+    protected:
+        CodeGen *cg;
+
+    public:
+        BinOps()
+        {
+            cg = CodeGen::GetInstance();
+        }
+        virtual llvm::Value *codeGenInt(llvm::Value*, llvm::Value*) = 0;
+        virtual llvm::Value *codeGenDouble(llvm::Value*, llvm::Value*) = 0;
+        virtual ~BinOps() {}
+    };
+
+    class OpAdd : public BinOps
+    {
+        llvm::Value* codeGenInt(llvm::Value* lhs, llvm::Value* rhs) override
+        {
+            return cg->builder->CreateAdd(lhs, rhs, "additmp");
+        }
+        llvm::Value *codeGenDouble(llvm::Value* lhs, llvm::Value* rhs) override
+        {
+            return cg->builder->CreateFAdd(lhs, rhs, "addftmp");
+        }
+    };
+
+    class OpSub : public BinOps
+    {
+        llvm::Value* codeGenInt(llvm::Value* lhs, llvm::Value* rhs) override
+        {
+            return cg->builder->CreateSub(lhs, rhs, "subitmp");
+        }
+        llvm::Value *codeGenDouble(llvm::Value* lhs, llvm::Value* rhs) override 
+        { 
+            return cg->builder->CreateFSub(lhs, rhs, "subftmp"); 
+        }
+    };
+
+    class OpMul : public BinOps
+    {
+        llvm::Value* codeGenInt(llvm::Value* lhs,llvm::Value* rhs) override 
+        { 
+            return cg->builder->CreateMul(lhs, rhs, "mulitmp"); 
+        }
+        llvm::Value *codeGenDouble(llvm::Value* lhs,llvm::Value* rhs) override 
+        { 
+            return cg->builder->CreateFMul(lhs, rhs, "mulftmp"); 
+        }
+    };
+
+    class OpDiv : public BinOps
+    {
+        llvm::Value* codeGenInt(llvm::Value* lhs,llvm::Value* rhs) override 
+        { 
+            return cg->builder->CreateSDiv(lhs, rhs, "divitmp"); 
+        }
+        llvm::Value *codeGenDouble(llvm::Value* lhs,llvm::Value* rhs) override 
+        { 
+            return cg->builder->CreateFDiv(lhs, rhs, "divftmp"); 
+        }
+    };
+
+    class OpLessThan : public BinOps
+    {
+        llvm::Value *codeGenInt(llvm::Value* lhs,llvm::Value* rhs) override 
+        { 
+            return cg->builder->CreateICmpULT(lhs, rhs, "ltcmpi"); 
+        }
+        llvm::Value *codeGenDouble(llvm::Value* lhs,llvm::Value* rhs) override 
+        { 
+            return cg->builder->CreateFCmpULT(lhs, rhs, "ltcmpd"); 
+        }
+    };
+
+    class OpGreaterThan : public BinOps
+    {
+        llvm::Value *codeGenInt(llvm::Value* lhs,llvm::Value* rhs) override 
+        { 
+            return cg->builder->CreateICmpUGT(lhs, rhs, "gtcmpi"); 
+        }
+        llvm::Value *codeGenDouble(llvm::Value* lhs,llvm::Value* rhs) override 
+        { 
+            return cg->builder->CreateFCmpUGT(lhs, rhs, "gtcmpd"); 
+        }
+    };
+
+    class OpLessThanEq : public BinOps
+    {
+        llvm::Value *codeGenInt(llvm::Value* lhs,llvm::Value* rhs) override 
+        { 
+            return cg->builder->CreateICmpULE(lhs, rhs, "lecmpi"); 
+        }
+        llvm::Value *codeGenDouble(llvm::Value* lhs,llvm::Value* rhs) override 
+        { 
+            return cg->builder->CreateFCmpULE(lhs, rhs, "lecmpd"); 
+        }
+    };
+
+    class OpGreaterThanEq : public BinOps
+    {
+        llvm::Value *codeGenInt(llvm::Value* lhs,llvm::Value* rhs) override 
+        { 
+            return cg->builder->CreateICmpUGE(lhs, rhs, "gecmpi"); 
+        }
+        llvm::Value *codeGenDouble(llvm::Value* lhs,llvm::Value* rhs) override 
+        { 
+            return cg->builder->CreateFCmpUGE(lhs, rhs, "gecmpd");
+        }
+    };
+
+    class OpEqualTo : public BinOps
+    {
+        llvm::Value *codeGenInt(llvm::Value* lhs,llvm::Value* rhs) override 
+        { 
+            return cg->builder->CreateICmpEQ(lhs, rhs, "eqi"); 
+        }
+        llvm::Value *codeGenDouble(llvm::Value* lhs,llvm::Value* rhs) override 
+        { 
+            return cg->builder->CreateFCmpUEQ(lhs, rhs, "eqcmpd"); 
+        }
+    };
+
+    class OpNotEqualTo : public BinOps
+    {
+        llvm::Value *codeGenInt(llvm::Value* lhs,llvm::Value* rhs) override 
+        { 
+            return cg->builder->CreateICmpNE(lhs, rhs, "neqcmpi"); 
+        }
+        llvm::Value *codeGenDouble(llvm::Value* lhs,llvm::Value* rhs) override 
+        { 
+            return cg->builder->CreateFCmpUNE(lhs, rhs, "neqcmpd"); 
+        }
     };
 
     Types TypesOnToken(int type);
 
     const char *TypesName(int t);
 
-  
     class Expression
     {
     protected:
@@ -95,12 +215,12 @@ namespace AST
 
     class BinaryExpression : public Expression
     {
-        BinOps op;
+        unique_ptr<BinOps> op;
         unique_ptr<Expression> LVAL;
         unique_ptr<Expression> RVAL;
 
     public:
-        BinaryExpression(BinOps op, unique_ptr<Expression> LVAL, unique_ptr<Expression> RVAL, Types ExpressionType) : op(op), LVAL(move(LVAL)), RVAL(move(RVAL)), Expression(ExpressionType)
+        BinaryExpression(unique_ptr<BinOps> op, unique_ptr<Expression> LVAL, unique_ptr<Expression> RVAL, Types ExpressionType) : op(move(op)), LVAL(move(LVAL)), RVAL(move(RVAL)), Expression(ExpressionType)
         {
         }
         llvm::Value *codeGen() override;
@@ -267,4 +387,4 @@ namespace AST
         }
         void codegen() override;
     };
-} 
+} // namespace AST

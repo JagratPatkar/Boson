@@ -37,7 +37,7 @@ public:
     }
     void parse();
     int getOperatorPrecedence();
-    BinOps returnBinOpsType();
+    unique_ptr<BinOps> returnBinOpsType();
     std::unique_ptr<AST::Expression> ParseExpression();
     std::unique_ptr<AST::Expression> ParseParen();
     std::unique_ptr<AST::Statement> ParseStatement();

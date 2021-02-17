@@ -5,6 +5,9 @@
 #include "../symboltable/symboltable.h"
 using namespace std;
 using namespace llvm;
+
+#ifndef CODEGEN
+#define CODEGEN
 class CodeGen{
     static int counter;
     static CodeGen* obj;
@@ -49,3 +52,4 @@ class CodeGen{
     void generatingFunctionOff() { generatingFunction = false; }
     bool getGeneratingFunction() { return generatingFunction; }
 };
+#endif

@@ -31,6 +31,9 @@ const char *AST::TypesName(int t)
     return "unknown type";
 }
 
+
+
+
 llvm::Value *IntNum::codeGen()
 {
     Type *type = IntegerType::getInt32Ty(*(cg->context));
@@ -254,60 +257,9 @@ llvm::Value *BinaryExpression::codeGen()
     llvm::Value *lhs = LVAL->codeGen();
     llvm::Value *rhs = RVAL->codeGen();
 
-    if (LVAL->getType() == type_int)
-    {
-        switch (op)
-        {
-        case op_add:
-            return cg->builder->CreateAdd(lhs, rhs, "additmp");
-        case op_sub:
-            return cg->builder->CreateSub(lhs, rhs, "subitmp");
-        case op_mul:
-            return cg->builder->CreateMul(lhs, rhs, "mulitmp");
-        case op_div:
-            return cg->builder->CreateSDiv(lhs, rhs, "divitmp");
-        case op_less_than:
-            return cg->builder->CreateICmpULT(lhs, rhs, "ltcmpi");
-        case op_greater_than:
-            return cg->builder->CreateICmpUGT(lhs, rhs, "gtcmpi");
-        case op_less_than_eq:
-            return cg->builder->CreateICmpULE(lhs, rhs, "lecmpi");
-        case op_greater_than_eq:
-            return cg->builder->CreateICmpUGE(lhs, rhs, "gecmpi");
-        case op_equal_to:
-            return cg->builder->CreateICmpEQ(lhs, rhs, "eqi");
-        case op_not_equal_to:
-            return cg->builder->CreateICmpNE(lhs, rhs, "neqcmpi");
-        case non_op:
-            return nullptr;
-        }
-    }
-
-    switch (op)
-    {
-    case op_add:
-        return cg->builder->CreateFAdd(lhs, rhs, "addftmp");
-    case op_sub:
-        return cg->builder->CreateFSub(lhs, rhs, "subftmp");
-    case op_mul:
-        return cg->builder->CreateFMul(lhs, rhs, "mulftmp");
-    case op_div:
-        return cg->builder->CreateFDiv(lhs, rhs, "divftmp");
-    case op_less_than:
-        return cg->builder->CreateFCmpULT(lhs, rhs, "ltcmpd");
-    case op_greater_than:
-        return cg->builder->CreateFCmpUGT(lhs, rhs, "gtcmpd");
-    case op_less_than_eq:
-        return cg->builder->CreateFCmpULE(lhs, rhs, "lecmpd");
-    case op_greater_than_eq:
-        return cg->builder->CreateFCmpUGE(lhs, rhs, "gecmpd");
-    case op_equal_to:
-        return cg->builder->CreateFCmpUEQ(lhs, rhs, "eqcmpd");
-    case op_not_equal_to:
-        return cg->builder->CreateFCmpUNE(lhs, rhs, "neqcmpd");
-    case non_op:
-        return nullptr;
-    }
+    if (LVAL->getType() == type_int) return op->codeGenInt(lhs,rhs);
+    else return op->codeGenDouble(lhs,rhs);
+   
     return nullptr;
 }
 

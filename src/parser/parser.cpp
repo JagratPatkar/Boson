@@ -104,29 +104,30 @@ unique_ptr<Expression> Parser::ParseParen()
     return move(exp);
 }
 
-BinOps Parser::returnBinOpsType()
+unique_ptr<BinOps> Parser::returnBinOpsType()
 {
     if (lexer.isTokenAddSym())
-        return op_add;
+        return make_unique<OpAdd>();
     else if (lexer.isTokenSubSym())
-        return op_sub;
+        return make_unique<OpSub>();
     else if (lexer.isTokenMulSym())
-        return op_mul;
+        return make_unique<OpMul>();
     else if (lexer.isTokenDivSym())
-        return op_div;
+        return make_unique<OpDiv>();
     else if (lexer.isTokenLessThan())
-        return op_less_than;
+        return make_unique<OpLessThan>();
     else if (lexer.isTokenLessThanEq())
-        return op_less_than_eq;
+        return make_unique<OpLessThanEq>();
     else if (lexer.isTokenGreaterThan())
-        return op_greater_than;
+        return make_unique<OpGreaterThan>();
     else if (lexer.isTokenGreaterThanEq())
-        return op_greater_than_eq;
+        return make_unique<OpGreaterThanEq>();
     else if (lexer.isTokenNotEqualTo())
-        return op_not_equal_to;
+        return make_unique<OpNotEqualTo>();
     else if (lexer.isTokenEqualTo())
-        return op_equal_to;
-    return non_op;
+        return make_unique<OpEqualTo>();
+    LogError("Udefined Operator");
+    return NULL;
 }
 
 int Parser::getOperatorPrecedence()
@@ -161,7 +162,7 @@ unique_ptr<Expression> Parser::ParseBinOP(int minPrec, unique_ptr<Expression> lv
         int prevPrec = getOperatorPrecedence();
         if (prevPrec < minPrec)
             return move(lvalue);
-        BinOps op_typ = returnBinOpsType();
+        auto BinOp  = returnBinOpsType();
         lexer.getNextToken();
         auto rvalue = ParsePrimary();
         if (!rvalue)
@@ -177,7 +178,7 @@ unique_ptr<Expression> Parser::ParseBinOP(int minPrec, unique_ptr<Expression> lv
             if (!rvalue)
                 return nullptr;
         }
-        lvalue = make_unique<BinaryExpression>(op_typ, move(lvalue), move(rvalue), t);
+        lvalue = make_unique<BinaryExpression>(move(BinOp), move(lvalue), move(rvalue), t);
     }
 }
 
