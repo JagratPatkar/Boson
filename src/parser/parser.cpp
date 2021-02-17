@@ -331,7 +331,7 @@ unique_ptr<Statement> Parser::ParseVariableDeclarationStatement()
             return nullptr;
         }
     }else{
-        if (GlobalVarTable.doesElementExist(name))
+        if ((LocalVarTable.doesElementExist(name) && parsingFuncDef) || GlobalVarTable.doesElementExist(name))
         {
             LogError("Illegal Re-declaration");
             return nullptr;
@@ -455,7 +455,6 @@ unique_ptr<Statement> Parser::ParseForStatement()
     lexer.getNextToken();
     if (lexer.isTokenInt() || lexer.isTokenDouble())
     {
-
         auto rtl = ParseVariableDeclarationStatement();
         LocalVariableDeclaration* ptrlvd = (LocalVariableDeclaration*)rtl.release();
         lvd.reset(ptrlvd);
