@@ -7,6 +7,7 @@
 #include "llvm/ADT/APInt.h"
 #include "llvm/IR/Module.h"
 #include "../codegen/codegen.h"
+#include "type.h"
 using namespace llvm;
 using namespace std;
 namespace AST
@@ -19,6 +20,7 @@ namespace AST
         type_void = -3,
         type_err = -4,
     };
+
 
     class BinOps
     {
@@ -162,12 +164,16 @@ namespace AST
     class Expression
     {
     protected:
+        // CodeGen* cg;
         Types ExpressionType;
-
+        ::Type* type;
     public:
-        Expression(Types ExpressionType) : ExpressionType(ExpressionType) {}
+        Expression(Types ExpressionType,::Type* type) : ExpressionType(ExpressionType) , type(type) {
+            // cg = CodeGen::GetInstance();
+        }
         virtual ~Expression() {}
         virtual Types getType() = 0;
+        virtual ::Type* getNType() = 0;
         virtual llvm::Value *codeGen() = 0;
         virtual void VarDecCodeGen(GlobalVariable *, Types) = 0;
     };
@@ -175,8 +181,9 @@ namespace AST
     class Value : public Expression
     {
     public:
-        Value(Types ExpressionType) : Expression(ExpressionType) {}
+        Value(Types ExpressionType,::Type* type) : Expression(ExpressionType,type) {}
         void VarDecCodeGen(GlobalVariable *, Types) override;
+
     };
 
     class IntNum : public Value
@@ -184,8 +191,10 @@ namespace AST
         int Number;
 
     public:
-        IntNum(int Number) : Number(Number), Value(type_int) {}
+        IntNum(int Number) : Number(Number), Value(type_int,new Int()) {}
         Types getType() override { return type_int; }
+        ::Type* getNType() override { return type; }
+        llvm::Value* getZeroConstant() {  return ConstantInt::get(type->getLLVMType(), 0, true); }
         llvm::Value *codeGen() override;
     };
 
@@ -194,8 +203,10 @@ namespace AST
         double Number;
 
     public:
-        DoubleNum(double Number) : Number(Number), Value(type_double) {}
+        DoubleNum(double Number) : Number(Number), Value(type_double,new Double()) {}
         Types getType() override { return type_double; }
+        ::Type* getNType() override { return type; }
+        llvm::Value* getZeroConstant() {  return ConstantFP::get(type->getLLVMType(), APFloat(0.0)); }
         llvm::Value *codeGen() override;
     };
 
@@ -204,11 +215,12 @@ namespace AST
         string Name;
 
     public:
-        Variable(const string &Name, Types VariableType) : Name(Name), Expression(VariableType)
+        Variable(const string &Name, Types VariableType) : Name(Name), Expression(VariableType,nullptr)
         {
         }
         const string getName() { return Name; }
         Types getType() override { return ExpressionType; }
+        ::Type* getNType() override { return type; }
         void VarDecCodeGen(GlobalVariable *, Types) override;
         llvm::Value *codeGen() override;
     };
@@ -220,18 +232,20 @@ namespace AST
         unique_ptr<Expression> RVAL;
 
     public:
-        BinaryExpression(unique_ptr<BinOps> op, unique_ptr<Expression> LVAL, unique_ptr<Expression> RVAL, Types ExpressionType) : op(move(op)), LVAL(move(LVAL)), RVAL(move(RVAL)), Expression(ExpressionType)
+        BinaryExpression(unique_ptr<BinOps> op, unique_ptr<Expression> LVAL, unique_ptr<Expression> RVAL, Types ExpressionType) : op(move(op)), LVAL(move(LVAL)), RVAL(move(RVAL)), Expression(ExpressionType,nullptr)
         {
         }
         llvm::Value *codeGen() override;
         void VarDecCodeGen(GlobalVariable *, Types) override;
         Types getType() override { return ExpressionType; }
+        ::Type* getNType() override { return type; }
     };
 
     class Statement
     {
     public:
-        Statement() {}
+        Statement() {
+        }
         virtual ~Statement() {}
         virtual void codegen() = 0;
         virtual bool isReturnStatement() { return false; }
@@ -350,10 +364,11 @@ namespace AST
         vector<unique_ptr<Expression>> args;
 
     public:
-        FunctionCall(const string &Name, vector<unique_ptr<Expression>> args, Types type) : Expression(type), Name(Name), args(move(args))
+        FunctionCall(const string &Name, vector<unique_ptr<Expression>> args, Types type) : Expression(type,nullptr), Name(Name), args(move(args))
         {
         }
         void codegen() override;
+        ::Type* getNType() override {return nullptr;}
         llvm::Value *codeGen() override;
         Types getType() override { return ExpressionType; }
         void VarDecCodeGen(GlobalVariable *, Types) override;

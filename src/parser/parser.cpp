@@ -19,6 +19,7 @@ void Parser::parse()
             if (!FunctionTable.doesElementExist("start"))
                 LogError("Start Function Not Found");
             cg->terminateCOPBB();
+            cg->dumpIR();
             lexer.closeFile();
             return;
         }
@@ -102,6 +103,13 @@ unique_ptr<Expression> Parser::ParseParen()
     }
     lexer.getNextToken();
     return move(exp);
+}
+
+::Type* Parser::getType(){
+        if(lexer.isTokenInt()) return new Int();
+        if(lexer.isTokenDouble()) return new Double();
+        if(lexer.isTokenVoid()) return new Void();
+        return nullptr;
 }
 
 unique_ptr<BinOps> Parser::returnBinOpsType()
@@ -317,6 +325,7 @@ unique_ptr<Statement> Parser::ParseCallStatement(const string &name)
 
 unique_ptr<Statement> Parser::ParseVariableDeclarationStatement()
 {
+    ::Type* ty = this->getType();
     int type = lexer.getCurrentToken();
     lexer.getNextToken();
     if (!lexer.isTokenIdentifier())
@@ -351,9 +360,11 @@ unique_ptr<Statement> Parser::ParseVariableDeclarationStatement()
         exp = ParseExpression();
         int t1 = (int)var->getType();
         int t2 = (int)exp->getType();
-        if (t1 != t2)
+        
+        if (ty->doesMatch(exp->getNType()))
         {
-            LogTypeError(t1, t2);
+            // LogTypeError(t1, t2);
+            LogError("Type Mismatch");
             return nullptr;
         }
     }

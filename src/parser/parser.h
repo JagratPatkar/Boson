@@ -4,6 +4,7 @@
 #include <utility>
 #include "../codegen/codegen.h"
 #include "../lexer/lexer.h"
+#include "../ast/type.h"
 #include "../symboltable/symboltable.h"
 using namespace AST;
 using namespace std;
@@ -36,8 +37,10 @@ public:
         FunctionTable = SymbolTable<string, pair<vector<Types>, Types>>();
     }
     void parse();
+    ::Type* getType();
     int getOperatorPrecedence();
     unique_ptr<BinOps> returnBinOpsType();
+    
     std::unique_ptr<AST::Expression> ParseExpression();
     std::unique_ptr<AST::Expression> ParseParen();
     std::unique_ptr<AST::Statement> ParseStatement();

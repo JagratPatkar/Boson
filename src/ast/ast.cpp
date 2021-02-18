@@ -36,7 +36,7 @@ const char *AST::TypesName(int t)
 
 llvm::Value *IntNum::codeGen()
 {
-    Type *type = IntegerType::getInt32Ty(*(cg->context));
+    llvm::Type *type = IntegerType::getInt32Ty(*(cg->context));
     return ConstantInt::get(type, Number, true);
 }
 llvm::Value *DoubleNum::codeGen()
@@ -99,10 +99,10 @@ void GlobalVariableDeclaration::codegen()
     Types vt = var->getType();
     if (vt == type_int)
     {
-        cg->module->getOrInsertGlobal(Name, Type::getInt32Ty(*(cg->context)));
+        cg->module->getOrInsertGlobal(Name, llvm::Type::getInt32Ty(*(cg->context)));
     }
     else
-        cg->module->getOrInsertGlobal(Name, Type::getDoubleTy(*(cg->context)));
+        cg->module->getOrInsertGlobal(Name, llvm::Type::getDoubleTy(*(cg->context)));
     GlobalVariable *gVar = cg->module->getNamedGlobal(Name);
     gVar->setAlignment(MaybeAlign(4));
     if (exp)
@@ -110,7 +110,7 @@ void GlobalVariableDeclaration::codegen()
     else
     {
         if (vt == type_int)
-            gVar->setInitializer(ConstantInt::get(Type::getInt32Ty(*(cg->context)), 0, true));
+            gVar->setInitializer(ConstantInt::get(llvm::Type::getInt32Ty(*(cg->context)), 0, true));
         else
             gVar->setInitializer(ConstantFP::get(*(cg->context), APFloat(0.0)));
     }
@@ -205,7 +205,7 @@ void IfElseStatement::codegen()
     BasicBlock *bb = cg->builder->GetInsertBlock();
     Function *func = bb->getParent();
     llvm::Value *cmp = Condition->codeGen();
-    cmp = cg->builder->CreateUIToFP(cmp, Type::getDoubleTy(*(cg->context)), "convtoFP");
+    cmp = cg->builder->CreateUIToFP(cmp, llvm::Type::getDoubleTy(*(cg->context)), "convtoFP");
     llvm::Value *cond = cg->builder->CreateFCmpUNE(cmp, ConstantFP::get(*(cg->context), APFloat(0.0)), "ifcond");
     BasicBlock *ThenBB = BasicBlock::Create(*(cg->context), "then", func);
     BasicBlock *ElseBB = BasicBlock::Create(*(cg->context), "else", func);
@@ -244,7 +244,7 @@ void ForStatement::codegen()
 void BinaryExpression::VarDecCodeGen(GlobalVariable *gVar, Types vt)
 {
     if (vt == type_int)
-        gVar->setInitializer(ConstantInt::get(Type::getInt32Ty(*(cg->context)), 0, true));
+        gVar->setInitializer(ConstantInt::get(llvm::Type::getInt32Ty(*(cg->context)), 0, true));
     else
         gVar->setInitializer(ConstantFP::get(*(cg->context), APFloat(0.0)));
     cg->builder->SetInsertPoint(cg->getCOPBB());
@@ -266,7 +266,7 @@ llvm::Value *BinaryExpression::codeGen()
 void FunctionSignature::codegen()
 {
     FunctionType *funcType;
-    vector<Type *> Args;
+    vector<llvm::Type *> Args;
     for (auto i = args.begin(); i != args.end(); i++)
     {
         Types t = i->get()->getType();
