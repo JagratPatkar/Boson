@@ -51,5 +51,6 @@ class CodeGen{
     void generatingFunctionOn(){ generatingFunction = true; }
     void generatingFunctionOff() { generatingFunction = false; }
     bool getGeneratingFunction() { return generatingFunction; }
+
 };
 #endif

@@ -1,5 +1,6 @@
 #include "parser.h"
 
+#include "llvm/IR/Verifier.h"
 
 static CodeGen* cg = CodeGen::GetInstance();
 
@@ -8,15 +9,17 @@ void Parser::parse()
     lexer.getNextToken();
     while (true)
     {
-        if (lexer.isTokenInt() || lexer.isTokenDouble())
+        if (lexer.isTokenInt() || lexer.isTokenDouble() || lexer.isTokenBoolean())
+        {  
             ParseVariableDeclarationStatement()->codegen();
+        }
         else if (lexer.isTokenFunctionKeyword())
             ParseFunctionDefinition()->codeGen();
         else if (lexer.isTokenConsume())
             ParseConsume()->codegen();
         else
         {
-            if (!FunctionTable.doesElementExist("start"))
+            if (FunctionTable.find("start") == FunctionTable.end())
                 LogError("Start Function Not Found");
             cg->terminateCOPBB();
             cg->dumpIR();
@@ -30,7 +33,7 @@ void Parser::parse()
 
 unique_ptr<Expression> Parser::LogTypeError(int t1, int t2)
 {
-    fprintf(stderr, "Type mistmatch between : %s - and - %s \n", AST::TypesName(t1), AST::TypesName(t2));
+    // fprintf(stderr, "Type mistmatch between : %s - and - %s \n", AST::TypesName(t1), AST::TypesName(t2));
     return nullptr;
 }
 
@@ -48,6 +51,8 @@ unique_ptr<Expression> Parser::ParsePrimary()
         return ParseIntNum();
     if (lexer.isTokenDoubleNum())
         return ParseDoubleNum();
+    if (lexer.isTokenTrueValue() || lexer.isTokenFalseValue() )
+        return ParseBooleanValue();
     if (lexer.isTokenIdentifier())
         return ParseIdentifier();
     if (lexer.isTokenLeftParen())
@@ -61,10 +66,10 @@ unique_ptr<Expression> Parser::ParsePrimary()
 
 unique_ptr<Expression> Parser::ParseVariable(const string &Name)
 {
-    if (parsingFuncDef && LocalVarTable.doesElementExist(Name))
-        return make_unique<Variable>(Name, LocalVarTable.getElement(Name));
-    if (GlobalVarTable.doesElementExist(Name))
-        return make_unique<Variable>(Name, GlobalVarTable.getElement(Name));
+    if (parsingFuncDef && LocalVarTable[Name])
+        return make_unique<Variable>(Name, LocalVarTable[Name].get()->getNew());
+    if (GlobalVarTable[Name])
+        return make_unique<Variable>(Name, GlobalVarTable[Name].get()->getNew());
     LogError("Undefined Variable");
     return nullptr;
 }
@@ -92,6 +97,17 @@ unique_ptr<Expression> Parser::ParseDoubleNum()
     return make_unique<DoubleNum>(lexer.getDoubleNum());
 }
 
+unique_ptr<Expression> Parser::ParseBooleanValue(){
+    if(lexer.isTokenTrueValue()){
+        lexer.getNextToken();
+        return make_unique<Boolean>(true);
+    }else if(lexer.isTokenFalseValue()){
+        lexer.getNextToken();
+        return make_unique<Boolean>(false);
+    }
+    return nullptr;
+}
+
 unique_ptr<Expression> Parser::ParseParen()
 {
     lexer.getNextToken();
@@ -105,10 +121,11 @@ unique_ptr<Expression> Parser::ParseParen()
     return move(exp);
 }
 
-::Type* Parser::getType(){
-        if(lexer.isTokenInt()) return new Int();
-        if(lexer.isTokenDouble()) return new Double();
-        if(lexer.isTokenVoid()) return new Void();
+unique_ptr<::Type> Parser::getType(){
+        if(lexer.isTokenInt()) return make_unique<Int>();
+        if(lexer.isTokenDouble()) return make_unique<Double>();
+        if(lexer.isTokenVoid()) return make_unique<Void>();
+        if(lexer.isTokenBoolean()) return make_unique<Bool>();
         return nullptr;
 }
 
@@ -134,6 +151,10 @@ unique_ptr<BinOps> Parser::returnBinOpsType()
         return make_unique<OpNotEqualTo>();
     else if (lexer.isTokenEqualTo())
         return make_unique<OpEqualTo>();
+    else if (lexer.isTokenAmpersand())
+        return make_unique<OpAnd>();
+    else if (lexer.isTokenVerticalLine())
+        return make_unique<OpOr>();
     LogError("Udefined Operator");
     return NULL;
 }
@@ -160,6 +181,10 @@ int Parser::getOperatorPrecedence()
         return OperatorPrecedence["=="];
     else if (lexer.isTokenNotEqualTo())
         return OperatorPrecedence["!="];
+    else if (lexer.isTokenAmpersand())
+        return OperatorPrecedence["&"];
+    else if (lexer.isTokenVerticalLine())
+        return OperatorPrecedence["|"];
     return -1;
 }
 
@@ -175,31 +200,35 @@ unique_ptr<Expression> Parser::ParseBinOP(int minPrec, unique_ptr<Expression> lv
         auto rvalue = ParsePrimary();
         if (!rvalue)
             return nullptr;
-        Types t = lvalue->getType();
-        int t1 = (int)t;
-        int t2 = rvalue->getType();
-        if (t1 != t2)
-            return LogTypeError(t1, t2);
+        
+        auto ltype = lvalue->getType();
+        auto rtype = rvalue->getType();
+        if (!ltype->doesMatch(rtype))
+            LogError("Type Error");
+        if(!BinOp->validOperandSet(ltype)){
+            LogError("Type of Operands given to Operator is Illeagal");
+        }
         if (prevPrec < getOperatorPrecedence())
         {
             rvalue = ParseBinOP(prevPrec + 1, move(rvalue));
             if (!rvalue)
                 return nullptr;
         }
-        lvalue = make_unique<BinaryExpression>(move(BinOp), move(lvalue), move(rvalue), t);
+        auto OpType = BinOp->getOperatorEvalTy();
+        lvalue = make_unique<BinaryExpression>(move(BinOp), move(lvalue), move(rvalue), move(OpType));
     }
 }
 
 unique_ptr<Expression> Parser::ParseCallExpression(const string &Name)
 {
-    if (!FunctionTable.doesElementExist(Name))
+    if (FunctionTable.find(Name) == FunctionTable.end())
     {
         LogError("Undefined Function!");
         return nullptr;
     }
     lexer.getNextToken();
     vector<unique_ptr<Expression>> Args;
-    vector<Types> ArgType;
+    vector<unique_ptr<::Type>> ArgType;
     while (isExpression())
     {
         auto Exp = ParseExpression();
@@ -208,14 +237,14 @@ unique_ptr<Expression> Parser::ParseCallExpression(const string &Name)
             LogError("Expression might be missing a ','  or a ')'");
             return nullptr;
         }
-        ArgType.push_back(Exp.get()->getType());
+        ArgType.push_back(Exp->getType()->getNew());
         Args.push_back(move(Exp));
         if (!lexer.isTokenRightParen())
             lexer.getNextToken();
         else
             break;
     }
-    pair<vector<Types>, Types> p = FunctionTable.getElement(Name);
+    pair<vector<unique_ptr<::Type>>, unique_ptr<::Type>> p = move(FunctionTable[Name]);
     if (ArgType.size() != p.first.size())
     {
         LogError("Illegal Number of Arguments");
@@ -223,20 +252,22 @@ unique_ptr<Expression> Parser::ParseCallExpression(const string &Name)
     }
     for (auto a = ArgType.begin(), b = p.first.begin(); a != ArgType.end(); a++, b++)
     {
-        if (*a != *b)
+        if(!a->get()->doesMatch(b->get()))
         {
-            return LogTypeError(*a, *b);
+             LogError("Type Mismatch");
         }
     }
+    auto sec = p.second.get()->getNew();
+    FunctionTable[Name] = move(p);
     lexer.getNextToken();
-    return make_unique<FunctionCall>(Name, move(Args), move(p.second));
+    return make_unique<FunctionCall>(Name, move(Args), move(sec));
 }
 
 unique_ptr<Statement> Parser::ParseStatement()
 {
     if (lexer.isTokenIdentifier())
         return ParseStatementIdentifier();
-    if (lexer.isTokenInt() || lexer.isTokenDouble())
+    if (lexer.isTokenInt() || lexer.isTokenDouble() || lexer.isTokenBoolean())
         return ParseVariableDeclarationStatement();
     if (lexer.isTokenReturnKeyword())
         return ParseReturnStatement();
@@ -274,13 +305,13 @@ unique_ptr<Statement> Parser::ParseVariableAssignmentStatement(const string &nam
 
 unique_ptr<Statement> Parser::ParseCallStatement(const string &name)
 {
-    if (!FunctionTable.doesElementExist(name))
+    if (FunctionTable.find(name) == FunctionTable.end())
     {
         LogError("Undefined Function!");
         return nullptr;
     }
     vector<unique_ptr<Expression>> Args;
-    vector<Types> ArgType;
+    vector<unique_ptr<::Type>> ArgType;
     lexer.getNextToken();
     while (isExpression())
     {
@@ -290,7 +321,7 @@ unique_ptr<Statement> Parser::ParseCallStatement(const string &name)
             LogError("Statement might be missing a ','  or a ')'");
             return nullptr;
         }
-        ArgType.push_back(Exp.get()->getType());
+        ArgType.push_back(Exp->getType()->getNew());
         Args.push_back(move(Exp));
         if (!lexer.isTokenRightParen())
             lexer.getNextToken();
@@ -303,7 +334,7 @@ unique_ptr<Statement> Parser::ParseCallStatement(const string &name)
         LogError("Expected a ';' at the end of statement");
         return nullptr;
     }
-    pair<vector<Types>, Types> p = FunctionTable.getElement(name);
+    pair<vector<unique_ptr<::Type>>, unique_ptr<::Type>> p = move(FunctionTable[name]);
     if (ArgType.size() != p.first.size())
     {
         LogError("Illegal Number of Arguments");
@@ -311,22 +342,21 @@ unique_ptr<Statement> Parser::ParseCallStatement(const string &name)
     }
     for (auto a = ArgType.begin(), b = p.first.begin(); a != ArgType.end(); a++, b++)
     {
-        if (*a != *b)
+        if(!a->get()->doesMatch(b->get()))
         {
-            LogTypeError(*a, *b);
-            LogError("Type mismatch in statement");
-            return nullptr;
+             LogError("Type Mismatch");
         }
     }
-    return make_unique<FunctionCall>(name, move(Args), p.second);
+    auto sec = p.second.get()->getNew();
+    FunctionTable[name] = move(p);
+    return make_unique<FunctionCall>(name, move(Args), move(p.second));
 }
 
 
 
 unique_ptr<Statement> Parser::ParseVariableDeclarationStatement()
 {
-    ::Type* ty = this->getType();
-    int type = lexer.getCurrentToken();
+    unique_ptr<::Type> ty = getType();
     lexer.getNextToken();
     if (!lexer.isTokenIdentifier())
     {
@@ -335,36 +365,35 @@ unique_ptr<Statement> Parser::ParseVariableDeclarationStatement()
     }
     string name = lexer.getIdentifier();
     if(parsingFuncDef){
-        if (LocalVarTable.doesElementExist(name))
+        if (LocalVarTable[name])
         {
             LogError("Illegal Re-declaration");
             return nullptr;
         }
     }else{
-        if (GlobalVarTable.doesElementExist(name))
+        if (GlobalVarTable[name])
         {
             LogError("Illegal Re-declaration");
             return nullptr;
         }
     }
-   
-    Types typedType = AST::TypesOnToken(type);
-    if(!parsingFuncDef)GlobalVarTable.addElement(name, typedType);
-    else LocalVarTable.addElement(name,typedType);
-    auto var = make_unique<Variable>(name, typedType);
+    if(!parsingFuncDef)GlobalVarTable[name] = ty->getNew();
+    else LocalVarTable[name] = ty->getNew();
+    auto var = make_unique<Variable>(name, move(ty->getNew()));
     lexer.getNextToken();
     unique_ptr<Expression> exp = nullptr;
     if (lexer.isTokenAssignmentOp())
     {
         lexer.getNextToken();
         exp = ParseExpression();
-        int t1 = (int)var->getType();
-        int t2 = (int)exp->getType();
-        
-        if (ty->doesMatch(exp->getNType()))
+        if(!exp) {
+            LogError("Illegal Value"); 
+            return nullptr;
+        }
+        if (!(ty->doesMatch(exp->getType())))
         {
-            // LogTypeError(t1, t2);
-            LogError("Type Mismatch");
+           
+            LogError("Type Mismatch in Variable Declaration");
             return nullptr;
         }
     }
@@ -379,23 +408,22 @@ unique_ptr<Statement> Parser::ParseVariableDeclarationStatement()
 
 unique_ptr<Statement> Parser::ParseReturnStatement()
 {
-    if (parsingIf_or_For)
-    {
-        LogError("Illeagal use of 'return' statement");
-        return nullptr;
-    }
     lexer.getNextToken();
-    if (lexer.isTokenSemiColon())
-        return make_unique<Return>(nullptr);
-    auto exp = ParseExpression();
-    if (!exp)
-        return nullptr;
-    return make_unique<Return>(move(exp));
+    if (lexer.isTokenSemiColon()){
+        if(currentFuncType->isVoid()) return make_unique<Return>(nullptr);
+    }
+    else{
+        auto exp = ParseExpression();
+        if (exp) 
+            if(currentFuncType->doesMatch(exp->getType()))
+                return make_unique<Return>(move(exp));
+    }
+    LogError("Type mismatch in 'return' statement and return 'type'");
+    return nullptr;
 }
 
 unique_ptr<Statement> Parser::ParseIfElseStatement()
 {
-    parsingIf_or_For = true;
     lexer.getNextToken();
     if (!lexer.isTokenLeftParen())
     {
@@ -404,6 +432,10 @@ unique_ptr<Statement> Parser::ParseIfElseStatement()
     }
     lexer.getNextToken();
     auto Exp = ParseExpression();
+    if(!Exp->getType()->isBool()){
+        LogError("Illegal condition in 'if'");
+        return nullptr;
+    }
     if (!lexer.isTokenRightParen())
     {
         LogError("Expected a ')' after expression");
@@ -419,23 +451,22 @@ unique_ptr<Statement> Parser::ParseIfElseStatement()
     }
     lexer.getNextToken();
     auto elseCmpStat = ParseCompoundStatement();
-    parsingIf_or_For = false;
     return make_unique<IfElseStatement>(move(Exp), move(CmpStat), move(elseCmpStat));
 }
 
 unique_ptr<VariableAssignment> Parser::VariableAssignmentStatementHelper(const string &name)
 {
-    int t1;
-    if (LocalVarTable.doesElementExist(name))
-        t1 = LocalVarTable.getElement(name);
-    else if (GlobalVarTable.doesElementExist(name))
-        t1 = GlobalVarTable.getElement(name);
+    ::Type* t1;
+    if (LocalVarTable[name])
+        t1 = LocalVarTable[name].get();
+    else if (GlobalVarTable[name])
+        t1 = GlobalVarTable[name].get();
     else
     {
         LogError("Undefined Variable");
         return nullptr;
     }
-    auto var = make_unique<Variable>(name, (Types)t1);
+    auto var = make_unique<Variable>(name,t1->getNew());
     if (!lexer.isTokenAssignmentOp())
     {
         LogError("Missing '=' operator");
@@ -443,10 +474,9 @@ unique_ptr<VariableAssignment> Parser::VariableAssignmentStatementHelper(const s
     }
     lexer.getNextToken();
     auto exp = ParseExpression();
-    int t2 = exp->getType();
-    if (t1 != t2)
+    if(!t1->doesMatch(exp->getType()))
     {
-        LogTypeError(t1, t2);
+        LogError("Type Mismatch");
         return nullptr;
     }
     return make_unique<VariableAssignment>(move(var), move(exp));
@@ -454,7 +484,6 @@ unique_ptr<VariableAssignment> Parser::VariableAssignmentStatementHelper(const s
 
 unique_ptr<Statement> Parser::ParseForStatement()
 {
-    parsingIf_or_For = true;
     unique_ptr<LocalVariableDeclaration> lvd;
     unique_ptr<VariableAssignment> va;
     unique_ptr<VariableAssignment> vastep;
@@ -491,11 +520,12 @@ unique_ptr<Statement> Parser::ParseForStatement()
 
     lexer.getNextToken();
     auto cond = ParseExpression();
-    if (!cond)
+    if (!cond || !cond->getType()->isBool())
     {
         LogError("Illegal condition in 'for'");
         return nullptr;
     }
+
     if (!lexer.isTokenSemiColon())
     {
         LogError("Expected a ';' in 'for'");
@@ -521,7 +551,6 @@ unique_ptr<Statement> Parser::ParseForStatement()
     }
     lexer.getNextToken();
     auto cmpStat = ParseCompoundStatement();
-    parsingIf_or_For = false;
     return make_unique<ForStatement>(move(lvd), move(va), move(cond), move(vastep), move(cmpStat));
 }
 
@@ -552,12 +581,12 @@ unique_ptr<FunctionSignature> Parser::ParseFunctionSignature()
         return nullptr;
     }
     string Name = lexer.getIdentifier();
-    if (FunctionTable.doesElementExist(Name))
+    if (FunctionTable.find(Name) != FunctionTable.end())
     {
         LogError("Function Already Defined");
         return nullptr;
     }
-    vector<Types> argType;
+    vector<unique_ptr<::Type>> argType;
     lexer.getNextToken();
     if (!lexer.isTokenLeftParen())
     {
@@ -566,9 +595,9 @@ unique_ptr<FunctionSignature> Parser::ParseFunctionSignature()
     }
     lexer.getNextToken();
     vector<unique_ptr<Variable>> args;
-    while (lexer.isTokenInt() || lexer.isTokenDouble())
+    while (lexer.isAnyType())
     {
-        int type = lexer.getCurrentToken();
+        unique_ptr<::Type> type = getType();
         lexer.getNextToken();
         if (!lexer.isTokenIdentifier())
         {
@@ -576,15 +605,14 @@ unique_ptr<FunctionSignature> Parser::ParseFunctionSignature()
             return nullptr;
         }
         string name = lexer.getIdentifier();
-        if (LocalVarTable.doesElementExist(name))
+        if (LocalVarTable[name])
         {
             LogError("Illegal Re-declaration");
             return nullptr;
         }
-        Types typedType = AST::TypesOnToken(type);
-        argType.push_back(typedType);
-        LocalVarTable.addElement(name, typedType);
-        auto var = make_unique<Variable>(name, typedType);
+        LocalVarTable[name] = type->getNew();
+        auto var = make_unique<Variable>(name,type->getNew());
+        argType.push_back(move(type));
         args.push_back(move(var));
         lexer.getNextToken();
         if (lexer.isTokenRightParen())
@@ -607,9 +635,9 @@ unique_ptr<FunctionSignature> Parser::ParseFunctionSignature()
         LogError("Incomplete Type Specification in Function Declaration");
         return nullptr;
     }
-    Types type = AST::TypesOnToken(lexer.getCurrentToken());
-    Types typecopy2 = AST::TypesOnToken(lexer.getCurrentToken());
-    FunctionTable.addElement(Name, make_pair(move(argType), move(typecopy2)));
+    unique_ptr<::Type> type = getType();
+    currentFuncType = type.get();
+    FunctionTable[Name] = make_pair(move(argType), move(type->getNew()));
     return make_unique<FunctionSignature>(move(Name), move(type), move(args));
 }
 
@@ -652,15 +680,7 @@ unique_ptr<FunctionDefinition> Parser::ParseFunctionDefinition()
         LogError("Missing 'return' statement at the end of Function Definition");
         return nullptr;
     }
-    int t1 = CS->returnReturnStatementType();
-    int t2 = FH->getRetType();
-    if (t1 != t2)
-    {
-        LogTypeError(t1, t2);
-        LogError("Type mismatch in 'return' statement and return 'type'");
-        return nullptr;
-    }
     parsingFuncDef = false;
-    LocalVarTable.clearTable();
+    LocalVarTable.clear();
     return make_unique<FunctionDefinition>(move(FH), move(CS));
 }

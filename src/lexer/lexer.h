@@ -34,7 +34,12 @@ class Lexer
         token_else = -27,
         token_for = -28,
         token_consume = -29,
-        token_not_equal_to = -30
+        token_not_equal_to = -30,
+        token_boolean = -31,
+        token_true = -32,
+        token_false = -33,
+        token_ampersand = -34,
+        token_vertical_line = -35
     };
     map<string, token> KeywordRegistry;
     map<char, token> SymbolRegistry;
@@ -59,6 +64,9 @@ public:
         KeywordRegistry["else"] = token_else;
         KeywordRegistry["for"] = token_for;
         KeywordRegistry["consume"] = token_consume;
+        KeywordRegistry["bool"] = token_boolean;
+        KeywordRegistry["true"] = token_true;
+        KeywordRegistry["false"] = token_false;
         SymbolRegistry[';'] = token_semi_colon;
         SymbolRegistry['+'] = token_add_sym;
         SymbolRegistry['-'] = token_sub_sym;
@@ -69,6 +77,8 @@ public:
         SymbolRegistry['{'] = token_left_curly_brac;
         SymbolRegistry['}'] = token_right_curly_brac;
         SymbolRegistry[','] = token_comma;
+        SymbolRegistry['&'] = token_ampersand;
+        SymbolRegistry['|'] = token_vertical_line;
     }
     int getToken();
     int extractIdentifier();
@@ -94,7 +104,7 @@ public:
     bool isTokenDivSym() { return currentToken == token_div_sym; }
     bool isTokenLeftParen() { return currentToken == token_left_paren; }
     bool isTokenRightParen() { return currentToken == token_right_paren; }
-    bool isAnyType() { return (isTokenInt() || isTokenDouble() || isTokenVoid()); }
+    bool isAnyType() { return (isTokenInt() || isTokenDouble() || isTokenVoid() ||  isTokenBoolean()); }
     bool isTokenLeftCurlyBrace() { return currentToken == token_left_curly_brac; }
     bool isTokenRightCurlyBrace() { return currentToken == token_right_curly_brac; }
     bool isTokenFunctionKeyword() { return currentToken == token_fn; }
@@ -110,4 +120,9 @@ public:
     bool isTokenFor() { return currentToken == token_for; }
     bool isTokenNotEqualTo() { return currentToken == token_not_equal_to; }
     bool isTokenComma() { return currentToken == token_comma; }
+    bool isTokenBoolean() { return currentToken == token_boolean; }
+    bool isTokenTrueValue() { return currentToken == token_true; }
+    bool isTokenFalseValue() { return currentToken == token_false; }
+    bool isTokenAmpersand(){ return currentToken == token_ampersand; }
+    bool isTokenVerticalLine(){ return currentToken == token_vertical_line; }
 };

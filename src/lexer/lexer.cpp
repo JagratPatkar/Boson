@@ -33,6 +33,8 @@ int Lexer::getToken()
         if ((tmp = peekOneAhead('=', token_less_than_eq)))
             return tmp;
     }
+    
+
     if (source.eof())
         return token_eof;
     printf("Unknown token \n");

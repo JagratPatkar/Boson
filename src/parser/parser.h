@@ -12,32 +12,31 @@ using namespace std;
 class Parser
 {
     Lexer lexer;
-    SymbolTable<string, Types> GlobalVarTable;
-    SymbolTable<string, Types> LocalVarTable;
-    SymbolTable<string, pair<vector<Types>, Types>> FunctionTable;
+    map<string, unique_ptr<::Type>> GlobalVarTable;
+    map<string, unique_ptr<::Type>> LocalVarTable;
+    map<string, pair<vector<unique_ptr<::Type>>, unique_ptr<::Type>>> FunctionTable;
     map<string, int> OperatorPrecedence;
     bool parsingFuncDef;
-    bool parsingIf_or_For;
-
+    ::Type* currentFuncType;
 public:
-    Parser(string Name) : lexer(Lexer(Name)), parsingFuncDef(false), parsingIf_or_For(false)
+    Parser(string Name) : lexer(Lexer(Name)), parsingFuncDef(false)
     {
         OperatorPrecedence["+"] = 10;
         OperatorPrecedence["-"] = 10;
         OperatorPrecedence["*"] = 40;
         OperatorPrecedence["/"] = 40;
+        OperatorPrecedence["&"] = 10;
+        OperatorPrecedence["|"] = 10;
         OperatorPrecedence["<"] = 10;
         OperatorPrecedence["<="] = 10;
         OperatorPrecedence[">"] = 10;
         OperatorPrecedence[">="] = 10;
         OperatorPrecedence["=="] = 10;
         OperatorPrecedence["!="] = 10;
-        GlobalVarTable = SymbolTable<string, Types>();
-        LocalVarTable = SymbolTable<string, Types>();
-        FunctionTable = SymbolTable<string, pair<vector<Types>, Types>>();
+
     }
     void parse();
-    ::Type* getType();
+    unique_ptr<::Type> getType();
     int getOperatorPrecedence();
     unique_ptr<BinOps> returnBinOpsType();
     
@@ -53,6 +52,7 @@ public:
     std::unique_ptr<AST::Expression> ParseCallExpression(const string &);
     std::unique_ptr<AST::Expression> ParseVariable(const string &);
     std::unique_ptr<AST::Expression> ParseIntNum();
+    unique_ptr<Expression> ParseBooleanValue();
     std::unique_ptr<AST::Expression> ParseIdentifier();
     std::unique_ptr<AST::Expression> ParseDoubleNum();
     std::unique_ptr<AST::Expression> ParseBinOP(int, unique_ptr<Expression>);
@@ -67,5 +67,6 @@ public:
     void LogError(const char *errmsg) { fprintf(stderr, "Error : %s\n", errmsg); }
     std::unique_ptr<AST::Expression> LogTypeError(int, int);
     bool isExpression() { return (lexer.isTokenIntNum() || lexer.isTokenDoubleNum() ||
-                                  lexer.isTokenIdentifier() || lexer.isTokenLeftParen()); }
+                                  lexer.isTokenIdentifier() || lexer.isTokenLeftParen()) || lexer.isTokenTrueValue() ||
+                                  lexer.isTokenFalseValue(); }
 };

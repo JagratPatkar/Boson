@@ -9,40 +9,6 @@ using namespace AST;
 
 static CodeGen* cg = CodeGen::GetInstance();
 
-Types AST::TypesOnToken(int type)
-{
-    if (type == -4)
-        return type_int;
-    if (type == -5)
-        return type_double;
-    if (type == -15)
-        return type_void;
-    return type_err;
-}
-
-const char *AST::TypesName(int t)
-{
-    if (t == -1)
-        return "int";
-    if (t == -2)
-        return "double";
-    if (t == -3)
-        return "void";
-    return "unknown type";
-}
-
-
-
-
-llvm::Value *IntNum::codeGen()
-{
-    llvm::Type *type = IntegerType::getInt32Ty(*(cg->context));
-    return ConstantInt::get(type, Number, true);
-}
-llvm::Value *DoubleNum::codeGen()
-{
-    return ConstantFP::get(*(cg->context), APFloat(Number));
-}
 
 llvm::Value *FunctionCall::codeGen()
 {
@@ -57,7 +23,7 @@ llvm::Value *FunctionCall::codeGen()
     return cg->builder->CreateCall(func, ArgsValue, "callres");
 }
 
-void FunctionCall::VarDecCodeGen(GlobalVariable *gVar, Types)
+void FunctionCall::VarDecCodeGen(GlobalVariable *gVar, ::Type*)
 {
     cg->builder->SetInsertPoint(cg->getCOPBB());
     GlobalVariable *gvar = cg->GlobalVarTable.getElement(Name);
@@ -79,7 +45,7 @@ llvm::Value *Variable::codeGen()
     return cg->builder->CreateAlignedLoad(gVar, MaybeAlign(4), Name.c_str());
 }
 
-void Variable::VarDecCodeGen(GlobalVariable *gVar, Types)
+void Variable::VarDecCodeGen(GlobalVariable *gVar, ::Type*)
 {
     cg->builder->SetInsertPoint(cg->getCOPBB());
     GlobalVariable *gvar = cg->GlobalVarTable.getElement(Name);
@@ -87,7 +53,7 @@ void Variable::VarDecCodeGen(GlobalVariable *gVar, Types)
     cg->builder->CreateAlignedStore(v, gVar, MaybeAlign(4));
 }
 
-void AST::Value::VarDecCodeGen(GlobalVariable *gVar, Types)
+void AST::Value::VarDecCodeGen(GlobalVariable *gVar, ::Type*)
 {
     Constant *constant = dyn_cast<Constant>(codeGen());
     gVar->setInitializer(constant);
@@ -96,49 +62,24 @@ void AST::Value::VarDecCodeGen(GlobalVariable *gVar, Types)
 void GlobalVariableDeclaration::codegen()
 {
     string Name = var->getName();
-    Types vt = var->getType();
-    if (vt == type_int)
-    {
-        cg->module->getOrInsertGlobal(Name, llvm::Type::getInt32Ty(*(cg->context)));
-    }
-    else
-        cg->module->getOrInsertGlobal(Name, llvm::Type::getDoubleTy(*(cg->context)));
+    ::Type* vt = var->getType();
+    cg->module->getOrInsertGlobal(Name, vt->getLLVMType());
     GlobalVariable *gVar = cg->module->getNamedGlobal(Name);
     gVar->setAlignment(MaybeAlign(4));
-    if (exp)
-        exp->VarDecCodeGen(gVar, vt);
-    else
-    {
-        if (vt == type_int)
-            gVar->setInitializer(ConstantInt::get(llvm::Type::getInt32Ty(*(cg->context)), 0, true));
-        else
-            gVar->setInitializer(ConstantFP::get(*(cg->context), APFloat(0.0)));
-    }
+    if (exp) exp->VarDecCodeGen(gVar, vt);
+    else{ gVar->setInitializer(vt->getDefaultConstant()); }
     cg->GlobalVarTable.addElement(Name,gVar);
 }
 
 void LocalVariableDeclaration::codegen()
 {
     string Name = var->getName();
-    Types vt = var->getType();
-
+    ::Type* vt = var->getType();
     llvm::Value *val;
-    if (exp)
-    {
-        val = exp->codeGen();
-    }
-    else
-    {
-        if (vt == type_int)
-            val = ConstantInt::get(IntegerType::getInt32Ty(*(cg->context)), 0, true);
-        else
-            val = ConstantFP::get(*(cg->context), APFloat(0.0));
-    }
+    if (exp) val = exp->codeGen();
+    else val = vt->getDefaultConstant(); 
     AllocaInst *alloca;
-    if (vt == type_int)
-        alloca = new AllocaInst(IntegerType::getInt32Ty(*(cg->context)), 0, 0, Align(4), Name.c_str(), cg->builder->GetInsertBlock());
-    else if (vt == type_double)
-        alloca = cg->builder->CreateAlloca(cg->builder->getDoubleTy(), 0, Name.c_str());
+    alloca = vt->allocateLLVMVariable(Name);
     cg->LocalVarTable.addElement(Name,alloca);
     cg->builder->CreateAlignedStore(val, alloca, MaybeAlign(4));
 }
@@ -148,6 +89,7 @@ void CompoundStatement::codegen()
     for (auto stat = Statements.begin(); stat != Statements.end(); stat++)
     {
         stat->get()->codegen();
+        if(stat->get()->isReturnStatement()) break;
     }
 }
 
@@ -178,13 +120,9 @@ void Return::codegen()
         llvm::Value *v = exp->codeGen();
         if (!v)
             return;
-        Types t = exp->getType();
-        cg->builder->CreateRet(v);
+        cg->builder->CreateRet(v);   
     }
-    else
-    {
-        cg->builder->CreateRetVoid();
-    }
+    else {cg->builder->CreateRetVoid();}
 }
 
 void FunctionCall::codegen()
@@ -205,12 +143,10 @@ void IfElseStatement::codegen()
     BasicBlock *bb = cg->builder->GetInsertBlock();
     Function *func = bb->getParent();
     llvm::Value *cmp = Condition->codeGen();
-    cmp = cg->builder->CreateUIToFP(cmp, llvm::Type::getDoubleTy(*(cg->context)), "convtoFP");
-    llvm::Value *cond = cg->builder->CreateFCmpUNE(cmp, ConstantFP::get(*(cg->context), APFloat(0.0)), "ifcond");
     BasicBlock *ThenBB = BasicBlock::Create(*(cg->context), "then", func);
     BasicBlock *ElseBB = BasicBlock::Create(*(cg->context), "else", func);
     BasicBlock *AfterIfElse = BasicBlock::Create(*(cg->context), "afterif", func);
-    cg->builder->CreateCondBr(cond, ThenBB, ElseBB);
+    cg->builder->CreateCondBr(cmp, ThenBB, ElseBB);
     cg->builder->SetInsertPoint(ThenBB);
     compoundStatements->codegen();
     cg->builder->CreateBr(AfterIfElse);
@@ -241,12 +177,9 @@ void ForStatement::codegen()
     cg->builder->SetInsertPoint(AfterLoopBB);
 }
 
-void BinaryExpression::VarDecCodeGen(GlobalVariable *gVar, Types vt)
+void BinaryExpression::VarDecCodeGen(GlobalVariable *gVar, ::Type* vt)
 {
-    if (vt == type_int)
-        gVar->setInitializer(ConstantInt::get(llvm::Type::getInt32Ty(*(cg->context)), 0, true));
-    else
-        gVar->setInitializer(ConstantFP::get(*(cg->context), APFloat(0.0)));
+    gVar->setInitializer(vt->getDefaultConstant());
     cg->builder->SetInsertPoint(cg->getCOPBB());
     llvm::Value *v = codeGen();
     cg->builder->CreateAlignedStore(v, gVar, MaybeAlign(4));
@@ -256,11 +189,7 @@ llvm::Value *BinaryExpression::codeGen()
 {
     llvm::Value *lhs = LVAL->codeGen();
     llvm::Value *rhs = RVAL->codeGen();
-
-    if (LVAL->getType() == type_int) return op->codeGenInt(lhs,rhs);
-    else return op->codeGenDouble(lhs,rhs);
-   
-    return nullptr;
+    return op->codeGen(lhs,rhs);
 }
 
 void FunctionSignature::codegen()
@@ -269,18 +198,10 @@ void FunctionSignature::codegen()
     vector<llvm::Type *> Args;
     for (auto i = args.begin(); i != args.end(); i++)
     {
-        Types t = i->get()->getType();
-        if (t == type_int)
-            Args.push_back(cg->builder->getInt32Ty());
-        else
-            Args.push_back(cg->builder->getDoubleTy());
+        ::Type* t = i->get()->getType();
+        Args.push_back(t->getLLVMType());
     }
-    if (getRetType() == type_int)
-        funcType = FunctionType::get(cg->builder->getInt32Ty(), Args, false);
-    else if (getRetType() == type_double)
-        funcType = FunctionType::get(cg->builder->getDoubleTy(), Args, false);
-    else if (getRetType() == type_void)
-        funcType = FunctionType::get(cg->builder->getVoidTy(), Args, false);
+    funcType = FunctionType::get(getRetType()->getLLVMType(), Args, false);
     Function *function = Function::Create(funcType, Function::ExternalLinkage, getName(), *(cg->module));
 }
 
@@ -290,7 +211,7 @@ void FunctionDefinition::codeGen()
     functionSignature->codegen();
     Function *function = cg->module->getFunction(functionSignature->getName());
     BasicBlock *bb = BasicBlock::Create(*(cg->context), "entry", function);
-    cg->builder->SetInsertPoint(bb);
+    cg->builder->SetInsertPoint(bb);   
     if (functionSignature->getName() == "start")
     {
         vector<llvm::Value *> args;
@@ -301,12 +222,9 @@ void FunctionDefinition::codeGen()
     for (ai = function->arg_begin(), ae = function->arg_end(); ai != ae; ++ai, ++n)
     {
         string name = n->get()->getName();
-        Types t = n->get()->getType();
+        ::Type* t = n->get()->getType();
         AllocaInst *alloca;
-        if (t == type_int)
-            alloca = new AllocaInst(IntegerType::getInt32Ty(*(cg->context)), 0, 0, Align(4), name, cg->builder->GetInsertBlock());
-        else
-            alloca = cg->builder->CreateAlloca(cg->builder->getDoubleTy(), 0, name);
+        alloca = t->allocateLLVMVariable(name);
         cg->builder->CreateAlignedStore(ai, alloca, MaybeAlign(4));
         cg->LocalVarTable.addElement(name, alloca);
         ai->setName(name);

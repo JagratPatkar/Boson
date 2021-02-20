@@ -13,177 +13,413 @@ using namespace std;
 namespace AST
 {
 
-    enum Types
-    {
-        type_int = -1,
-        type_double = -2,
-        type_void = -3,
-        type_err = -4,
-    };
-
-
     class BinOps
     {
     protected:
         CodeGen *cg;
+        unique_ptr<::Type> operand_type;
 
     public:
         BinOps()
         {
             cg = CodeGen::GetInstance();
         }
-        virtual llvm::Value *codeGenInt(llvm::Value*, llvm::Value*) = 0;
-        virtual llvm::Value *codeGenDouble(llvm::Value*, llvm::Value*) = 0;
+
+        virtual bool validOperandSet(::Type *) = 0;
+        virtual llvm::Value *codeGen(llvm::Value *, llvm::Value *) = 0;
+        virtual unique_ptr<::Type> getOperatorEvalTy() = 0;
         virtual ~BinOps() {}
     };
 
     class OpAdd : public BinOps
     {
-        llvm::Value* codeGenInt(llvm::Value* lhs, llvm::Value* rhs) override
+
+        llvm::Value *codeGen(llvm::Value *lhs, llvm::Value *rhs) override
+        {
+            if (operand_type->isInt())
+                return codeGenInt(lhs, rhs);
+            else if (operand_type->isDouble())
+                return codeGenDouble(lhs, rhs);
+            return nullptr;
+        }
+
+        llvm::Value *codeGenInt(llvm::Value *lhs, llvm::Value *rhs)
         {
             return cg->builder->CreateAdd(lhs, rhs, "additmp");
         }
-        llvm::Value *codeGenDouble(llvm::Value* lhs, llvm::Value* rhs) override
+        llvm::Value *codeGenDouble(llvm::Value *lhs, llvm::Value *rhs)
         {
             return cg->builder->CreateFAdd(lhs, rhs, "addftmp");
+        }
+
+        bool validOperandSet(::Type *t1) override
+        {
+            bool c = (t1->isInt() || t1->isDouble());
+            if (c)
+                operand_type = t1->getNew();
+            return c;
+        }
+
+        unique_ptr<::Type> getOperatorEvalTy() override
+        {
+            return operand_type->getNew();
         }
     };
 
     class OpSub : public BinOps
     {
-        llvm::Value* codeGenInt(llvm::Value* lhs, llvm::Value* rhs) override
+        llvm::Value *codeGen(llvm::Value *lhs, llvm::Value *rhs) override
+        {
+            if (operand_type->isInt())
+                return codeGenInt(lhs, rhs);
+            else if (operand_type->isDouble())
+                return codeGenDouble(lhs, rhs);
+            return nullptr;
+        }
+
+        llvm::Value *codeGenInt(llvm::Value *lhs, llvm::Value *rhs)
         {
             return cg->builder->CreateSub(lhs, rhs, "subitmp");
         }
-        llvm::Value *codeGenDouble(llvm::Value* lhs, llvm::Value* rhs) override 
-        { 
-            return cg->builder->CreateFSub(lhs, rhs, "subftmp"); 
+        llvm::Value *codeGenDouble(llvm::Value *lhs, llvm::Value *rhs)
+        {
+            return cg->builder->CreateFSub(lhs, rhs, "subftmp");
+        }
+
+        bool validOperandSet(::Type *t1) override
+        {
+            bool c = (t1->isInt() || t1->isDouble());
+            if (c)
+                operand_type = t1->getNew();
+            return c;
+        }
+
+        unique_ptr<::Type> getOperatorEvalTy() override
+        {
+            return operand_type->getNew();
         }
     };
 
     class OpMul : public BinOps
     {
-        llvm::Value* codeGenInt(llvm::Value* lhs,llvm::Value* rhs) override 
-        { 
-            return cg->builder->CreateMul(lhs, rhs, "mulitmp"); 
+
+        llvm::Value *codeGen(llvm::Value *lhs, llvm::Value *rhs) override
+        {
+            if (operand_type->isInt())
+                return codeGenInt(lhs, rhs);
+            else if (operand_type->isDouble())
+                return codeGenDouble(lhs, rhs);
+            return nullptr;
         }
-        llvm::Value *codeGenDouble(llvm::Value* lhs,llvm::Value* rhs) override 
-        { 
-            return cg->builder->CreateFMul(lhs, rhs, "mulftmp"); 
+
+        llvm::Value *codeGenInt(llvm::Value *lhs, llvm::Value *rhs)
+        {
+            return cg->builder->CreateMul(lhs, rhs, "mulitmp");
+        }
+        llvm::Value *codeGenDouble(llvm::Value *lhs, llvm::Value *rhs)
+        {
+            return cg->builder->CreateFMul(lhs, rhs, "mulftmp");
+        }
+
+        bool validOperandSet(::Type *t1) override
+        {
+            bool c = (t1->isInt() || t1->isDouble());
+            if (c)
+                operand_type = t1->getNew();
+            return c;
+        }
+
+        unique_ptr<::Type> getOperatorEvalTy() override
+        {
+            return operand_type->getNew();
         }
     };
 
     class OpDiv : public BinOps
     {
-        llvm::Value* codeGenInt(llvm::Value* lhs,llvm::Value* rhs) override 
-        { 
-            return cg->builder->CreateSDiv(lhs, rhs, "divitmp"); 
+        llvm::Value *codeGen(llvm::Value *lhs, llvm::Value *rhs) override
+        {
+            if (operand_type->isInt())
+                return codeGenInt(lhs, rhs);
+            else if (operand_type->isDouble())
+                return codeGenDouble(lhs, rhs);
+            return nullptr;
         }
-        llvm::Value *codeGenDouble(llvm::Value* lhs,llvm::Value* rhs) override 
-        { 
-            return cg->builder->CreateFDiv(lhs, rhs, "divftmp"); 
+
+        llvm::Value *codeGenInt(llvm::Value *lhs, llvm::Value *rhs)
+        {
+            return cg->builder->CreateSDiv(lhs, rhs, "divitmp");
+        }
+        llvm::Value *codeGenDouble(llvm::Value *lhs, llvm::Value *rhs)
+        {
+            return cg->builder->CreateFDiv(lhs, rhs, "divftmp");
+        }
+
+        bool validOperandSet(::Type *t1) override
+        {
+            bool c = (t1->isInt() || t1->isDouble());
+            if (c)
+                operand_type = t1->getNew();
+            return c;
+        }
+
+        unique_ptr<::Type> getOperatorEvalTy() override
+        {
+            return operand_type->getNew();
         }
     };
 
     class OpLessThan : public BinOps
     {
-        llvm::Value *codeGenInt(llvm::Value* lhs,llvm::Value* rhs) override 
-        { 
-            return cg->builder->CreateICmpULT(lhs, rhs, "ltcmpi"); 
+
+        llvm::Value *codeGen(llvm::Value *lhs, llvm::Value *rhs) override
+        {
+            if (operand_type->isInt())
+                return codeGenInt(lhs, rhs);
+            else if (operand_type->isDouble())
+                return codeGenDouble(lhs, rhs);
+            return nullptr;
         }
-        llvm::Value *codeGenDouble(llvm::Value* lhs,llvm::Value* rhs) override 
-        { 
-            return cg->builder->CreateFCmpULT(lhs, rhs, "ltcmpd"); 
+
+        llvm::Value *codeGenInt(llvm::Value *lhs, llvm::Value *rhs)
+        {
+            return cg->builder->CreateICmpULT(lhs, rhs, "ltcmpi");
         }
+        llvm::Value *codeGenDouble(llvm::Value *lhs, llvm::Value *rhs)
+        {
+            return cg->builder->CreateFCmpULT(lhs, rhs, "ltcmpd");
+        }
+
+        bool validOperandSet(::Type *t1) override
+        {
+            bool c = (t1->isInt() || t1->isDouble());
+            if (c)
+                operand_type = t1->getNew();
+
+            return c;
+        }
+
+        unique_ptr<::Type> getOperatorEvalTy() override { return make_unique<Bool>(); }
     };
 
     class OpGreaterThan : public BinOps
     {
-        llvm::Value *codeGenInt(llvm::Value* lhs,llvm::Value* rhs) override 
-        { 
-            return cg->builder->CreateICmpUGT(lhs, rhs, "gtcmpi"); 
+
+        llvm::Value *codeGen(llvm::Value *lhs, llvm::Value *rhs) override
+        {
+            if (operand_type->isInt())
+                return codeGenInt(lhs, rhs);
+            else if (operand_type->isDouble())
+                return codeGenDouble(lhs, rhs);
+            return nullptr;
         }
-        llvm::Value *codeGenDouble(llvm::Value* lhs,llvm::Value* rhs) override 
-        { 
-            return cg->builder->CreateFCmpUGT(lhs, rhs, "gtcmpd"); 
+
+        llvm::Value *codeGenInt(llvm::Value *lhs, llvm::Value *rhs)
+        {
+            return cg->builder->CreateICmpUGT(lhs, rhs, "gtcmpi");
         }
+        llvm::Value *codeGenDouble(llvm::Value *lhs, llvm::Value *rhs)
+        {
+            return cg->builder->CreateFCmpUGT(lhs, rhs, "gtcmpd");
+        }
+
+        bool validOperandSet(::Type *t1) override
+        {
+            bool c = (t1->isInt() || t1->isDouble());
+            if (c)
+                operand_type = t1->getNew();
+
+            return c;
+        }
+
+        unique_ptr<::Type> getOperatorEvalTy() override { return make_unique<Bool>(); }
     };
 
     class OpLessThanEq : public BinOps
     {
-        llvm::Value *codeGenInt(llvm::Value* lhs,llvm::Value* rhs) override 
-        { 
-            return cg->builder->CreateICmpULE(lhs, rhs, "lecmpi"); 
+
+        llvm::Value *codeGen(llvm::Value *lhs, llvm::Value *rhs) override
+        {
+            if (operand_type->isInt())
+                return codeGenInt(lhs, rhs);
+            else if (operand_type->isDouble())
+                return codeGenDouble(lhs, rhs);
+            return nullptr;
         }
-        llvm::Value *codeGenDouble(llvm::Value* lhs,llvm::Value* rhs) override 
-        { 
-            return cg->builder->CreateFCmpULE(lhs, rhs, "lecmpd"); 
+
+        llvm::Value *codeGenInt(llvm::Value *lhs, llvm::Value *rhs)
+        {
+            return cg->builder->CreateICmpULE(lhs, rhs, "lecmpi");
         }
+        llvm::Value *codeGenDouble(llvm::Value *lhs, llvm::Value *rhs)
+        {
+            return cg->builder->CreateFCmpULE(lhs, rhs, "lecmpd");
+        }
+
+        bool validOperandSet(::Type *t1) override
+        {
+            bool c = (t1->isInt() || t1->isDouble());
+            if (c)
+                operand_type = t1->getNew();
+
+            return c;
+        }
+
+        unique_ptr<::Type> getOperatorEvalTy() override { return make_unique<Bool>(); }
     };
 
     class OpGreaterThanEq : public BinOps
     {
-        llvm::Value *codeGenInt(llvm::Value* lhs,llvm::Value* rhs) override 
-        { 
-            return cg->builder->CreateICmpUGE(lhs, rhs, "gecmpi"); 
+
+        llvm::Value *codeGen(llvm::Value *lhs, llvm::Value *rhs) override
+        {
+            if (operand_type->isInt())
+                return codeGenInt(lhs, rhs);
+            else if (operand_type->isDouble())
+                return codeGenDouble(lhs, rhs);
+            return nullptr;
         }
-        llvm::Value *codeGenDouble(llvm::Value* lhs,llvm::Value* rhs) override 
-        { 
+
+        llvm::Value *codeGenInt(llvm::Value *lhs, llvm::Value *rhs)
+        {
+            return cg->builder->CreateICmpUGE(lhs, rhs, "gecmpi");
+        }
+        llvm::Value *codeGenDouble(llvm::Value *lhs, llvm::Value *rhs)
+        {
             return cg->builder->CreateFCmpUGE(lhs, rhs, "gecmpd");
         }
+
+        bool validOperandSet(::Type *t1) override
+        {
+            bool c = (t1->isInt() || t1->isDouble());
+            if (c)
+                operand_type = t1->getNew();
+
+            return c;
+        }
+
+        unique_ptr<::Type> getOperatorEvalTy() override { return make_unique<Bool>(); }
     };
 
     class OpEqualTo : public BinOps
     {
-        llvm::Value *codeGenInt(llvm::Value* lhs,llvm::Value* rhs) override 
-        { 
-            return cg->builder->CreateICmpEQ(lhs, rhs, "eqi"); 
+
+        llvm::Value *codeGen(llvm::Value *lhs, llvm::Value *rhs) override
+        {
+            if (operand_type->isInt() || operand_type->isBool())
+                return codeGenInt(lhs, rhs);
+            else if (operand_type->isDouble())
+                return codeGenDouble(lhs, rhs);
+            return nullptr;
         }
-        llvm::Value *codeGenDouble(llvm::Value* lhs,llvm::Value* rhs) override 
-        { 
-            return cg->builder->CreateFCmpUEQ(lhs, rhs, "eqcmpd"); 
+
+        llvm::Value *codeGenInt(llvm::Value *lhs, llvm::Value *rhs)
+        {
+            return cg->builder->CreateICmpEQ(lhs, rhs, "eqi");
         }
+        llvm::Value *codeGenDouble(llvm::Value *lhs, llvm::Value *rhs)
+        {
+            return cg->builder->CreateFCmpUEQ(lhs, rhs, "eqcmpd");
+        }
+
+        bool validOperandSet(::Type *t1) override
+        {
+            bool c = (t1->isInt() || t1->isDouble() || t1->isBool());
+            if (c)
+                operand_type = t1->getNew();
+
+            return c;
+        }
+        unique_ptr<::Type> getOperatorEvalTy() override { return make_unique<Bool>(); }
     };
 
     class OpNotEqualTo : public BinOps
     {
-        llvm::Value *codeGenInt(llvm::Value* lhs,llvm::Value* rhs) override 
-        { 
-            return cg->builder->CreateICmpNE(lhs, rhs, "neqcmpi"); 
+
+        llvm::Value *codeGen(llvm::Value *lhs, llvm::Value *rhs) override
+        {
+            if (operand_type->isInt() || operand_type->isBool())
+                return codeGenInt(lhs, rhs);
+            else if (operand_type->isDouble())
+                return codeGenDouble(lhs, rhs);
+            return nullptr;
         }
-        llvm::Value *codeGenDouble(llvm::Value* lhs,llvm::Value* rhs) override 
-        { 
-            return cg->builder->CreateFCmpUNE(lhs, rhs, "neqcmpd"); 
+
+        llvm::Value *codeGenInt(llvm::Value *lhs, llvm::Value *rhs)
+        {
+            return cg->builder->CreateICmpNE(lhs, rhs, "neqcmpi");
         }
+        llvm::Value *codeGenDouble(llvm::Value *lhs, llvm::Value *rhs)
+        {
+            return cg->builder->CreateFCmpUNE(lhs, rhs, "neqcmpd");
+        }
+
+        bool validOperandSet(::Type *t1) override
+        {
+            bool c = (t1->isInt() || t1->isDouble() || t1->isBool());
+            if (c)
+                operand_type = t1->getNew();
+            return c;
+        }
+
+        unique_ptr<::Type> getOperatorEvalTy() override { return make_unique<Bool>(); }
     };
 
-    Types TypesOnToken(int type);
+    class OpAnd : public BinOps
+    {
 
-    const char *TypesName(int t);
+        llvm::Value *codeGen(llvm::Value *lhs, llvm::Value *rhs) override
+        {
+            return cg->builder->CreateAnd(lhs, rhs, "andop");
+        }
+
+        bool validOperandSet(::Type *t1) override
+        {
+            return t1->isBool();
+        }
+
+        unique_ptr<::Type> getOperatorEvalTy() override { return make_unique<Bool>(); }
+    };
+
+    class OpOr : public BinOps
+    {
+
+        llvm::Value *codeGen(llvm::Value *lhs, llvm::Value *rhs) override
+        {
+            return cg->builder->CreateOr(lhs, rhs, "andop");
+        }
+
+        bool validOperandSet(::Type *t1) override
+        {
+            return t1->isBool();
+        }
+
+        unique_ptr<::Type> getOperatorEvalTy() override { return make_unique<Bool>(); }
+    };
 
     class Expression
     {
     protected:
-        // CodeGen* cg;
-        Types ExpressionType;
-        ::Type* type;
+        unique_ptr<::Type> type;
+
     public:
-        Expression(Types ExpressionType,::Type* type) : ExpressionType(ExpressionType) , type(type) {
-            // cg = CodeGen::GetInstance();
+        Expression(unique_ptr<::Type> type) : type(move(type))
+        {
         }
         virtual ~Expression() {}
-        virtual Types getType() = 0;
-        virtual ::Type* getNType() = 0;
+        virtual ::Type *getType()
+        {
+            return type.get();
+        }
         virtual llvm::Value *codeGen() = 0;
-        virtual void VarDecCodeGen(GlobalVariable *, Types) = 0;
+        virtual void VarDecCodeGen(GlobalVariable *, ::Type *) = 0;
     };
 
     class Value : public Expression
     {
     public:
-        Value(Types ExpressionType,::Type* type) : Expression(ExpressionType,type) {}
-        void VarDecCodeGen(GlobalVariable *, Types) override;
-
+        Value(unique_ptr<::Type> type) : Expression(move(type)) {}
+        void VarDecCodeGen(GlobalVariable *, ::Type *) override;
     };
 
     class IntNum : public Value
@@ -191,11 +427,8 @@ namespace AST
         int Number;
 
     public:
-        IntNum(int Number) : Number(Number), Value(type_int,new Int()) {}
-        Types getType() override { return type_int; }
-        ::Type* getNType() override { return type; }
-        llvm::Value* getZeroConstant() {  return ConstantInt::get(type->getLLVMType(), 0, true); }
-        llvm::Value *codeGen() override;
+        IntNum(int Number) : Number(Number), Value(make_unique<Int>()) {}
+        llvm::Value *codeGen() override { return ConstantInt::get(type->getLLVMType(), Number, true); }
     };
 
     class DoubleNum : public Value
@@ -203,11 +436,17 @@ namespace AST
         double Number;
 
     public:
-        DoubleNum(double Number) : Number(Number), Value(type_double,new Double()) {}
-        Types getType() override { return type_double; }
-        ::Type* getNType() override { return type; }
-        llvm::Value* getZeroConstant() {  return ConstantFP::get(type->getLLVMType(), APFloat(0.0)); }
-        llvm::Value *codeGen() override;
+        DoubleNum(double Number) : Number(Number), Value(make_unique<Double>()) {}
+        llvm::Value *codeGen() override { return ConstantFP::get(type->getLLVMType(), Number); }
+    };
+
+    class Boolean : public Value
+    {
+        bool value;
+
+    public:
+        Boolean(bool value) : value(value), Value(make_unique<Bool>()) {}
+        llvm::Value *codeGen() override { return ConstantInt::get(type->getLLVMType(), value, true); }
     };
 
     class Variable : public Expression
@@ -215,13 +454,11 @@ namespace AST
         string Name;
 
     public:
-        Variable(const string &Name, Types VariableType) : Name(Name), Expression(VariableType,nullptr)
+        Variable(const string &Name, unique_ptr<::Type> type) : Name(Name), Expression(move(type))
         {
         }
         const string getName() { return Name; }
-        Types getType() override { return ExpressionType; }
-        ::Type* getNType() override { return type; }
-        void VarDecCodeGen(GlobalVariable *, Types) override;
+        void VarDecCodeGen(GlobalVariable *, ::Type *) override;
         llvm::Value *codeGen() override;
     };
 
@@ -232,19 +469,18 @@ namespace AST
         unique_ptr<Expression> RVAL;
 
     public:
-        BinaryExpression(unique_ptr<BinOps> op, unique_ptr<Expression> LVAL, unique_ptr<Expression> RVAL, Types ExpressionType) : op(move(op)), LVAL(move(LVAL)), RVAL(move(RVAL)), Expression(ExpressionType,nullptr)
+        BinaryExpression(unique_ptr<BinOps> op, unique_ptr<Expression> LVAL, unique_ptr<Expression> RVAL, unique_ptr<::Type> ExpressionType) : op(move(op)), LVAL(move(LVAL)), RVAL(move(RVAL)), Expression(move(ExpressionType))
         {
         }
         llvm::Value *codeGen() override;
-        void VarDecCodeGen(GlobalVariable *, Types) override;
-        Types getType() override { return ExpressionType; }
-        ::Type* getNType() override { return type; }
+        void VarDecCodeGen(GlobalVariable *, ::Type *) override;
     };
 
     class Statement
     {
     public:
-        Statement() {
+        Statement()
+        {
         }
         virtual ~Statement() {}
         virtual void codegen() = 0;
@@ -258,11 +494,11 @@ namespace AST
     public:
         Return(unique_ptr<Expression> Exp) : exp(move(Exp)) {}
         bool isReturnStatement() override { return true; }
-        Types getExpType()
+        ::Type *getExpType()
         {
             if (exp)
                 return exp->getType();
-            return type_void;
+            return new Void();
         }
         void codegen() override;
     };
@@ -278,14 +514,6 @@ namespace AST
             if (Statements.back().get()->isReturnStatement())
                 return true;
             return false;
-        }
-        Types returnReturnStatementType()
-        {
-            if (Statements.back().get()->isReturnStatement())
-            {
-                return static_cast<Return *>(Statements.back().get())->getExpType();
-            }
-            return type_err;
         }
         void codegen() override;
     };
@@ -333,16 +561,16 @@ namespace AST
     class FunctionSignature
     {
         string Name;
-        Types retType;
+        unique_ptr<::Type> retType;
         vector<unique_ptr<Variable>> args;
         friend FunctionDefinition;
 
     public:
-        FunctionSignature(const string &Name, Types retType, vector<unique_ptr<Variable>> args) : Name(Name), retType(retType), args(move(args))
+        FunctionSignature(const string &Name, unique_ptr<::Type> retType, vector<unique_ptr<Variable>> args) : Name(Name), retType(move(retType)), args(move(args))
         {
         }
         const string getName() { return Name; }
-        Types getRetType() { return retType; }
+        ::Type *getRetType() { return retType.get(); }
         void codegen();
     };
 
@@ -364,14 +592,13 @@ namespace AST
         vector<unique_ptr<Expression>> args;
 
     public:
-        FunctionCall(const string &Name, vector<unique_ptr<Expression>> args, Types type) : Expression(type,nullptr), Name(Name), args(move(args))
+        FunctionCall(const string &Name, vector<unique_ptr<Expression>> args, unique_ptr<::Type> type) : Expression(move(type)), Name(Name), args(move(args))
         {
         }
         void codegen() override;
-        ::Type* getNType() override {return nullptr;}
+
         llvm::Value *codeGen() override;
-        Types getType() override { return ExpressionType; }
-        void VarDecCodeGen(GlobalVariable *, Types) override;
+        void VarDecCodeGen(GlobalVariable *, ::Type *) override;
     };
 
     class IfElseStatement : public Statement
