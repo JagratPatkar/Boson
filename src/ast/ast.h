@@ -386,7 +386,7 @@ namespace AST
 
         llvm::Value *codeGen(llvm::Value *lhs, llvm::Value *rhs) override
         {
-            return cg->builder->CreateOr(lhs, rhs, "andop");
+            return cg->builder->CreateOr(lhs, rhs, "orop");
         }
 
         bool validOperandSet(::Type *t1) override
