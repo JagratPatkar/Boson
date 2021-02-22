@@ -57,6 +57,7 @@ public:
     std::unique_ptr<AST::Expression> ParseDoubleNum();
     std::unique_ptr<AST::Expression> ParseBinOP(int, unique_ptr<Expression>);
     std::unique_ptr<AST::Statement> ParseVariableDeclarationStatement();
+    std::unique_ptr<AST::Statement> ParseArrayVariableDeclarationStatement(const string&,unique_ptr<::Type>);
     std::unique_ptr<AST::Statement> ParseLocalVariableDeclarationStatement();
     unique_ptr<AST::Statement> ParseVariableAssignmentStatement(const string &);
     unique_ptr<AST::VariableAssignment> VariableAssignmentStatementHelper(const string &);

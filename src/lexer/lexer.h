@@ -39,7 +39,9 @@ class Lexer
         token_true = -32,
         token_false = -33,
         token_ampersand = -34,
-        token_vertical_line = -35
+        token_vertical_line = -35,
+        token_left_square_brack = -36,
+        token_right_square_brack = -37 
     };
     map<string, token> KeywordRegistry;
     map<char, token> SymbolRegistry;
@@ -79,6 +81,8 @@ public:
         SymbolRegistry[','] = token_comma;
         SymbolRegistry['&'] = token_ampersand;
         SymbolRegistry['|'] = token_vertical_line;
+        SymbolRegistry['['] = token_left_square_brack;
+        SymbolRegistry[']'] = token_right_square_brack;
     }
     int getToken();
     int extractIdentifier();
@@ -125,4 +129,6 @@ public:
     bool isTokenFalseValue() { return currentToken == token_false; }
     bool isTokenAmpersand(){ return currentToken == token_ampersand; }
     bool isTokenVerticalLine(){ return currentToken == token_vertical_line; }
+    bool isTokenRightSquareBrack(){ return currentToken == token_right_square_brack; }
+    bool isTokenLeftSquareBrack(){ return currentToken == token_left_square_brack; }
 };

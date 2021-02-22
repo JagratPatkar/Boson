@@ -353,6 +353,75 @@ unique_ptr<Statement> Parser::ParseCallStatement(const string &name)
 }
 
 
+unique_ptr<Statement> Parser::ParseArrayVariableDeclarationStatement(const string& name,unique_ptr<::Type> t){
+    lexer.getNextToken();
+
+    if(!lexer.isTokenIntNum()){
+        LogError("Expected Length Specification of Array");
+        return nullptr;
+    }
+
+    int num = lexer.getIntNum();
+
+    lexer.getNextToken();
+    if(!lexer.isTokenRightSquareBrack()){
+        LogError("Expected a ']' in array declaration");
+        return nullptr;
+    
+    }
+
+    lexer.getNextToken();
+    vector<unique_ptr<Expression>> Args;
+    vector<unique_ptr<::Type>> ArgType;
+    if(lexer.isTokenAssignmentOp()){
+        lexer.getNextToken();
+        if(!lexer.isTokenLeftSquareBrack()) {
+            LogError("Expected a '[' in array");
+            return nullptr;
+        }
+      
+        lexer.getNextToken();
+        while (isExpression())
+        {
+            auto Exp = ParseExpression();
+            if (!lexer.isTokenComma() && !lexer.isTokenRightSquareBrack())
+            {
+                LogError("Statement might be missing a ','  or a ']'");
+                return nullptr;
+            }
+            ArgType.push_back(Exp->getType()->getNew());
+            Args.push_back(move(Exp));
+            if (!lexer.isTokenRightSquareBrack()) {
+                lexer.getNextToken();
+            }
+            else break;
+        }
+        lexer.getNextToken();
+    }
+    if(!lexer.isTokenSemiColon()) {
+        LogError("Expected a ';' at the end of statement");
+        return nullptr;
+    }
+
+
+    for(auto i = ArgType.begin(); i != ArgType.end(); i++){
+        if(!i->get()->doesMatch(t.get())){
+            LogError("Type Mismatch connot assign this value to array");
+            return nullptr;
+        }
+    }
+
+    unique_ptr<ArrayVal> av = make_unique<ArrayVal>(move(Args),move(t),num);
+    auto var = make_unique<Variable>(name, move(av->getType()->getNew()));
+    if(!parsingFuncDef){
+        GlobalVarTable[name] = av->getType()->getNew();
+        return make_unique<GlobalVariableDeclaration>(move(var), move(av));
+    }
+   
+    LocalVarTable[name] = av->getType()->getNew();
+    return make_unique<LocalVariableDeclaration>(move(var), move(av));
+}
+
 
 unique_ptr<Statement> Parser::ParseVariableDeclarationStatement()
 {
@@ -377,10 +446,18 @@ unique_ptr<Statement> Parser::ParseVariableDeclarationStatement()
             return nullptr;
         }
     }
+
+
+    lexer.getNextToken();
+    if(lexer.isTokenLeftSquareBrack())
+    {
+       return ParseArrayVariableDeclarationStatement(name,move(ty));
+    }
+
     if(!parsingFuncDef)GlobalVarTable[name] = ty->getNew();
     else LocalVarTable[name] = ty->getNew();
     auto var = make_unique<Variable>(name, move(ty->getNew()));
-    lexer.getNextToken();
+
     unique_ptr<Expression> exp = nullptr;
     if (lexer.isTokenAssignmentOp())
     {

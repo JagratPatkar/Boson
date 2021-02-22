@@ -19,10 +19,12 @@ public:
     virtual bool isDouble() { return false; }
     virtual bool isVoid() {return false;}
     virtual bool isBool() { return false; }
+    virtual bool isArray() { return false; }
     virtual unique_ptr<::Type> getNew() = 0;
+    virtual MaybeAlign getAllignment() { return MaybeAlign(4); }
     virtual llvm::Constant* getDefaultConstant() = 0;
     virtual bool doesMatch(Type*) = 0;
-    virtual llvm::AllocaInst* allocateLLVMVariable(const string& Name) = 0;
+    virtual llvm::AllocaInst* allocateLLVMVariable(const string&) = 0;
 };
 
 
@@ -70,6 +72,36 @@ class Bool : public ::Type{
     unique_ptr<::Type> getNew() override { return make_unique<Bool>(); }
     llvm::Constant* getDefaultConstant() override { return ConstantInt::getFalse(getLLVMType()); }
     llvm::AllocaInst* allocateLLVMVariable(const string& Name) override {  return new AllocaInst(getLLVMType(), 0, 0, Align(4), Name.c_str(), cg->builder->GetInsertBlock()); }
+};
+
+
+class Array : public ::Type{
+    unique_ptr<::Type> ofType;
+    int num;
+    public:
+    Array(int num,unique_ptr<::Type> ofType) : num(num) , ofType(move(ofType))  {}
+    bool isArray() override { return true; }
+    MaybeAlign getAllignment() override {  return MaybeAlign(16); }
+    llvm::ArrayType *getLLVMType() override { return ArrayType::get(ofType->getLLVMType(),num); }
+    llvm::Constant* getDefaultConstant() override { 
+        vector<Constant*> values;
+        for(int i = 0; i < num; i++){
+            values.push_back(ofType->getDefaultConstant());
+        }
+        return ConstantArray::get(getLLVMType(),values);
+    };
+    ::Type* getOfType(){ return ofType.get(); }
+    bool doesMatch(Type* t) override {
+        if(t->isArray()){
+            Array* atype = static_cast<Array*>(t);
+            return ofType->doesMatch(atype->getOfType());
+        }
+        return false;
+    }
+    llvm::AllocaInst* allocateLLVMVariable(const string& Name) override { 
+        return new AllocaInst(getLLVMType(),0, Name.c_str(), cg->builder->GetInsertBlock()); 
+    }
+    unique_ptr<::Type> getNew() override { return make_unique<Array>(num,ofType->getNew()); }
 };
 
 #endif

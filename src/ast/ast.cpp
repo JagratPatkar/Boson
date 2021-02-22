@@ -10,6 +10,14 @@ using namespace AST;
 static CodeGen* cg = CodeGen::GetInstance();
 
 
+llvm::Value* ArrayVal::codeGen(){
+    vector<Constant*> vals;
+    for(auto i = ofVals.begin(); i != ofVals.end(); i++){
+        vals.push_back(dyn_cast<Constant>(i->get()->codeGen());
+    }
+    return ConstantArray::get(dyn_cast<ArrayType>(type->getLLVMType()),vals);
+}
+
 llvm::Value *FunctionCall::codeGen()
 {
     Function *func = cg->module->getFunction(Name);
@@ -45,12 +53,12 @@ llvm::Value *Variable::codeGen()
     return cg->builder->CreateAlignedLoad(gVar, MaybeAlign(4), Name.c_str());
 }
 
-void Variable::VarDecCodeGen(GlobalVariable *gVar, ::Type*)
+void Variable::VarDecCodeGen(GlobalVariable *gVar, ::Type* t)
 {
     cg->builder->SetInsertPoint(cg->getCOPBB());
     GlobalVariable *gvar = cg->GlobalVarTable.getElement(Name);
-    llvm::Value *v = cg->builder->CreateAlignedLoad(gvar, MaybeAlign(4), Name.c_str());
-    cg->builder->CreateAlignedStore(v, gVar, MaybeAlign(4));
+    llvm::Value *v = cg->builder->CreateAlignedLoad(gvar,t->getAllignment() , Name.c_str());
+    cg->builder->CreateAlignedStore(v, gVar, t->getAllignment());
 }
 
 void AST::Value::VarDecCodeGen(GlobalVariable *gVar, ::Type*)
@@ -65,7 +73,7 @@ void GlobalVariableDeclaration::codegen()
     ::Type* vt = var->getType();
     cg->module->getOrInsertGlobal(Name, vt->getLLVMType());
     GlobalVariable *gVar = cg->module->getNamedGlobal(Name);
-    gVar->setAlignment(MaybeAlign(4));
+    gVar->setAlignment(vt->getAllignment());
     if (exp) exp->VarDecCodeGen(gVar, vt);
     else{ gVar->setInitializer(vt->getDefaultConstant()); }
     cg->GlobalVarTable.addElement(Name,gVar);

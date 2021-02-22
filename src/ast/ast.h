@@ -401,8 +401,8 @@ namespace AST
     {
     protected:
         unique_ptr<::Type> type;
-
-    public:
+        int elemNumofArray;
+    public: 
         Expression(unique_ptr<::Type> type) : type(move(type))
         {
         }
@@ -413,6 +413,8 @@ namespace AST
         }
         virtual llvm::Value *codeGen() = 0;
         virtual void VarDecCodeGen(GlobalVariable *, ::Type *) = 0;
+        virtual void setElemNum(int elm){ elemNumofArray = elm; }
+        virtual int getElemNum() { return elemNumofArray; }
     };
 
     class Value : public Expression
@@ -447,6 +449,14 @@ namespace AST
     public:
         Boolean(bool value) : value(value), Value(make_unique<Bool>()) {}
         llvm::Value *codeGen() override { return ConstantInt::get(type->getLLVMType(), value, true); }
+    };
+
+    class ArrayVal : public Value{
+        vector<unique_ptr<Expression>> ofVals;
+        public:
+        ArrayVal(vector<unique_ptr<Expression>> ofVals,unique_ptr<::Type> type,int size) : ofVals(move(ofVals)) , Value(make_unique<Array>(size,move(type))){
+        }
+        llvm::Value *codeGen() override;
     };
 
     class Variable : public Expression
