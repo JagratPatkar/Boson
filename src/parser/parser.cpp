@@ -411,6 +411,11 @@ unique_ptr<Statement> Parser::ParseArrayVariableDeclarationStatement(const strin
         }
     }
 
+    if(Args.size()!= num) {
+        LogError("Array is initiaized with illegal number of elements");
+        return nullptr;
+    }
+
     unique_ptr<ArrayVal> av = make_unique<ArrayVal>(move(Args),move(t),num);
     auto var = make_unique<Variable>(name, move(av->getType()->getNew()));
     if(!parsingFuncDef){
@@ -546,6 +551,20 @@ unique_ptr<VariableAssignment> Parser::VariableAssignmentStatementHelper(const s
         return nullptr;
     }
     auto var = make_unique<Variable>(name,t1->getNew());
+    if(lexer.isTokenLeftSquareBrack()){
+        lexer.getNextToken();
+        if(!lexer.isTokenIntNum()){
+            LogError("Expected an index number");
+            return nullptr;
+        }
+        int num = lexer.getIntNum();
+        var->setElement(num);
+        lexer.getNextToken();
+        if(!lexer.isTokenRightSquareBrack()){
+            LogError("Expexted a ']' after index");
+        }
+        lexer.getNextToken();
+    }else var->setElement(0);
     if (!lexer.isTokenAssignmentOp())
     {
         LogError("Missing '=' operator");

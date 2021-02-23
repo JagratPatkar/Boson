@@ -401,7 +401,6 @@ namespace AST
     {
     protected:
         unique_ptr<::Type> type;
-        int elemNumofArray;
     public: 
         Expression(unique_ptr<::Type> type) : type(move(type))
         {
@@ -412,16 +411,17 @@ namespace AST
             return type.get();
         }
         virtual llvm::Value *codeGen() = 0;
+        virtual bool isValue(){ return false; }
         virtual void VarDecCodeGen(GlobalVariable *, ::Type *) = 0;
-        virtual void setElemNum(int elm){ elemNumofArray = elm; }
-        virtual int getElemNum() { return elemNumofArray; }
+        
     };
 
     class Value : public Expression
     {
     public:
         Value(unique_ptr<::Type> type) : Expression(move(type)) {}
-        void VarDecCodeGen(GlobalVariable *, ::Type *) override;
+        virtual void VarDecCodeGen(GlobalVariable *, ::Type *) override;
+        virtual bool isValue() override { return true; }
     };
 
     class IntNum : public Value
@@ -457,18 +457,21 @@ namespace AST
         ArrayVal(vector<unique_ptr<Expression>> ofVals,unique_ptr<::Type> type,int size) : ofVals(move(ofVals)) , Value(make_unique<Array>(size,move(type))){
         }
         llvm::Value *codeGen() override;
+        void VarDecCodeGen(GlobalVariable *, ::Type *) override;
     };
 
     class Variable : public Expression
     {
         string Name;
-
+        int elemNum;
     public:
         Variable(const string &Name, unique_ptr<::Type> type) : Name(Name), Expression(move(type))
         {
         }
         const string getName() { return Name; }
         void VarDecCodeGen(GlobalVariable *, ::Type *) override;
+        void setElement(int i){ elemNum = i; }
+        int getElement(){ return elemNum; }
         llvm::Value *codeGen() override;
     };
 
@@ -558,11 +561,12 @@ namespace AST
     {
         unique_ptr<Variable> var;
         unique_ptr<Expression> exp;
-
+        
     public:
         VariableAssignment(unique_ptr<Variable> var, unique_ptr<Expression> exp) : var(move(var)), exp(move(exp))
         {
         }
+       
         void codegen() override;
     };
 

@@ -24,7 +24,14 @@ public:
     virtual MaybeAlign getAllignment() { return MaybeAlign(4); }
     virtual llvm::Constant* getDefaultConstant() = 0;
     virtual bool doesMatch(Type*) = 0;
+    virtual bool doesMatchElement(Type* t) { return doesMatch(t); }
     virtual llvm::AllocaInst* allocateLLVMVariable(const string&) = 0;
+    virtual void createWrite(int elem,llvm::Value* v,llvm::Value* dest) {
+        cg->builder->CreateAlignedStore(v, dest, getAllignment());
+    }      
+    virtual void createLoad(llvm::Value* v,const string& name){
+        cg->builder->CreateAlignedLoad(v,getAllignment(),name);
+    }
 };
 
 
@@ -96,12 +103,23 @@ class Array : public ::Type{
             Array* atype = static_cast<Array*>(t);
             return ofType->doesMatch(atype->getOfType());
         }
-        return false;
+    }
+    bool doesMatchElement(Type* t) override {
+        return ofType->doesMatch(t);
     }
     llvm::AllocaInst* allocateLLVMVariable(const string& Name) override { 
         return new AllocaInst(getLLVMType(),0, Name.c_str(), cg->builder->GetInsertBlock()); 
     }
     unique_ptr<::Type> getNew() override { return make_unique<Array>(num,ofType->getNew()); }
+
+     virtual void createWrite(int elem,llvm::Value* v,llvm::Value* dest) override {
+        Value *Idxs[] = {
+            ConstantInt::get(llvm::Type::getInt32Ty(*(cg->context)), 0),
+            ConstantInt::get(llvm::Type::getInt32Ty(*(cg->context)), elem)
+        };
+        Value* gep = cg->builder->CreateInBoundsGEP(dyn_cast<llvm::Type>(getLLVMType()),dyn_cast<Constant>(dest),Idxs); 
+        ofType->createWrite(0,v,gep);
+    }
 };
 
 #endif

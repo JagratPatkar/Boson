@@ -11,11 +11,33 @@ static CodeGen* cg = CodeGen::GetInstance();
 
 
 llvm::Value* ArrayVal::codeGen(){
+    return nullptr;
+}
+
+void ArrayVal::VarDecCodeGen(GlobalVariable *gVar, ::Type* t){
+    bool flag = true;
     vector<Constant*> vals;
     for(auto i = ofVals.begin(); i != ofVals.end(); i++){
-        vals.push_back(dyn_cast<Constant>(i->get()->codeGen());
+        if(!i->get()->isValue()){
+            flag = false;
+            break;
+        }
     }
-    return ConstantArray::get(dyn_cast<ArrayType>(type->getLLVMType()),vals);
+    if(flag){
+        for(auto i = ofVals.begin(); i != ofVals.end(); i++){
+             vals.push_back(dyn_cast<Constant>(i->get()->codeGen()));
+        }
+        gVar->setInitializer(ConstantArray::get(dyn_cast<ArrayType>(type->getLLVMType()),vals));
+    }else{
+        cg->builder->SetInsertPoint(cg->getCOPBB());
+        int counter = 0;
+        for(auto j = ofVals.begin(); j != ofVals.end(); j++,counter++){
+            llvm::Value* v = j->get()->codeGen();
+            type->createWrite(counter,v,gVar);
+        }
+        gVar->setInitializer(type->getDefaultConstant());
+    }
+  
 }
 
 llvm::Value *FunctionCall::codeGen()
@@ -31,12 +53,12 @@ llvm::Value *FunctionCall::codeGen()
     return cg->builder->CreateCall(func, ArgsValue, "callres");
 }
 
-void FunctionCall::VarDecCodeGen(GlobalVariable *gVar, ::Type*)
+void FunctionCall::VarDecCodeGen(GlobalVariable *gVar, ::Type* t)
 {
     cg->builder->SetInsertPoint(cg->getCOPBB());
     GlobalVariable *gvar = cg->GlobalVarTable.getElement(Name);
     llvm::Value *v = codeGen();
-    cg->builder->CreateAlignedStore(v, gVar, MaybeAlign(4));
+    cg->builder->CreateAlignedStore(v, gVar, t->getAllignment());
 }
 
 llvm::Value *Variable::codeGen()
@@ -105,19 +127,18 @@ void VariableAssignment::codegen()
 {
     string Name = var->getName();
     llvm::Value *val = exp->codeGen();
-    if (!val)
-        return;
+    if (!val) return;
     llvm::Value *dest = cg->LocalVarTable.getElement(Name);
     if (!dest)
     {
         GlobalVariable *globalDest = cg->GlobalVarTable.getElement(Name);
         if (!globalDest)
             return;
-        cg->builder->CreateAlignedStore(val, globalDest, MaybeAlign(4));
+        var->getType()->createWrite(var->getElement(),val,globalDest);
     }
     else
     {
-        cg->builder->CreateAlignedStore(val, dest, MaybeAlign(4));
+       var->getType()->createWrite(var->getElement(),val,dest);
     }
 }
 
