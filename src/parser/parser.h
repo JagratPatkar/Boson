@@ -39,7 +39,7 @@ public:
     unique_ptr<::Type> getType();
     int getOperatorPrecedence();
     unique_ptr<BinOps> returnBinOpsType();
-    
+    unique_ptr<Expression>  ParseArrayElemExpression(const string&);
     std::unique_ptr<AST::Expression> ParseExpression();
     std::unique_ptr<AST::Expression> ParseParen();
     std::unique_ptr<AST::Statement> ParseStatement();
@@ -66,7 +66,6 @@ public:
     std::unique_ptr<FunctionSignature> ParseFunctionSignature();
     std::unique_ptr<FunctionDefinition> ParseFunctionDefinition();
     void LogError(const char *errmsg) { fprintf(stderr, "Error : %s\n", errmsg); }
-    std::unique_ptr<AST::Expression> LogTypeError(int, int);
     bool isExpression() { return (lexer.isTokenIntNum() || lexer.isTokenDoubleNum() ||
                                   lexer.isTokenIdentifier() || lexer.isTokenLeftParen()) || lexer.isTokenTrueValue() ||
                                   lexer.isTokenFalseValue(); }

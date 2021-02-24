@@ -9,9 +9,16 @@ using namespace AST;
 
 static CodeGen* cg = CodeGen::GetInstance();
 
-
 llvm::Value* ArrayVal::codeGen(){
     return nullptr;
+}
+
+void ArrayVal::gen(llvm::Value* vt){
+    int counter = 0;
+        for(auto j = ofVals.begin(); j != ofVals.end(); j++,counter++){
+            llvm::Value* v = j->get()->codeGen();
+            type->createWrite(counter,v,vt);
+    }
 }
 
 void ArrayVal::VarDecCodeGen(GlobalVariable *gVar, ::Type* t){
@@ -30,11 +37,7 @@ void ArrayVal::VarDecCodeGen(GlobalVariable *gVar, ::Type* t){
         gVar->setInitializer(ConstantArray::get(dyn_cast<ArrayType>(type->getLLVMType()),vals));
     }else{
         cg->builder->SetInsertPoint(cg->getCOPBB());
-        int counter = 0;
-        for(auto j = ofVals.begin(); j != ofVals.end(); j++,counter++){
-            llvm::Value* v = j->get()->codeGen();
-            type->createWrite(counter,v,gVar);
-        }
+        gen(gVar);
         gVar->setInitializer(type->getDefaultConstant());
     }
   
@@ -66,13 +69,15 @@ llvm::Value *Variable::codeGen()
     if (cg->getGeneratingFunction())
     {
         llvm::Value *v = cg->LocalVarTable.getElement(Name);
-        if (v)
-            return cg->builder->CreateAlignedLoad(v, MaybeAlign(4), Name.c_str());
+        if(isArrayElem && v){ return arrayType->createLoad(getElement(),v,Name); }   
+        else if(v) { return type->createLoad(0,v,Name); }
     }
     GlobalVariable *gVar = cg->GlobalVarTable.getElement(Name);
-    if (!gVar)
-        return nullptr;
-    return cg->builder->CreateAlignedLoad(gVar, MaybeAlign(4), Name.c_str());
+    if (!gVar) return nullptr;
+    if(isArrayElem){ 
+        return arrayType->createLoad(getElement(),gVar,Name); 
+    }
+    return type->createLoad(0,gVar,Name);
 }
 
 void Variable::VarDecCodeGen(GlobalVariable *gVar, ::Type* t)
@@ -106,12 +111,17 @@ void LocalVariableDeclaration::codegen()
     string Name = var->getName();
     ::Type* vt = var->getType();
     llvm::Value *val;
-    if (exp) val = exp->codeGen();
-    else val = vt->getDefaultConstant(); 
     AllocaInst *alloca;
     alloca = vt->allocateLLVMVariable(Name);
+    if(vt->isArray()) {
+        if(exp){
+             static_cast<ArrayVal*>(exp.get())->gen(alloca);
+        }
+    }
+    else if (exp) val = exp->codeGen();
+    else val = vt->getDefaultConstant(); 
     cg->LocalVarTable.addElement(Name,alloca);
-    cg->builder->CreateAlignedStore(val, alloca, MaybeAlign(4));
+    if(!vt->isArray()) vt->createWrite(0,val, alloca);
 }
 
 void CompoundStatement::codegen()

@@ -29,8 +29,8 @@ public:
     virtual void createWrite(int elem,llvm::Value* v,llvm::Value* dest) {
         cg->builder->CreateAlignedStore(v, dest, getAllignment());
     }      
-    virtual void createLoad(llvm::Value* v,const string& name){
-        cg->builder->CreateAlignedLoad(v,getAllignment(),name);
+    virtual llvm::Value* createLoad(int elem,llvm::Value* v,const string& name){
+        return cg->builder->CreateAlignedLoad(v,getAllignment(),name);
     }
 };
 
@@ -103,12 +103,14 @@ class Array : public ::Type{
             Array* atype = static_cast<Array*>(t);
             return ofType->doesMatch(atype->getOfType());
         }
+        return false;
     }
     bool doesMatchElement(Type* t) override {
         return ofType->doesMatch(t);
     }
     llvm::AllocaInst* allocateLLVMVariable(const string& Name) override { 
-        return new AllocaInst(getLLVMType(),0, Name.c_str(), cg->builder->GetInsertBlock()); 
+
+        return new AllocaInst(getLLVMType(),0,0,Align(16),Name.c_str(), cg->builder->GetInsertBlock()); 
     }
     unique_ptr<::Type> getNew() override { return make_unique<Array>(num,ofType->getNew()); }
 
@@ -117,8 +119,17 @@ class Array : public ::Type{
             ConstantInt::get(llvm::Type::getInt32Ty(*(cg->context)), 0),
             ConstantInt::get(llvm::Type::getInt32Ty(*(cg->context)), elem)
         };
-        Value* gep = cg->builder->CreateInBoundsGEP(dyn_cast<llvm::Type>(getLLVMType()),dyn_cast<Constant>(dest),Idxs); 
+        llvm::Value* gep = cg->builder->CreateInBoundsGEP(dyn_cast<llvm::Type>(getLLVMType()),dest,Idxs); 
         ofType->createWrite(0,v,gep);
+    }
+
+    virtual llvm::Value*  createLoad(int elem,llvm::Value* v,const string& name) override {
+        Value *Idxs[] = {
+            ConstantInt::get(llvm::Type::getInt32Ty(*(cg->context)), 0),
+            ConstantInt::get(llvm::Type::getInt32Ty(*(cg->context)), elem)
+        };
+       llvm::Value* gep = cg->builder->CreateInBoundsGEP(dyn_cast<llvm::Type>(getLLVMType()),v,Idxs); 
+       return cg->builder->CreateAlignedLoad(gep,getAllignment(),name+"arrayidx");
     }
 };
 

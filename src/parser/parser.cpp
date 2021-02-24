@@ -31,11 +31,6 @@ void Parser::parse()
 }
 
 
-unique_ptr<Expression> Parser::LogTypeError(int t1, int t2)
-{
-    // fprintf(stderr, "Type mistmatch between : %s - and - %s \n", AST::TypesName(t1), AST::TypesName(t2));
-    return nullptr;
-}
 
 unique_ptr<Expression> Parser::ParseExpression()
 {
@@ -81,8 +76,58 @@ unique_ptr<Expression> Parser::ParseIdentifier()
     lexer.getNextToken();
     if (lexer.isTokenLeftParen())
         return ParseCallExpression(Name);
+    else if(lexer.isTokenLeftSquareBrack())
+        return ParseArrayElemExpression(Name);
     else
         return ParseVariable(Name);
+}
+
+unique_ptr<Expression> Parser::ParseArrayElemExpression(const string& Name){
+    lexer.getNextToken();
+    if(!lexer.isTokenIntNum()){
+        LogError("Expected a index number");
+        return nullptr;
+    }
+    int num = lexer.getIntNum();
+
+    lexer.getNextToken();
+
+    if(!lexer.isTokenRightSquareBrack()){
+        LogError("Expected a ']' after index");
+        return nullptr;
+    }
+
+    lexer.getNextToken();
+
+    unique_ptr<Variable> v;
+    if (parsingFuncDef && LocalVarTable[Name]){
+        ::Type* t =  LocalVarTable[Name].get();
+        if(t->isArray()){
+            v =  make_unique<Variable>(Name, static_cast<Array*>(t)->getOfType()->getNew());
+            v->setArrayType(t->getNew());
+        }else{
+            LogError("Cannot index a Primitive Variable");
+            return nullptr;
+        }
+    }
+    if (GlobalVarTable[Name]){
+        ::Type* t =  GlobalVarTable[Name].get();
+        if(t->isArray()){
+            v =  make_unique<Variable>(Name, static_cast<Array*>(t)->getOfType()->getNew());
+            v->setArrayType(t->getNew());
+        }else{
+            LogError("Cannot index a Primitive Variable");
+            return nullptr;
+        }
+    }
+    else{
+        LogError("Undefined Variable");
+        return nullptr;
+    }
+
+    v->setElement(num);
+    v->setArrayFlag();
+    return move(v);
 }
 
 unique_ptr<Expression> Parser::ParseIntNum()
@@ -200,13 +245,15 @@ unique_ptr<Expression> Parser::ParseBinOP(int minPrec, unique_ptr<Expression> lv
         auto rvalue = ParsePrimary();
         if (!rvalue)
             return nullptr;
-        
         auto ltype = lvalue->getType();
         auto rtype = rvalue->getType();
-        if (!ltype->doesMatch(rtype))
+        if (!ltype->doesMatch(rtype)){
             LogError("Type Error");
+            return nullptr;
+        }
         if(!BinOp->validOperandSet(ltype)){
             LogError("Type of Operands given to Operator is Illeagal");
+            return nullptr;
         }
         if (prevPrec < getOperatorPrecedence())
         {
@@ -254,7 +301,7 @@ unique_ptr<Expression> Parser::ParseCallExpression(const string &Name)
     {
         if(!a->get()->doesMatch(b->get()))
         {
-             LogError("Type Mismatch");
+             LogError("Type Mismatch in function call");
         }
     }
     auto sec = p.second.get()->getNew();
@@ -344,7 +391,7 @@ unique_ptr<Statement> Parser::ParseCallStatement(const string &name)
     {
         if(!a->get()->doesMatch(b->get()))
         {
-             LogError("Type Mismatch");
+             LogError("Type Mismatch in function call");
         }
     }
     auto sec = p.second.get()->getNew();
@@ -397,6 +444,10 @@ unique_ptr<Statement> Parser::ParseArrayVariableDeclarationStatement(const strin
             else break;
         }
         lexer.getNextToken();
+        if(Args.size()!= num) {
+            LogError("Array is initiaized with illegal number of elements");
+            return nullptr;
+        }
     }
     if(!lexer.isTokenSemiColon()) {
         LogError("Expected a ';' at the end of statement");
@@ -405,16 +456,13 @@ unique_ptr<Statement> Parser::ParseArrayVariableDeclarationStatement(const strin
 
 
     for(auto i = ArgType.begin(); i != ArgType.end(); i++){
-        if(!i->get()->doesMatch(t.get())){
+        if(!i->get()->doesMatchElement(t.get())){
             LogError("Type Mismatch connot assign this value to array");
             return nullptr;
         }
     }
 
-    if(Args.size()!= num) {
-        LogError("Array is initiaized with illegal number of elements");
-        return nullptr;
-    }
+   
 
     unique_ptr<ArrayVal> av = make_unique<ArrayVal>(move(Args),move(t),num);
     auto var = make_unique<Variable>(name, move(av->getType()->getNew()));
@@ -444,12 +492,13 @@ unique_ptr<Statement> Parser::ParseVariableDeclarationStatement()
             LogError("Illegal Re-declaration");
             return nullptr;
         }
-    }else{
-        if (GlobalVarTable[name])
-        {
-            LogError("Illegal Re-declaration");
-            return nullptr;
-        }
+    }else if(GlobalVarTable[name]){
+        LogError("Illegal Re-declaration");
+        return nullptr;
+    }
+    else if(FunctionTable.find(name) != FunctionTable.end()){
+        LogError("Illegal Re-declaration");
+        return nullptr;
     }
 
 
@@ -564,7 +613,11 @@ unique_ptr<VariableAssignment> Parser::VariableAssignmentStatementHelper(const s
             LogError("Expexted a ']' after index");
         }
         lexer.getNextToken();
-    }else var->setElement(0);
+    }else if(t1->isArray()){
+        LogError("Expected an index to Array");
+        return nullptr;
+    }
+    else var->setElement(0);
     if (!lexer.isTokenAssignmentOp())
     {
         LogError("Missing '=' operator");
@@ -572,9 +625,9 @@ unique_ptr<VariableAssignment> Parser::VariableAssignmentStatementHelper(const s
     }
     lexer.getNextToken();
     auto exp = ParseExpression();
-    if(!t1->doesMatch(exp->getType()))
+    if(!t1->doesMatchElement(exp->getType()))
     {
-        LogError("Type Mismatch");
+        LogError("Type Mismatch in variable assignment");
         return nullptr;
     }
     return make_unique<VariableAssignment>(move(var), move(exp));
@@ -684,6 +737,9 @@ unique_ptr<FunctionSignature> Parser::ParseFunctionSignature()
     if (FunctionTable.find(Name) != FunctionTable.end())
     {
         LogError("Function Already Defined");
+        return nullptr;
+    }else if(LocalVarTable[Name] || GlobalVarTable[Name]){
+        LogError("Cannot have a 'function' and a 'variable' with the same name");
         return nullptr;
     }
     vector<unique_ptr<::Type>> argType;

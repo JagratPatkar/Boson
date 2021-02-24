@@ -457,6 +457,7 @@ namespace AST
         ArrayVal(vector<unique_ptr<Expression>> ofVals,unique_ptr<::Type> type,int size) : ofVals(move(ofVals)) , Value(make_unique<Array>(size,move(type))){
         }
         llvm::Value *codeGen() override;
+        void gen(llvm::Value*);
         void VarDecCodeGen(GlobalVariable *, ::Type *) override;
     };
 
@@ -464,14 +465,19 @@ namespace AST
     {
         string Name;
         int elemNum;
+        bool isArrayElem;
+        unique_ptr<::Type> arrayType;
     public:
         Variable(const string &Name, unique_ptr<::Type> type) : Name(Name), Expression(move(type))
         {
+            isArrayElem = false;
         }
         const string getName() { return Name; }
         void VarDecCodeGen(GlobalVariable *, ::Type *) override;
         void setElement(int i){ elemNum = i; }
         int getElement(){ return elemNum; }
+        void setArrayType(unique_ptr<::Type> t){ arrayType = move(t); }
+        void setArrayFlag() { isArrayElem = true; }
         llvm::Value *codeGen() override;
     };
 
