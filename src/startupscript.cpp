@@ -12,6 +12,11 @@ extern "C" void printint(int val){
     printf("%d\n",val);
 }
 
+
+extern "C" void nextLine(){
+    putchar('\n');
+}
+
 int main(){
     start();
     return 0;   

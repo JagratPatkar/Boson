@@ -30,7 +30,7 @@ int Lexer::getToken()
         return (tmp = peekOneAhead('=', token_greater_than_eq)) ? tmp : token_greater_then;
     if (curChar == '!')
     {
-        if ((tmp = peekOneAhead('=', token_less_than_eq)))
+        if ((tmp = peekOneAhead('=', token_not_equal_to)))
             return tmp;
     }
     
