@@ -46,6 +46,6 @@ and the idioms of structural paradigm implemented.
 <embed type="plain/text" src="https://github.com/JagratPatkar/Boson/blob/main/img/asciiart.txt" width="500" height="200"/>
 
 
-<p align="center">
+<!-- <p align="center">
   <img  height="300" width="400" src="https://github.com/JagratPatkar/Boson/blob/main/img/asciiart.png"/>
-</p>
+</p> -->
