@@ -15,27 +15,7 @@ and the idioms of structural paradigm implemented.
 
 ### Ascii Art
 
-''' 
-                                        ----------------------------------------                                        
-                                       ' > Hello Boson                          '                                       
-                                       |                                        |                                       
-                                       |                                        |                                       
-                                       |                                        |                                       
-                                       |                                        |                                       
-                                       |                                        |                                       
-                                       |                                        |                                       
-                                       |                                        |                                       
-                                       |                                        |                                       
-                                       |                                        |                                       
-                                       .                                        .                                       
-                                        ----------------------------------------                                        
-                                                           ||                                                           
-                                                           ||                                                           
-                                                           ||                                                           
-                                                       ==========                                                       
-                                                  ____________________                                                  
-                                                 / ~ ~ ~ ~ ~ ~ ~ ~ ~ /                                                 
-                                                / ~ ~ ~ ~ ~ ~ ~ ~ ~ /                                                
-                                               / ~ ~ ~ ~ ~ ~ ~ ~ ~ /                                               
-                                               ====================                                               
-'''
+<p align="center">
+  <img  height="300" width="700" src="https://github.com/JagratPatkar/Boson/blob/main/img/asciiart.png"/>
+</p>
+
