@@ -43,8 +43,8 @@ and the idioms of structural paradigm implemented.
 
 ## Ascii Art
 
-<object data="https://github.com/JagratPatkar/Boson/blob/main/img/asciiart.txt" type="text/plain">
-</object>
+<embed type="text/plain" src="https://github.com/JagratPatkar/Boson/blob/main/img/asciiart.txt" width="500" height="200">
+
 
 <p align="center">
   <img  height="300" width="400" src="https://github.com/JagratPatkar/Boson/blob/main/img/asciiart.png"/>
