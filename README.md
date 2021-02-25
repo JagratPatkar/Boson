@@ -22,25 +22,6 @@ and the idioms of structural paradigm implemented.
 
 ## Ascii Art
 
-''' 
-                            -----------------------------------------
-                           ' > Hello Boson                           '
-                           |                                         |
-                           |                                         |
-                           |                                         |
-                           |                                         |
-                           |                                         |
-                           |                                         |
-                           |                                         |
-                           |                                         |
-                           |                                         |
-                           . _______________________________________ .
-                                               ||
-                                               ||
-                                               || 
-                                           ==========                      
-                                      ____________________
-                                     / ~ ~ ~ ~ ~ ~ ~ ~ ~ /
-                                    / ~ ~ ~ ~ ~ ~ ~ ~ ~ /
-                                   / ~ ~ ~ ~ ~ ~ ~ ~ ~ /
-                                   ===================  '''
+<p align="center">
+  <img  height="350" width="750" src="https://github.com/JagratPatkar/Boson/blob/main/img/asciiart.png"/>
+</p>
