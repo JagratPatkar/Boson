@@ -15,23 +15,23 @@ and the idioms of structural paradigm implemented.
 # Features
 
 * __Data Types__
-  * *Int*
-  * *Double*
-  * *Bool*
+  * Int
+  * Double
+  * Bool
 * __Functional Idioms__
-   * *Functions* 
-   * *Recursion*
+   * Functions 
+   * Recursion
 * __Operators__
-  * *Arithmetic Operators*
-  * *Logical Operators*
-  * *Relational Operators*
+  * Arithmetic Operators
+  * Logical Operators
+  * Relational Operators
 * __Composite Types__
-  * *Array*
+  * Array
 * __Structured Idioms__
-  * *For Loop*
-  * *If Else*
+  * For Loop
+  * If Else
 * __C Native Calls__
-  * *Consume*
+  * Consume
 
 # Examples 
 
