@@ -11,9 +11,9 @@ and the idioms of structural paradigm implemented.
 
 
 
-## Examples 
+# Examples 
 
-### Ascii Art
+## Ascii Art
 
 <p align="center">
   <img  height="300" width="700" src="https://github.com/JagratPatkar/Boson/blob/main/img/asciiart.png"/>
