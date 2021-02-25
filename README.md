@@ -13,6 +13,13 @@ and the idioms of structural paradigm implemented.
 
 # Examples 
 
+
+
+## Binary Search Algorithm
+
+
+
+
 ## Ascii Art
 
 <p align="center">
