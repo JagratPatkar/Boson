@@ -24,7 +24,6 @@ public:
     virtual MaybeAlign getAllignment() { return MaybeAlign(4); }
     virtual llvm::Constant* getDefaultConstant() = 0;
     virtual bool doesMatch(Type*) = 0;
-    virtual bool doesMatchElement(Type* t) { return doesMatch(t); }
     virtual llvm::AllocaInst* allocateLLVMVariable(const string&) = 0;
     virtual void createWrite(int elem,llvm::Value* v,llvm::Value* dest) {
         cg->builder->CreateAlignedStore(v, dest, getAllignment());
@@ -105,7 +104,7 @@ class Array : public ::Type{
         }
         return false;
     }
-    bool doesMatchElement(Type* t) override {
+    bool doesMatchElement(Type* t) {
         return ofType->doesMatch(t);
     }
     llvm::AllocaInst* allocateLLVMVariable(const string& Name) override { 

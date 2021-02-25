@@ -105,12 +105,13 @@ unique_ptr<Expression> Parser::ParseArrayElemExpression(const string& Name){
         if(t->isArray()){
             v =  make_unique<Variable>(Name, static_cast<Array*>(t)->getOfType()->getNew());
             v->setArrayType(t->getNew());
+
         }else{
             LogError("Cannot index a Primitive Variable");
             return nullptr;
         }
     }
-    if (GlobalVarTable[Name]){
+    else if (GlobalVarTable[Name]){
         ::Type* t =  GlobalVarTable[Name].get();
         if(t->isArray()){
             v =  make_unique<Variable>(Name, static_cast<Array*>(t)->getOfType()->getNew());
@@ -121,7 +122,7 @@ unique_ptr<Expression> Parser::ParseArrayElemExpression(const string& Name){
         }
     }
     else{
-        LogError("Undefined Variable");
+        LogError("Undefined Array Variable");
         return nullptr;
     }
 
@@ -456,7 +457,7 @@ unique_ptr<Statement> Parser::ParseArrayVariableDeclarationStatement(const strin
 
 
     for(auto i = ArgType.begin(); i != ArgType.end(); i++){
-        if(!i->get()->doesMatchElement(t.get())){
+        if(!i->get()->doesMatch(t.get())){
             LogError("Type Mismatch connot assign this value to array");
             return nullptr;
         }
@@ -625,7 +626,13 @@ unique_ptr<VariableAssignment> Parser::VariableAssignmentStatementHelper(const s
     }
     lexer.getNextToken();
     auto exp = ParseExpression();
-    if(!t1->doesMatchElement(exp->getType()))
+    if(t1->isArray()){
+        if(!static_cast<Array*>(t1)->doesMatchElement(exp->getType())){
+            LogError("Type Mismatch in variable assignment");
+            return nullptr;
+        }
+    }
+    else if(!t1->doesMatch(exp->getType()))
     {
         LogError("Type Mismatch in variable assignment");
         return nullptr;
