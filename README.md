@@ -23,5 +23,5 @@ and the idioms of structural paradigm implemented.
 ## Ascii Art
 
 <p align="center">
-  <img  height="350" width="750" src="https://github.com/JagratPatkar/Boson/blob/main/img/asciiart.png"/>
+  <img  height="400" width="800" src="https://github.com/JagratPatkar/Boson/blob/main/img/asciiart.png"/>
 </p>
