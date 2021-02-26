@@ -2,4 +2,4 @@
 
 int CodeGen::counter = 0;
 
-CodeGen* CodeGen::obj = NULL;
+CodeGen *CodeGen::obj = NULL;

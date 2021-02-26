@@ -41,7 +41,7 @@ class Lexer
         token_ampersand = -34,
         token_vertical_line = -35,
         token_left_square_brack = -36,
-        token_right_square_brack = -37 
+        token_right_square_brack = -37
     };
     map<string, token> KeywordRegistry;
     map<char, token> SymbolRegistry;
@@ -108,7 +108,7 @@ public:
     bool isTokenDivSym() { return currentToken == token_div_sym; }
     bool isTokenLeftParen() { return currentToken == token_left_paren; }
     bool isTokenRightParen() { return currentToken == token_right_paren; }
-    bool isAnyType() { return (isTokenInt() || isTokenDouble() || isTokenVoid() ||  isTokenBoolean()); }
+    bool isAnyType() { return (isTokenInt() || isTokenDouble() || isTokenVoid() || isTokenBoolean()); }
     bool isTokenLeftCurlyBrace() { return currentToken == token_left_curly_brac; }
     bool isTokenRightCurlyBrace() { return currentToken == token_right_curly_brac; }
     bool isTokenFunctionKeyword() { return currentToken == token_fn; }
@@ -127,8 +127,8 @@ public:
     bool isTokenBoolean() { return currentToken == token_boolean; }
     bool isTokenTrueValue() { return currentToken == token_true; }
     bool isTokenFalseValue() { return currentToken == token_false; }
-    bool isTokenAmpersand(){ return currentToken == token_ampersand; }
-    bool isTokenVerticalLine(){ return currentToken == token_vertical_line; }
-    bool isTokenRightSquareBrack(){ return currentToken == token_right_square_brack; }
-    bool isTokenLeftSquareBrack(){ return currentToken == token_left_square_brack; }
+    bool isTokenAmpersand() { return currentToken == token_ampersand; }
+    bool isTokenVerticalLine() { return currentToken == token_vertical_line; }
+    bool isTokenRightSquareBrack() { return currentToken == token_right_square_brack; }
+    bool isTokenLeftSquareBrack() { return currentToken == token_left_square_brack; }
 };

@@ -7,13 +7,14 @@ int Lexer::getToken()
     while (isspace(curChar) && !source.eof())
         source.get(curChar);
 
-    
-    if(curChar == '#'){
-        do{
+    if (curChar == '#')
+    {
+        do
+        {
             source.get(curChar);
-        }while((curChar != '\n') && (curChar != '\r'));
+        } while ((curChar != '\n') && (curChar != '\r'));
         return getToken();
-    }       
+    }
 
     if (isdigit(curChar))
     {
@@ -42,7 +43,6 @@ int Lexer::getToken()
         if ((tmp = peekOneAhead('=', token_not_equal_to)))
             return tmp;
     }
-    
 
     if (source.eof())
         return token_eof;

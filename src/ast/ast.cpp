@@ -6,41 +6,49 @@ using namespace std;
 using namespace llvm;
 using namespace AST;
 
+static CodeGen *cg = CodeGen::GetInstance();
 
-static CodeGen* cg = CodeGen::GetInstance();
-
-llvm::Value* ArrayVal::codeGen(){
+llvm::Value *ArrayVal::codeGen()
+{
     return nullptr;
 }
 
-void ArrayVal::gen(llvm::Value* vt){
+void ArrayVal::gen(llvm::Value *vt)
+{
     int counter = 0;
-        for(auto j = ofVals.begin(); j != ofVals.end(); j++,counter++){
-            llvm::Value* v = j->get()->codeGen();
-            type->createWrite(ConstantInt::get(llvm::Type::getInt32Ty(*(cg->context)), counter),v,vt);
+    for (auto j = ofVals.begin(); j != ofVals.end(); j++, counter++)
+    {
+        llvm::Value *v = j->get()->codeGen();
+        type->createWrite(ConstantInt::get(llvm::Type::getInt32Ty(*(cg->context)), counter), v, vt);
     }
 }
 
-void ArrayVal::VarDecCodeGen(GlobalVariable *gVar, ::Type* t){
+void ArrayVal::VarDecCodeGen(GlobalVariable *gVar, ::Type *t)
+{
     bool flag = true;
-    vector<Constant*> vals;
-    for(auto i = ofVals.begin(); i != ofVals.end(); i++){
-        if(!i->get()->isValue()){
+    vector<Constant *> vals;
+    for (auto i = ofVals.begin(); i != ofVals.end(); i++)
+    {
+        if (!i->get()->isValue())
+        {
             flag = false;
             break;
         }
     }
-    if(flag){
-        for(auto i = ofVals.begin(); i != ofVals.end(); i++){
-             vals.push_back(dyn_cast<Constant>(i->get()->codeGen()));
+    if (flag)
+    {
+        for (auto i = ofVals.begin(); i != ofVals.end(); i++)
+        {
+            vals.push_back(dyn_cast<Constant>(i->get()->codeGen()));
         }
-        gVar->setInitializer(ConstantArray::get(dyn_cast<ArrayType>(type->getLLVMType()),vals));
-    }else{
+        gVar->setInitializer(ConstantArray::get(dyn_cast<ArrayType>(type->getLLVMType()), vals));
+    }
+    else
+    {
         cg->builder->SetInsertPoint(cg->getCOPBB());
         gen(gVar);
         gVar->setInitializer(type->getDefaultConstant());
     }
-  
 }
 
 llvm::Value *FunctionCall::codeGen()
@@ -56,7 +64,7 @@ llvm::Value *FunctionCall::codeGen()
     return cg->builder->CreateCall(func, ArgsValue, "callres");
 }
 
-void FunctionCall::VarDecCodeGen(GlobalVariable *gVar, ::Type* t)
+void FunctionCall::VarDecCodeGen(GlobalVariable *gVar, ::Type *t)
 {
     cg->builder->SetInsertPoint(cg->getCOPBB());
     GlobalVariable *gvar = cg->GlobalVarTable.getElement(Name);
@@ -69,26 +77,34 @@ llvm::Value *Variable::codeGen()
     if (cg->getGeneratingFunction())
     {
         llvm::Value *v = cg->LocalVarTable.getElement(Name);
-        if(isArrayElem && v){ return arrayType->createLoad(getElement(),v,Name); }   
-        else if(v) { return type->createLoad(0,v,Name); }
+        if (isArrayElem && v)
+        {
+            return arrayType->createLoad(getElement(), v, Name);
+        }
+        else if (v)
+        {
+            return type->createLoad(0, v, Name);
+        }
     }
     GlobalVariable *gVar = cg->GlobalVarTable.getElement(Name);
-    if (!gVar) return nullptr;
-    if(isArrayElem){ 
-        return arrayType->createLoad(getElement(),gVar,Name); 
+    if (!gVar)
+        return nullptr;
+    if (isArrayElem)
+    {
+        return arrayType->createLoad(getElement(), gVar, Name);
     }
-    return type->createLoad(0,gVar,Name);
+    return type->createLoad(0, gVar, Name);
 }
 
-void Variable::VarDecCodeGen(GlobalVariable *gVar, ::Type* t)
+void Variable::VarDecCodeGen(GlobalVariable *gVar, ::Type *t)
 {
     cg->builder->SetInsertPoint(cg->getCOPBB());
     GlobalVariable *gvar = cg->GlobalVarTable.getElement(Name);
-    llvm::Value *v = cg->builder->CreateAlignedLoad(gvar,t->getAllignment() , Name.c_str());
+    llvm::Value *v = cg->builder->CreateAlignedLoad(gvar, t->getAllignment(), Name.c_str());
     cg->builder->CreateAlignedStore(v, gVar, t->getAllignment());
 }
 
-void AST::Value::VarDecCodeGen(GlobalVariable *gVar, ::Type*)
+void AST::Value::VarDecCodeGen(GlobalVariable *gVar, ::Type *)
 {
     Constant *constant = dyn_cast<Constant>(codeGen());
     gVar->setInitializer(constant);
@@ -97,31 +113,40 @@ void AST::Value::VarDecCodeGen(GlobalVariable *gVar, ::Type*)
 void GlobalVariableDeclaration::codegen()
 {
     string Name = var->getName();
-    ::Type* vt = var->getType();
+    ::Type *vt = var->getType();
     cg->module->getOrInsertGlobal(Name, vt->getLLVMType());
     GlobalVariable *gVar = cg->module->getNamedGlobal(Name);
     gVar->setAlignment(vt->getAllignment());
-    if (exp) exp->VarDecCodeGen(gVar, vt);
-    else{ gVar->setInitializer(vt->getDefaultConstant()); }
-    cg->GlobalVarTable.addElement(Name,gVar);
+    if (exp)
+        exp->VarDecCodeGen(gVar, vt);
+    else
+    {
+        gVar->setInitializer(vt->getDefaultConstant());
+    }
+    cg->GlobalVarTable.addElement(Name, gVar);
 }
 
 void LocalVariableDeclaration::codegen()
 {
     string Name = var->getName();
-    ::Type* vt = var->getType();
+    ::Type *vt = var->getType();
     llvm::Value *val;
     AllocaInst *alloca;
     alloca = vt->allocateLLVMVariable(Name);
-    if(vt->isArray()) {
-        if(exp){
-             static_cast<ArrayVal*>(exp.get())->gen(alloca);
+    if (vt->isArray())
+    {
+        if (exp)
+        {
+            static_cast<ArrayVal *>(exp.get())->gen(alloca);
         }
     }
-    else if (exp) val = exp->codeGen();
-    else val = vt->getDefaultConstant(); 
-    cg->LocalVarTable.addElement(Name,alloca);
-    if(!vt->isArray()) vt->createWrite(0,val, alloca);
+    else if (exp)
+        val = exp->codeGen();
+    else
+        val = vt->getDefaultConstant();
+    cg->LocalVarTable.addElement(Name, alloca);
+    if (!vt->isArray())
+        vt->createWrite(0, val, alloca);
 }
 
 void CompoundStatement::codegen()
@@ -129,7 +154,8 @@ void CompoundStatement::codegen()
     for (auto stat = Statements.begin(); stat != Statements.end(); stat++)
     {
         stat->get()->codegen();
-        if(stat->get()->isReturnStatement()) break;
+        if (stat->get()->isReturnStatement())
+            break;
     }
 }
 
@@ -137,18 +163,19 @@ void VariableAssignment::codegen()
 {
     string Name = var->getName();
     llvm::Value *val = exp->codeGen();
-    if (!val) return;
+    if (!val)
+        return;
     llvm::Value *dest = cg->LocalVarTable.getElement(Name);
     if (!dest)
     {
         GlobalVariable *globalDest = cg->GlobalVarTable.getElement(Name);
         if (!globalDest)
             return;
-        var->getType()->createWrite(var->getElement(),val,globalDest);
+        var->getType()->createWrite(var->getElement(), val, globalDest);
     }
     else
     {
-       var->getType()->createWrite(var->getElement(),val,dest);
+        var->getType()->createWrite(var->getElement(), val, dest);
     }
 }
 
@@ -159,9 +186,12 @@ void Return::codegen()
         llvm::Value *v = exp->codeGen();
         if (!v)
             return;
-        cg->builder->CreateRet(v);   
+        cg->builder->CreateRet(v);
     }
-    else {cg->builder->CreateRetVoid();}
+    else
+    {
+        cg->builder->CreateRetVoid();
+    }
 }
 
 void FunctionCall::codegen()
@@ -216,7 +246,7 @@ void ForStatement::codegen()
     cg->builder->SetInsertPoint(AfterLoopBB);
 }
 
-void BinaryExpression::VarDecCodeGen(GlobalVariable *gVar, ::Type* vt)
+void BinaryExpression::VarDecCodeGen(GlobalVariable *gVar, ::Type *vt)
 {
     gVar->setInitializer(vt->getDefaultConstant());
     cg->builder->SetInsertPoint(cg->getCOPBB());
@@ -228,7 +258,7 @@ llvm::Value *BinaryExpression::codeGen()
 {
     llvm::Value *lhs = LVAL->codeGen();
     llvm::Value *rhs = RVAL->codeGen();
-    return op->codeGen(lhs,rhs);
+    return op->codeGen(lhs, rhs);
 }
 
 void FunctionSignature::codegen()
@@ -237,7 +267,7 @@ void FunctionSignature::codegen()
     vector<llvm::Type *> Args;
     for (auto i = args.begin(); i != args.end(); i++)
     {
-        ::Type* t = i->get()->getType();
+        ::Type *t = i->get()->getType();
         Args.push_back(t->getLLVMType());
     }
     funcType = FunctionType::get(getRetType()->getLLVMType(), Args, false);
@@ -250,7 +280,7 @@ void FunctionDefinition::codeGen()
     functionSignature->codegen();
     Function *function = cg->module->getFunction(functionSignature->getName());
     BasicBlock *bb = BasicBlock::Create(*(cg->context), "entry", function);
-    cg->builder->SetInsertPoint(bb);   
+    cg->builder->SetInsertPoint(bb);
     if (functionSignature->getName() == "start")
     {
         vector<llvm::Value *> args;
@@ -261,7 +291,7 @@ void FunctionDefinition::codeGen()
     for (ai = function->arg_begin(), ae = function->arg_end(); ai != ae; ++ai, ++n)
     {
         string name = n->get()->getName();
-        ::Type* t = n->get()->getType();
+        ::Type *t = n->get()->getType();
         AllocaInst *alloca;
         alloca = t->allocateLLVMVariable(name);
         cg->builder->CreateAlignedStore(ai, alloca, MaybeAlign(4));

@@ -401,7 +401,8 @@ namespace AST
     {
     protected:
         unique_ptr<::Type> type;
-    public: 
+
+    public:
         Expression(unique_ptr<::Type> type) : type(move(type))
         {
         }
@@ -411,9 +412,8 @@ namespace AST
             return type.get();
         }
         virtual llvm::Value *codeGen() = 0;
-        virtual bool isValue(){ return false; }
+        virtual bool isValue() { return false; }
         virtual void VarDecCodeGen(GlobalVariable *, ::Type *) = 0;
-        
     };
 
     class Value : public Expression
@@ -451,13 +451,16 @@ namespace AST
         llvm::Value *codeGen() override { return ConstantInt::get(type->getLLVMType(), value, true); }
     };
 
-    class ArrayVal : public Value{
+    class ArrayVal : public Value
+    {
         vector<unique_ptr<Expression>> ofVals;
-        public:
-        ArrayVal(vector<unique_ptr<Expression>> ofVals,unique_ptr<::Type> type,int size) : ofVals(move(ofVals)) , Value(make_unique<Array>(size,move(type))){
+
+    public:
+        ArrayVal(vector<unique_ptr<Expression>> ofVals, unique_ptr<::Type> type, int size) : ofVals(move(ofVals)), Value(make_unique<Array>(size, move(type)))
+        {
         }
         llvm::Value *codeGen() override;
-        void gen(llvm::Value*);
+        void gen(llvm::Value *);
         void VarDecCodeGen(GlobalVariable *, ::Type *) override;
     };
 
@@ -468,6 +471,7 @@ namespace AST
         bool isArrayElem;
         unique_ptr<::Type> arrayType;
         unique_ptr<Expression> elem;
+
     public:
         Variable(const string &Name, unique_ptr<::Type> type) : Name(Name), Expression(move(type))
         {
@@ -475,12 +479,14 @@ namespace AST
         }
         const string getName() { return Name; }
         void VarDecCodeGen(GlobalVariable *, ::Type *) override;
-        void setElement(unique_ptr<Expression> e){ elem = move(e); }
-        llvm::Value* getElement() { 
-            if(elem) return elem->codeGen();
+        void setElement(unique_ptr<Expression> e) { elem = move(e); }
+        llvm::Value *getElement()
+        {
+            if (elem)
+                return elem->codeGen();
             return nullptr;
         }
-        void setArrayType(unique_ptr<::Type> t){ arrayType = move(t); }
+        void setArrayType(unique_ptr<::Type> t) { arrayType = move(t); }
         void setArrayFlag() { isArrayElem = true; }
         llvm::Value *codeGen() override;
     };
@@ -571,12 +577,12 @@ namespace AST
     {
         unique_ptr<Variable> var;
         unique_ptr<Expression> exp;
-        
+
     public:
         VariableAssignment(unique_ptr<Variable> var, unique_ptr<Expression> exp) : var(move(var)), exp(move(exp))
         {
         }
-       
+
         void codegen() override;
     };
 

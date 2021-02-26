@@ -17,7 +17,8 @@ class Parser
     map<string, pair<vector<unique_ptr<::Type>>, unique_ptr<::Type>>> FunctionTable;
     map<string, int> OperatorPrecedence;
     bool parsingFuncDef;
-    ::Type* currentFuncType;
+    ::Type *currentFuncType;
+
 public:
     Parser(string Name) : lexer(Lexer(Name)), parsingFuncDef(false)
     {
@@ -33,13 +34,12 @@ public:
         OperatorPrecedence[">="] = 10;
         OperatorPrecedence["=="] = 10;
         OperatorPrecedence["!="] = 10;
-
     }
     void parse();
     unique_ptr<::Type> getType();
     int getOperatorPrecedence();
     unique_ptr<BinOps> returnBinOpsType();
-    unique_ptr<Expression>  ParseArrayElemExpression(const string&);
+    unique_ptr<Expression> ParseArrayElemExpression(const string &);
     std::unique_ptr<AST::Expression> ParseExpression();
     std::unique_ptr<AST::Expression> ParseParen();
     std::unique_ptr<AST::Statement> ParseStatement();
@@ -57,7 +57,7 @@ public:
     std::unique_ptr<AST::Expression> ParseDoubleNum();
     std::unique_ptr<AST::Expression> ParseBinOP(int, unique_ptr<Expression>);
     std::unique_ptr<AST::Statement> ParseVariableDeclarationStatement();
-    std::unique_ptr<AST::Statement> ParseArrayVariableDeclarationStatement(const string&,unique_ptr<::Type>);
+    std::unique_ptr<AST::Statement> ParseArrayVariableDeclarationStatement(const string &, unique_ptr<::Type>);
     std::unique_ptr<AST::Statement> ParseLocalVariableDeclarationStatement();
     unique_ptr<AST::Statement> ParseVariableAssignmentStatement(const string &);
     unique_ptr<AST::VariableAssignment> VariableAssignmentStatementHelper(const string &);
@@ -65,8 +65,9 @@ public:
     unique_ptr<AST::Statement> ParseReturnStatement();
     std::unique_ptr<FunctionSignature> ParseFunctionSignature();
     std::unique_ptr<FunctionDefinition> ParseFunctionDefinition();
-    void LogError(const char *errmsg) { fprintf(stderr, "Error : %s\n", errmsg); }
+    void LogError(const char *errmsg) { cerr << "Error : " << errmsg << endl; }
     bool isExpression() { return (lexer.isTokenIntNum() || lexer.isTokenDoubleNum() ||
-                                  lexer.isTokenIdentifier() || lexer.isTokenLeftParen()) || lexer.isTokenTrueValue() ||
-                                  lexer.isTokenFalseValue(); }
+                                  lexer.isTokenIdentifier() || lexer.isTokenLeftParen()) ||
+                                 lexer.isTokenTrueValue() ||
+                                 lexer.isTokenFalseValue(); }
 };

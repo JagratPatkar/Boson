@@ -16,28 +16,34 @@ using namespace std;
 using namespace llvm;
 #include "../parser/parser.h"
 
-
-
-class Bridge{
+class Bridge
+{
     string FileName;
     Parser parser;
-    CodeGen* cg;
-    public:
-    Bridge(const string& fn) : FileName(fn), parser(fn) {  
-         cg = CodeGen::GetInstance();
+    CodeGen *cg;
+
+public:
+    Bridge(const string &fn) : FileName(fn), parser(fn)
+    {
+        cg = CodeGen::GetInstance();
     }
-    void startCompilation(){ parser.parse(); }
-    void verifyIR() { if (verifyModule(*(cg->module))) cerr << "Error in CodeGen " << endl; }
-    
+    void startCompilation() { parser.parse(); }
+    void verifyIR()
+    {
+        if (verifyModule(*(cg->module)))
+            cerr << "Error in CodeGen " << endl;
+    }
+
     void createObjFile();
 
-    ~Bridge(){
+    ~Bridge()
+    {
         delete cg;
     }
 };
 
-
-void Bridge::createObjFile(){
+void Bridge::createObjFile()
+{
     auto TargetTriple = sys::getDefaultTargetTriple();
 
     InitializeAllTargetInfos();
@@ -48,7 +54,6 @@ void Bridge::createObjFile(){
 
     string Error;
     auto Target = TargetRegistry::lookupTarget(TargetTriple, Error);
-
 
     if (!Target)
     {
@@ -86,12 +91,13 @@ void Bridge::createObjFile(){
     dest.flush();
 }
 
-int main(int argc,char** argv)
+int main(int argc, char **argv)
 {
-    if(argc < 2){
+    if (argc < 2)
+    {
         cerr << "Target File Not Specified" << endl;
         return 0;
-    }   
+    }
     string FileName(argv[1]);
     Bridge bridge(FileName);
     bridge.startCompilation();
