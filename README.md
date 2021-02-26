@@ -39,7 +39,7 @@ and the idioms of structural paradigm implemented.
 
 ## Binary Search Algorithm
 
-'''rust
+```rust
 consume fn printint(int n) void;
 
 
@@ -86,7 +86,7 @@ fn start() void {
     printint(index);
     return;
 }
-'''
+```
 
 
 ## Ascii Art
