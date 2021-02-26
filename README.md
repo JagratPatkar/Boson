@@ -40,30 +40,7 @@ and the idioms of structural paradigm implemented.
 ## Binary Search Algorithm
 
 ```rust
-consume fn printint(int n) void;
-
-
-int a[10] = [55,98,67,23,1088,65,44,34,1,7];
-
-fn sortA() void {
-    int max;
-    int index;
-    int temp;
-    for(int i = 9; i >= 0; i = i - 1){
-        max = a[0];
-        index = 0;
-        for(int j = 1; j <= i; j = j + 1){
-            if(max < a[j]){
-                max = a[j];
-                index = j;
-            }else{}
-        }
-        temp = a[i];
-        a[i] = max;
-        a[index] = temp;
-    }
-    return;
-}
+...
 
 int index;
 
@@ -80,12 +57,8 @@ fn binarySearchA(int l,int t,int r) void {
     return;
 }
 
-fn start() void {
-    sortA();
-    binarySearchA(0,44,9);
-    printint(index);
-    return;
-}
+...
+
 ```
 
 
@@ -93,27 +66,27 @@ fn start() void {
 
 
 ```
-                                        ----------------------------------------                                        
-                                       ' > Hello Boson                          '                                       
-                                       |                                        |                                       
-                                       |                                        |                                       
-                                       |                                        |                                       
-                                       |                                        |                                       
-                                       |                                        |                                       
-                                       |                                        |                                       
-                                       |                                        |                                       
-                                       |                                        |                                       
-                                       |                                        |                                       
-                                       .                                        .                                       
-                                        ----------------------------------------                                        
-                                                           ||                                                           
-                                                           ||                                                           
-                                                           ||                                                           
-                                                       ==========                                                       
-                                                  ____________________                                                  
-                                                 / ~ ~ ~ ~ ~ ~ ~ ~ ~ /                                                 
-                                                / ~ ~ ~ ~ ~ ~ ~ ~ ~ /                                                
-                                               / ~ ~ ~ ~ ~ ~ ~ ~ ~ /                                               
-                                               ====================                                               
+                                ----------------------------------------                                        
+                               ' > Hello Boson                          '                                       
+                               |                                        |                                       
+                               |                                        |                                       
+                               |                                        |                                       
+                               |                                        |                                       
+                               |                                        |                                       
+                               |                                        |                                       
+                               |                                        |                                       
+                               |                                        |                                       
+                               |                                        |                                       
+                               .                                        .                                       
+                                ----------------------------------------                                        
+                                                  ||                                                           
+                                                  ||                                                           
+                                                  ||                                                           
+                                              ==========                                                       
+                                         ____________________                                                  
+                                        / ~ ~ ~ ~ ~ ~ ~ ~ ~ /                                                 
+                                       / ~ ~ ~ ~ ~ ~ ~ ~ ~ /                                                
+                                      / ~ ~ ~ ~ ~ ~ ~ ~ ~ /                                               
+                                     ====================                                               
 
 ```
