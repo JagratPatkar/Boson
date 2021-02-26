@@ -6,6 +6,15 @@ int Lexer::getToken()
 
     while (isspace(curChar) && !source.eof())
         source.get(curChar);
+
+    
+    if(curChar == '#'){
+        do{
+            source.get(curChar);
+        }while((curChar != '\n') && (curChar != '\r'));
+        return getToken();
+    }       
+
     if (isdigit(curChar))
     {
         NumberString = "";
