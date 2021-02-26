@@ -7,7 +7,7 @@
 #
 A General Purpose **Programming Language** on **LLVM**. __Boson__ is envisioned to be a multi-paradigm
 language, with a *Static* and *Strong Type System*. __Boson Compiler__ currently in its initial
-stage has a Type System and the Idioms of *Structured Paradigm* implemented, the list of 
+stage has a Type System and the Idioms of *Structural Paradigm* implemented, the list of 
 features have been described below. The compiler is in active development and will evolve with 
 more paradigms incrementally.
 
