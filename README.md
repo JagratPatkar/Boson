@@ -117,7 +117,3 @@ fn start() void {
                                                ====================                                               
 
 ```
-
-<p align="center">
-  <img  height="300" width="400" src="https://github.com/JagratPatkar/Boson/blob/main/img/asciiart.png"/>
-</p>
