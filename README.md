@@ -97,7 +97,7 @@ fn binarySearchA(int l,int t,int r) void {
 
 ```rust
 
-
+#Native C utility function calls
 consume fn printchar(int d) void;
 consume fn printint(int n) void;
 consume fn nextLine() void;
