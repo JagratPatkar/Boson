@@ -9,20 +9,13 @@ void Parser::parse()
     lexer.getNextToken();
     while (true)
     {
-        if (lexer.isTokenInt() || lexer.isTokenDouble() || lexer.isTokenBoolean())
-        {  
-            ParseVariableDeclarationStatement()->codegen();
-        }
-        else if (lexer.isTokenFunctionKeyword())
-            ParseFunctionDefinition()->codeGen();
-        else if (lexer.isTokenConsume())
-            ParseConsume()->codegen();
+        if (lexer.isTokenInt() || lexer.isTokenDouble() || lexer.isTokenBoolean()) ParseVariableDeclarationStatement()->codegen();
+        else if (lexer.isTokenFunctionKeyword()) ParseFunctionDefinition()->codeGen();
+        else if (lexer.isTokenConsume()) ParseConsume()->codegen();
         else
         {
-            if (FunctionTable.find("start") == FunctionTable.end())
-                LogError("Start Function Not Found");
+            if (FunctionTable.find("start") == FunctionTable.end()) LogError("Start Function Not Found");
             cg->terminateCOPBB();
-            cg->dumpIR();
             lexer.closeFile();
             return;
         }
@@ -84,13 +77,7 @@ unique_ptr<Expression> Parser::ParseIdentifier()
 
 unique_ptr<Expression> Parser::ParseArrayElemExpression(const string& Name){
     lexer.getNextToken();
-    if(!lexer.isTokenIntNum()){
-        LogError("Expected a index number");
-        return nullptr;
-    }
-    int num = lexer.getIntNum();
-
-    lexer.getNextToken();
+    auto E = ParseExpression();
 
     if(!lexer.isTokenRightSquareBrack()){
         LogError("Expected a ']' after index");
@@ -126,7 +113,7 @@ unique_ptr<Expression> Parser::ParseArrayElemExpression(const string& Name){
         return nullptr;
     }
 
-    v->setElement(num);
+    v->setElement(move(E));
     v->setArrayFlag();
     return move(v);
 }
@@ -603,13 +590,8 @@ unique_ptr<VariableAssignment> Parser::VariableAssignmentStatementHelper(const s
     auto var = make_unique<Variable>(name,t1->getNew());
     if(lexer.isTokenLeftSquareBrack()){
         lexer.getNextToken();
-        if(!lexer.isTokenIntNum()){
-            LogError("Expected an index number");
-            return nullptr;
-        }
-        int num = lexer.getIntNum();
-        var->setElement(num);
-        lexer.getNextToken();
+        auto E = ParseExpression();
+        var->setElement(move(E));
         if(!lexer.isTokenRightSquareBrack()){
             LogError("Expexted a ']' after index");
         }

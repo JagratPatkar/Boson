@@ -183,7 +183,7 @@ namespace AST
 
         llvm::Value *codeGenInt(llvm::Value *lhs, llvm::Value *rhs)
         {
-            return cg->builder->CreateICmpULT(lhs, rhs, "ltcmpi");
+            return cg->builder->CreateICmpSLT(lhs, rhs, "ltcmpi");
         }
         llvm::Value *codeGenDouble(llvm::Value *lhs, llvm::Value *rhs)
         {
@@ -216,7 +216,7 @@ namespace AST
 
         llvm::Value *codeGenInt(llvm::Value *lhs, llvm::Value *rhs)
         {
-            return cg->builder->CreateICmpUGT(lhs, rhs, "gtcmpi");
+            return cg->builder->CreateICmpSGT(lhs, rhs, "gtcmpi");
         }
         llvm::Value *codeGenDouble(llvm::Value *lhs, llvm::Value *rhs)
         {
@@ -249,7 +249,7 @@ namespace AST
 
         llvm::Value *codeGenInt(llvm::Value *lhs, llvm::Value *rhs)
         {
-            return cg->builder->CreateICmpULE(lhs, rhs, "lecmpi");
+            return cg->builder->CreateICmpSLE(lhs, rhs, "lecmpi");
         }
         llvm::Value *codeGenDouble(llvm::Value *lhs, llvm::Value *rhs)
         {
@@ -282,7 +282,7 @@ namespace AST
 
         llvm::Value *codeGenInt(llvm::Value *lhs, llvm::Value *rhs)
         {
-            return cg->builder->CreateICmpUGE(lhs, rhs, "gecmpi");
+            return cg->builder->CreateICmpSGE(lhs, rhs, "gecmpi");
         }
         llvm::Value *codeGenDouble(llvm::Value *lhs, llvm::Value *rhs)
         {
@@ -467,6 +467,7 @@ namespace AST
         int elemNum;
         bool isArrayElem;
         unique_ptr<::Type> arrayType;
+        unique_ptr<Expression> elem;
     public:
         Variable(const string &Name, unique_ptr<::Type> type) : Name(Name), Expression(move(type))
         {
@@ -474,8 +475,11 @@ namespace AST
         }
         const string getName() { return Name; }
         void VarDecCodeGen(GlobalVariable *, ::Type *) override;
-        void setElement(int i){ elemNum = i; }
-        int getElement(){ return elemNum; }
+        void setElement(unique_ptr<Expression> e){ elem = move(e); }
+        llvm::Value* getElement() { 
+            if(elem) return elem->codeGen();
+            return nullptr;
+        }
         void setArrayType(unique_ptr<::Type> t){ arrayType = move(t); }
         void setArrayFlag() { isArrayElem = true; }
         llvm::Value *codeGen() override;

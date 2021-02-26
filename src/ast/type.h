@@ -25,10 +25,10 @@ public:
     virtual llvm::Constant* getDefaultConstant() = 0;
     virtual bool doesMatch(Type*) = 0;
     virtual llvm::AllocaInst* allocateLLVMVariable(const string&) = 0;
-    virtual void createWrite(int elem,llvm::Value* v,llvm::Value* dest) {
+    virtual void createWrite(llvm::Value* e,llvm::Value* v,llvm::Value* dest) {
         cg->builder->CreateAlignedStore(v, dest, getAllignment());
     }      
-    virtual llvm::Value* createLoad(int elem,llvm::Value* v,const string& name){
+    virtual llvm::Value* createLoad(llvm::Value* e,llvm::Value* v,const string& name){
         return cg->builder->CreateAlignedLoad(v,getAllignment(),name);
     }
 };
@@ -113,19 +113,19 @@ class Array : public ::Type{
     }
     unique_ptr<::Type> getNew() override { return make_unique<Array>(num,ofType->getNew()); }
 
-     virtual void createWrite(int elem,llvm::Value* v,llvm::Value* dest) override {
+     virtual void createWrite(llvm::Value* e,llvm::Value* v,llvm::Value* dest) override {
         Value *Idxs[] = {
             ConstantInt::get(llvm::Type::getInt32Ty(*(cg->context)), 0),
-            ConstantInt::get(llvm::Type::getInt32Ty(*(cg->context)), elem)
+            e
         };
         llvm::Value* gep = cg->builder->CreateInBoundsGEP(dyn_cast<llvm::Type>(getLLVMType()),dest,Idxs); 
         ofType->createWrite(0,v,gep);
     }
 
-    virtual llvm::Value*  createLoad(int elem,llvm::Value* v,const string& name) override {
+    virtual llvm::Value*  createLoad(llvm::Value* e,llvm::Value* v,const string& name) override {
         Value *Idxs[] = {
             ConstantInt::get(llvm::Type::getInt32Ty(*(cg->context)), 0),
-            ConstantInt::get(llvm::Type::getInt32Ty(*(cg->context)), elem)
+            e
         };
        llvm::Value* gep = cg->builder->CreateInBoundsGEP(dyn_cast<llvm::Type>(getLLVMType()),v,Idxs); 
        return cg->builder->CreateAlignedLoad(gep,getAllignment(),name+"arrayidx");

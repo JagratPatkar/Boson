@@ -17,7 +17,7 @@ void ArrayVal::gen(llvm::Value* vt){
     int counter = 0;
         for(auto j = ofVals.begin(); j != ofVals.end(); j++,counter++){
             llvm::Value* v = j->get()->codeGen();
-            type->createWrite(counter,v,vt);
+            type->createWrite(ConstantInt::get(llvm::Type::getInt32Ty(*(cg->context)), counter),v,vt);
     }
 }
 
@@ -271,9 +271,4 @@ void FunctionDefinition::codeGen()
     compoundStatements->codegen();
     cg->generatingFunctionOff();
     cg->LocalVarTable.clearTable();
-    if (verifyFunction(*function))
-    {
-        string str = functionSignature->getName();
-        printf("Error in %s \n", str.c_str());
-    }
 }
