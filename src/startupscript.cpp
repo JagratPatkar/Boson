@@ -1,23 +1,27 @@
 #include <stdio.h>
 
-extern "C" {
+extern "C"
+{
     int start();
 }
 
-extern "C" void printchar(int ascii){
+extern "C" void printchar(int ascii)
+{
     putchar((char)ascii);
 }
 
-extern "C" void printint(int val){
-    printf("%d\n",val);
+extern "C" void printint(int val)
+{
+    printf("%d\n", val);
 }
 
-
-extern "C" void nextLine(){
+extern "C" void nextLine()
+{
     putchar('\n');
 }
 
-int main(){
+int main()
+{
     start();
-    return 0;   
+    return 0;
 }
