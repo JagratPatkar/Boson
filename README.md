@@ -90,3 +90,32 @@ fn binarySearchA(int l,int t,int r) void {
                                  ====================                                               
 
 ```
+
+#### Code
+
+```rust
+
+
+consume fn printchar(int d) void;
+consume fn printint(int n) void;
+consume fn nextLine() void;
+
+
+fn printArt() void {
+
+  ...
+
+   for(;i < 9; i = i + 1){
+        nextLine();
+        printLine(limit1-1,32);
+        printchar(124);
+        printLine(limit2,32);
+        printchar(124);
+        printLine(limit1-1,32);
+    }
+
+  ...
+
+}
+
+```
