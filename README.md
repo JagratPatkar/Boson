@@ -91,7 +91,7 @@ fn binarySearchA(int l,int t,int r) void {
 
 ```
 
-#### Code
+#### Code Snippet
 
 ```rust
 
