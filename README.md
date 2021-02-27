@@ -46,6 +46,7 @@ described below. The compiler is in active development and will evolve with more
 
 ```rust
 ...
+int a[10] = [55,98,67,23,1088,65,44,34,1,7];
 
 int index;
 
