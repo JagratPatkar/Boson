@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <iostream>
+#include <string.h>
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/LegacyPassManager.h"
@@ -69,10 +70,12 @@ void Bridge::createObjFile()
     auto TargetMachine = Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM);
     cg->module->setDataLayout(TargetMachine->createDataLayout());
     cg->module->setTargetTriple(TargetTriple);
-
-    auto Filename = "output.o";
+    char delim = '.';
+    char *name = strtok(&(FileName[0]), &delim);
+    string filename(name);
+    filename += ".o";
     error_code EC;
-    raw_fd_ostream dest(Filename, EC, sys::fs::OF_None);
+    raw_fd_ostream dest(filename, EC, sys::fs::OF_None);
     if (EC)
     {
         cerr << "Could not open file: " << EC.message();
