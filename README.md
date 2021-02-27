@@ -19,6 +19,10 @@ described below. The compiler is in active development and will evolve with more
   * Int
   * Double
   * Bool
+* __Variables__
+  * Global
+  * Local
+  * Argument
 * __Functional Idioms__
    * Functions 
    * Recursion
@@ -28,7 +32,7 @@ described below. The compiler is in active development and will evolve with more
   * Relational Operators
 * __Composite Types__
   * Array
-* __Structured Idioms__
+* __Structural Idioms__
   * For Loop
   * If Else
 * __C Native Calls__
