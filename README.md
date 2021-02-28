@@ -48,19 +48,17 @@ described below. The compiler is in active development and will evolve with more
 ...
 int a[10] = [55,98,67,23,1088,65,44,34,1,7];
 
-int index;
-
-fn binarySearchA(int l,int t,int r) void {
+fn binarySearchA(int l,int t,int r) int {
     int m;
     if(l <= r){
         m = (l + r) / 2;
-        if(a[m] < t){  binarySearchA(m+1,t,r);  }
+        if(a[m] < t){  return binarySearchA(m+1,t,r);  }
         else {
-            if(a[m] > t){  binarySearchA(l,t,m-1);  }
-            else{ index = m; }
+            if(a[m] > t){  return binarySearchA(l,t,m-1);  }
+            else{ return m; }
         }
-    }else{ }
-    return;
+    }
+    return 101;
 }
 
 ...
