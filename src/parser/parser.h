@@ -44,7 +44,7 @@ public:
     std::unique_ptr<AST::Expression> ParseParen();
     std::unique_ptr<AST::Statement> ParseStatement();
     std::unique_ptr<AST::Statement> ParseStatementIdentifier();
-    std::unique_ptr<CompoundStatement> ParseCompoundStatement(bool);
+    std::unique_ptr<CompoundStatement> ParseCompoundStatement();
     std::unique_ptr<Statement> ParseIfElseStatement();
     std::unique_ptr<Statement> ParseForStatement();
     std::unique_ptr<AST::Expression> ParsePrimary();

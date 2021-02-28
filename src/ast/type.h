@@ -34,6 +34,7 @@ public:
     {
         return cg->builder->CreateAlignedLoad(v, getAllignment(), name);
     }
+    virtual void CreateLLVMRet(llvm::Value * v)  { cg->builder->CreateRet(createLoad(0,v,"retval")); }
 };
 
 class Void : public ::Type
@@ -46,6 +47,7 @@ public:
     unique_ptr<::Type> getNew() override { return make_unique<Void>(); }
     llvm::Constant *getDefaultConstant() override { return nullptr; }
     llvm::AllocaInst *allocateLLVMVariable(const string &Name) override { return nullptr; }
+    void CreateLLVMRet(llvm::Value * v) override { cg->builder->CreateRetVoid(); }
 };
 
 class Int : public ::Type
@@ -70,6 +72,7 @@ public:
     unique_ptr<::Type> getNew() override { return make_unique<Double>(); }
     llvm::Constant *getDefaultConstant() override { return ConstantFP::get(getLLVMType(), 0.0); }
     llvm::AllocaInst *allocateLLVMVariable(const string &Name) override { return cg->builder->CreateAlloca(getLLVMType(), 0, Name.c_str()); }
+    
 };
 
 class Bool : public ::Type
@@ -140,6 +143,7 @@ public:
         llvm::Value *gep = cg->builder->CreateInBoundsGEP(dyn_cast<llvm::Type>(getLLVMType()), v, Idxs);
         return cg->builder->CreateAlignedLoad(gep, getAllignment(), name + "arrayidx");
     }
+    void CreateLLVMRet(llvm::Value * v) override {  }
 };
 
 #endif

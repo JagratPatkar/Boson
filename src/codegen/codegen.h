@@ -30,7 +30,8 @@ class CodeGen{
     unique_ptr<IRBuilder<>> builder;
     SymbolTable<std::string, GlobalVariable *> GlobalVarTable;
     SymbolTable<std::string, AllocaInst *> LocalVarTable;
-  
+    AllocaInst* allocaret;   
+    BasicBlock *retBB;
     static CodeGen* GetInstance(){
         if(counter) return obj;
         else {

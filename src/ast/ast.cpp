@@ -154,8 +154,10 @@ void CompoundStatement::codegen()
     for (auto stat = Statements.begin(); stat != Statements.end(); stat++)
     {
         stat->get()->codegen();
-        if (stat->get()->isReturnStatement())
+        if (stat->get()->isReturnStatement()) {
+            setHasRetTrue();
             break;
+        }
     }
 }
 
@@ -184,13 +186,8 @@ void Return::codegen()
     if (exp)
     {
         llvm::Value *v = exp->codeGen();
-        if (!v)
-            return;
-        cg->builder->CreateRet(v);
-    }
-    else
-    {
-        cg->builder->CreateRetVoid();
+        if(!v) return;
+        exp->getType()->createWrite(0,v,cg->allocaret);
     }
 }
 
@@ -215,13 +212,21 @@ void IfElseStatement::codegen()
     BasicBlock *ThenBB = BasicBlock::Create(*(cg->context), "then", func);
     BasicBlock *ElseBB = BasicBlock::Create(*(cg->context), "else", func);
     BasicBlock *AfterIfElse = BasicBlock::Create(*(cg->context), "afterif", func);
-    cg->builder->CreateCondBr(cmp, ThenBB, ElseBB);
+    if(elseCompoundStatements) cg->builder->CreateCondBr(cmp, ThenBB, ElseBB);
+    else {
+        cg->builder->CreateCondBr(cmp, ThenBB, AfterIfElse);
+        ElseBB->eraseFromParent();
+    }
     cg->builder->SetInsertPoint(ThenBB);
     compoundStatements->codegen();
-    cg->builder->CreateBr(AfterIfElse);
-    cg->builder->SetInsertPoint(ElseBB);
-    elseCompoundStatements->codegen();
-    cg->builder->CreateBr(AfterIfElse);
+    if(compoundStatements->getHasRet()) cg->builder->CreateBr(cg->retBB);
+    else cg->builder->CreateBr(AfterIfElse);
+    if(elseCompoundStatements){
+        cg->builder->SetInsertPoint(ElseBB);
+        elseCompoundStatements->codegen();
+        if(elseCompoundStatements->getHasRet()) cg->builder->CreateBr(cg->retBB);
+        else cg->builder->CreateBr(AfterIfElse);
+    }
     cg->builder->SetInsertPoint(AfterIfElse);
 }
 
@@ -281,6 +286,11 @@ void FunctionDefinition::codeGen()
     Function *function = cg->module->getFunction(functionSignature->getName());
     BasicBlock *bb = BasicBlock::Create(*(cg->context), "entry", function);
     cg->builder->SetInsertPoint(bb);
+    cg->allocaret = functionSignature->getRetType()->allocateLLVMVariable("ret");
+    cg->retBB = BasicBlock::Create(*(cg->context), "retblock", function);
+    cg->builder->SetInsertPoint(cg->retBB);
+    functionSignature->retType.get()->CreateLLVMRet(cg->allocaret);
+    cg->builder->SetInsertPoint(bb);
     if (functionSignature->getName() == "start")
     {
         vector<llvm::Value *> args;
@@ -299,6 +309,13 @@ void FunctionDefinition::codeGen()
         ai->setName(name);
     }
     compoundStatements->codegen();
+    cg->builder->CreateBr(cg->retBB);
     cg->generatingFunctionOff();
     cg->LocalVarTable.clearTable();
+    cg->allocaret = nullptr;
+    cg-> retBB = nullptr;
+
+    if(verifyFunction(*function)){
+        cerr << " Error in function " << functionSignature->getName() << endl;
+    }
 }

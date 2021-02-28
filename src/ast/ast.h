@@ -507,13 +507,17 @@ namespace AST
 
     class Statement
     {
+        bool oneAhead;
     public:
         Statement()
         {
+            oneAhead = false;
         }
         virtual ~Statement() {}
         virtual void codegen() = 0;
         virtual bool isReturnStatement() { return false; }
+        virtual void peekedOneAhead(bool t){ oneAhead = t; }
+        virtual bool didPeekOneAhead() { return oneAhead; }
     };
 
     class Return : public Statement
@@ -535,15 +539,19 @@ namespace AST
     class CompoundStatement : public Statement
     {
         vector<unique_ptr<Statement>> Statements;
-
+        bool hasRet;
     public:
-        CompoundStatement(vector<unique_ptr<Statement>> Statements) : Statements(move(Statements)) {}
+        CompoundStatement(vector<unique_ptr<Statement>> Statements) : Statements(move(Statements)) {
+            hasRet = false;
+        }
         bool isLastElementReturnStatement()
         {
             if (Statements.back().get()->isReturnStatement())
                 return true;
             return false;
         }
+        bool getHasRet(){ return hasRet; }
+        void setHasRetTrue(){ hasRet = true; }
         void codegen() override;
     };
 

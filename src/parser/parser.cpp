@@ -20,6 +20,7 @@ void Parser::parse()
             if (FunctionTable.find("start") == FunctionTable.end())
                 LogError("Start Function Not Found");
             cg->terminateCOPBB();
+            cg->dumpIR();
             lexer.closeFile();
             return;
         }
@@ -598,20 +599,22 @@ unique_ptr<Statement> Parser::ParseIfElseStatement()
         return nullptr;
     }
     lexer.getNextToken();
-    auto CmpStat = ParseCompoundStatement(true);
+    auto CmpStat = ParseCompoundStatement();
     if (!CmpStat)
         return nullptr;
     lexer.getNextToken();
-    if (!lexer.isTokenElse())
-    {
-        LogError("Expected a 'else' after 'if'");
-        return nullptr;
+    if(lexer.isTokenElse()){
+        lexer.getNextToken();
+        auto elseCmpStat = ParseCompoundStatement();
+        if (!elseCmpStat)
+            return nullptr;
+        auto rt =  make_unique<IfElseStatement>(move(Exp), move(CmpStat), move(elseCmpStat));
+        rt->peekedOneAhead(false);
+        return move(rt);
     }
-    lexer.getNextToken();
-    auto elseCmpStat = ParseCompoundStatement(true);
-    if (!elseCmpStat)
-        return nullptr;
-    return make_unique<IfElseStatement>(move(Exp), move(CmpStat), move(elseCmpStat));
+    auto rt = make_unique<IfElseStatement>(move(Exp),move(CmpStat), nullptr);
+    rt->peekedOneAhead(true);
+    return move(rt);
 }
 
 unique_ptr<VariableAssignment> Parser::VariableAssignmentStatementHelper(const string &name)
@@ -736,7 +739,7 @@ unique_ptr<Statement> Parser::ParseForStatement()
         return nullptr;
     }
     lexer.getNextToken();
-    auto cmpStat = ParseCompoundStatement(true);
+    auto cmpStat = ParseCompoundStatement();
     if (!cmpStat)
         return nullptr;
     return make_unique<ForStatement>(move(lvd), move(va), move(cond), move(vastep), move(cmpStat));
@@ -835,7 +838,7 @@ unique_ptr<FunctionSignature> Parser::ParseFunctionSignature()
     return make_unique<FunctionSignature>(move(Name), move(type), move(args));
 }
 
-unique_ptr<CompoundStatement> Parser::ParseCompoundStatement(bool is_If_For)
+unique_ptr<CompoundStatement> Parser::ParseCompoundStatement()
 {
     if (!lexer.isTokenLeftCurlyBrace())
     {
@@ -847,18 +850,12 @@ unique_ptr<CompoundStatement> Parser::ParseCompoundStatement(bool is_If_For)
     while (!lexer.isTokenRightCurlyBrace())
     {
         auto stat = ParseStatement();
-        if (!stat)
-        {
-            LogError("Statement Might be missing '}'");
+        if(!stat){
+            LogError("Statement might be Missing '}'");
             return nullptr;
         }
-        if (stat->isReturnStatement() && is_If_For)
-        {
-            LogError("Cannot use 'return' statement in 'If' or 'for'");
-            return nullptr;
-        }
+        if(!stat->didPeekOneAhead()) lexer.getNextToken();
         statements.push_back(move(stat));
-        lexer.getNextToken();
     }
     return make_unique<CompoundStatement>(move(statements));
 }
@@ -871,7 +868,7 @@ unique_ptr<FunctionDefinition> Parser::ParseFunctionDefinition()
         return nullptr;
     lexer.getNextToken();
     parsingFuncDef = true;
-    auto CS = ParseCompoundStatement(false);
+    auto CS = ParseCompoundStatement();
     if (!CS)
         return nullptr;
     if (!CS->isLastElementReturnStatement())
