@@ -15,7 +15,7 @@ fn sortA() void {
             if(max < a[j]){
                 max = a[j];
                 index = j;
-            }else{}
+            }
         }
         temp = a[i];
         a[i] = max;
@@ -24,24 +24,21 @@ fn sortA() void {
     return;
 }
 
-int index;
-
-fn binarySearchA(int l,int t,int r) void {
+fn binarySearchA(int l,int t,int r) int {
     int m;
     if(l <= r){
         m = (l + r) / 2;
-        if(a[m] < t){  binarySearchA(m+1,t,r);  }
+        if(a[m] < t){  return binarySearchA(m+1,t,r);  }
         else {
-            if(a[m] > t){  binarySearchA(l,t,m-1);  }
-            else{ index = m; }
+            if(a[m] > t){  return binarySearchA(l,t,m-1);  }
+            else{ return m; }
         }
-    }else{ }
-    return;
+    }
+    return 101;
 }
 
 fn start() void {
     sortA();
-    binarySearchA(0,44,9);
-    printint(index);
+    printint(binarySearchA(0,7,9));
     return;
 }
