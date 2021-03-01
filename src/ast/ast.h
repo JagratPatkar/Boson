@@ -397,6 +397,7 @@ namespace AST
         unique_ptr<::Type> getOperatorEvalTy() override { return make_unique<Bool>(); }
     };
 
+
     class Expression
     {
     protected:
@@ -413,6 +414,7 @@ namespace AST
         }
         virtual llvm::Value *codeGen() = 0;
         virtual bool isValue() { return false; }
+        virtual bool isVariable() { return false; }
         virtual void VarDecCodeGen(GlobalVariable *, ::Type *) = 0;
     };
 
@@ -488,6 +490,7 @@ namespace AST
         }
         void setArrayType(unique_ptr<::Type> t) { arrayType = move(t); }
         void setArrayFlag() { isArrayElem = true; }
+        bool isVariable() override { return true; }
         llvm::Value *codeGen() override;
     };
 
@@ -501,6 +504,43 @@ namespace AST
         BinaryExpression(unique_ptr<BinOps> op, unique_ptr<Expression> LVAL, unique_ptr<Expression> RVAL, unique_ptr<::Type> ExpressionType) : op(move(op)), LVAL(move(LVAL)), RVAL(move(RVAL)), Expression(move(ExpressionType))
         {
         }
+        llvm::Value *codeGen() override;
+        void VarDecCodeGen(GlobalVariable *, ::Type *) override;
+    };
+
+      class UnOps {
+        protected:
+        CodeGen* cg;
+        unique_ptr<::Type> op_type;
+        public:
+        UnOps(){
+            cg = CodeGen::GetInstance();
+        }
+        virtual bool validOperandSet(::Type *,Expression * e) = 0;
+        virtual llvm::Value *codeGen(llvm::Value*,Expression* e) = 0;
+        virtual unique_ptr<::Type> getOperatorEvalTy() = 0;
+        virtual ~UnOps() {}
+    };
+
+
+    class PostIncrement : public UnOps {
+        
+        bool validOperandSet(::Type* t,Expression * e) override {
+            bool c = (t->isInt() || t->isDouble()) && e->isVariable();
+            if(c) op_type = t->getNew();
+            return c;
+        }
+        
+        unique_ptr<::Type> getOperatorEvalTy() override { return op_type.get()->getNew(); }
+        llvm::Value* codeGen(llvm::Value*,Expression* e) override;
+    };
+
+    class UnaryExpression : public Expression {
+        unique_ptr<UnOps> op;
+        unique_ptr<Expression> VAL;
+
+        public:
+        UnaryExpression(unique_ptr<UnOps> op,unique_ptr<Expression> VAL,unique_ptr<::Type> ExpressionType) : op(move(op)) , VAL(move(VAL)) , Expression(move(ExpressionType)) {}
         llvm::Value *codeGen() override;
         void VarDecCodeGen(GlobalVariable *, ::Type *) override;
     };

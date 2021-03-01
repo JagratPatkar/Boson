@@ -24,6 +24,7 @@ public:
     virtual unique_ptr<::Type> getNew() = 0;
     virtual MaybeAlign getAllignment() { return MaybeAlign(4); }
     virtual llvm::Constant *getDefaultConstant() = 0;
+    virtual llvm::Constant *getConstant(int v) = 0;
     virtual bool doesMatch(Type *) = 0;
     virtual llvm::AllocaInst *allocateLLVMVariable(const string &) = 0;
     virtual void createWrite(llvm::Value *e, llvm::Value *v, llvm::Value *dest)
@@ -47,6 +48,7 @@ public:
     unique_ptr<::Type> getNew() override { return make_unique<Void>(); }
     llvm::Constant *getDefaultConstant() override { return nullptr; }
     llvm::AllocaInst *allocateLLVMVariable(const string &Name) override { return nullptr; }
+    llvm::Constant *getConstant(int v) override { return nullptr; }
     void CreateLLVMRet(llvm::Value * v) override { cg->builder->CreateRetVoid(); }
 };
 
@@ -59,6 +61,7 @@ public:
     bool doesMatch(Type *t) override { return t->isInt(); }
     unique_ptr<::Type> getNew() override { return make_unique<Int>(); }
     llvm::Constant *getDefaultConstant() override { return ConstantInt::get(getLLVMType(), 0, true); }
+    llvm::Constant *getConstant(int v) override { return ConstantInt::get(getLLVMType(), v, true); }
     llvm::AllocaInst *allocateLLVMVariable(const string &Name) override { return new AllocaInst(getLLVMType(), 0, 0, Align(4), Name.c_str(), cg->builder->GetInsertBlock()); }
 };
 
@@ -71,6 +74,7 @@ public:
     bool doesMatch(Type *t) override { return t->isDouble(); }
     unique_ptr<::Type> getNew() override { return make_unique<Double>(); }
     llvm::Constant *getDefaultConstant() override { return ConstantFP::get(getLLVMType(), 0.0); }
+    llvm::Constant *getConstant(int v) override { return ConstantFP::get(getLLVMType(), v); }
     llvm::AllocaInst *allocateLLVMVariable(const string &Name) override { return cg->builder->CreateAlloca(getLLVMType(), 0, Name.c_str()); }
     
 };
@@ -83,6 +87,7 @@ public:
     bool doesMatch(Type *t) override { return t->isBool(); }
     unique_ptr<::Type> getNew() override { return make_unique<Bool>(); }
     llvm::Constant *getDefaultConstant() override { return ConstantInt::getFalse(getLLVMType()); }
+    llvm::Constant *getConstant(int v) override { return nullptr; }
     llvm::AllocaInst *allocateLLVMVariable(const string &Name) override { return new AllocaInst(getLLVMType(), 0, 0, Align(4), Name.c_str(), cg->builder->GetInsertBlock()); }
 };
 
@@ -144,6 +149,7 @@ public:
         return cg->builder->CreateAlignedLoad(gep, getAllignment(), name + "arrayidx");
     }
     void CreateLLVMRet(llvm::Value * v) override {  }
+    llvm::Constant *getConstant(int v) override { return nullptr; }
 };
 
 #endif

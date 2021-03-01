@@ -13,6 +13,30 @@ llvm::Value *ArrayVal::codeGen()
     return nullptr;
 }
 
+
+llvm::Value* UnaryExpression::codeGen()  { 
+    llvm::Value* v; 
+    Variable* var = static_cast<Variable*>(VAL.get());
+    v = cg->LocalVarTable.getElement(var->getName());
+    if(!v){
+        GlobalVariable *gVar = cg->GlobalVarTable.getElement(var->getName());
+        return op->codeGen(gVar,VAL.get()); 
+    }
+    return op->codeGen(v,VAL.get()); 
+}
+
+llvm::Value* PostIncrement::codeGen(llvm::Value* dest,Expression* e)  {
+    llvm::Value* v1 = e->codeGen();
+    if(op_type->isInt()) op_type->createWrite(0,cg->builder->CreateAdd(v1, op_type->getConstant(1), "additmp"),dest);
+    op_type->createWrite(0,cg->builder->CreateFAdd(v1, op_type->getConstant(1), "addftmp"),dest);
+    return v1;
+}
+
+void UnaryExpression::VarDecCodeGen(GlobalVariable *gVar, ::Type *t){
+    cg->builder->SetInsertPoint(cg->getCOPBB());
+    t->createWrite(0,codeGen(),gVar);
+}
+
 void ArrayVal::gen(llvm::Value *vt)
 {
     int counter = 0;
