@@ -62,6 +62,7 @@ public:
     unique_ptr<AST::Statement> ParseVariableAssignmentStatement(const string &);
     unique_ptr<AST::VariableAssignment> VariableAssignmentStatementHelper(const string &);
     unique_ptr<AST::Statement> ParseCallStatement(const string &);
+    unique_ptr<Expression> ParsePostUnary(unique_ptr<Expression> e);
     unique_ptr<AST::Statement> ParseReturnStatement();
     std::unique_ptr<FunctionSignature> ParseFunctionSignature();
     std::unique_ptr<FunctionDefinition> ParseFunctionDefinition();

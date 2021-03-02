@@ -28,9 +28,26 @@ void Parser::parse()
     }
 }
 
+
+
+unique_ptr<Expression> Parser::ParsePostUnary(unique_ptr<Expression> e){
+    if(lexer.isTokenIncrement()){
+        auto unop = make_unique<PostIncrement>();
+        if(!unop->validOperandSet(e.get())){
+            LogError("Cannot Apply '++' operator to this type");
+            return nullptr;
+        }
+        lexer.getNextToken();
+        auto ty = unop->getOperatorEvalTy();
+        return make_unique<UnaryExpression>(move(unop),move(e),move(ty));
+    }
+    return move(e);
+}
+
+
 unique_ptr<Expression> Parser::ParseExpression()
 {
-    auto lvalue = ParsePrimary();
+    auto lvalue = ParsePostUnary(ParsePrimary());
     if (!lvalue)
         return nullptr;
     return ParseBinOP(0, move(lvalue));
@@ -44,8 +61,10 @@ unique_ptr<Expression> Parser::ParsePrimary()
         return ParseDoubleNum();
     if (lexer.isTokenTrueValue() || lexer.isTokenFalseValue())
         return ParseBooleanValue();
-    if (lexer.isTokenIdentifier())
+    if (lexer.isTokenIdentifier()){
         return ParseIdentifier();
+    }
+        
     if (lexer.isTokenLeftParen())
         return ParseParen();
     else

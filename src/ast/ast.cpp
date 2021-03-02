@@ -28,7 +28,7 @@ llvm::Value* UnaryExpression::codeGen()  {
 llvm::Value* PostIncrement::codeGen(llvm::Value* dest,Expression* e)  {
     llvm::Value* v1 = e->codeGen();
     if(op_type->isInt()) op_type->createWrite(0,cg->builder->CreateAdd(v1, op_type->getConstant(1), "additmp"),dest);
-    op_type->createWrite(0,cg->builder->CreateFAdd(v1, op_type->getConstant(1), "addftmp"),dest);
+    else op_type->createWrite(0,cg->builder->CreateFAdd(v1, op_type->getConstant(1), "addftmp"),dest);
     return v1;
 }
 

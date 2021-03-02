@@ -4,9 +4,8 @@ int Lexer::getToken()
 {
     char curChar = ' ';
 
-    while (isspace(curChar) && !source.eof())
-        source.get(curChar);
-
+    while (isspace(curChar) && !source.eof()) source.get(curChar);
+        
     if (curChar == '#')
     {
         do
@@ -31,7 +30,10 @@ int Lexer::getToken()
     auto it = SymbolRegistry.find(curChar);
     if (it != SymbolRegistry.end())
         return it->second;
-    int tmp;
+    int tmp; 
+
+    if(curChar == '+')
+        return (tmp = peekOneAhead('+',token_increment)) ? tmp : token_add_sym;
     if (curChar == '=')
         return (tmp = peekOneAhead('=', token_equal_to)) ? tmp : token_assignment_op;
     if (curChar == '<')

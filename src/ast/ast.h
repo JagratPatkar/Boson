@@ -516,7 +516,7 @@ namespace AST
         UnOps(){
             cg = CodeGen::GetInstance();
         }
-        virtual bool validOperandSet(::Type *,Expression * e) = 0;
+        virtual bool validOperandSet(Expression * e) = 0;
         virtual llvm::Value *codeGen(llvm::Value*,Expression* e) = 0;
         virtual unique_ptr<::Type> getOperatorEvalTy() = 0;
         virtual ~UnOps() {}
@@ -524,10 +524,10 @@ namespace AST
 
 
     class PostIncrement : public UnOps {
-        
-        bool validOperandSet(::Type* t,Expression * e) override {
-            bool c = (t->isInt() || t->isDouble()) && e->isVariable();
-            if(c) op_type = t->getNew();
+        public:
+        bool validOperandSet(Expression * e) override {
+            bool c = (e->getType()->isInt() || e->getType()->isDouble()) && e->isVariable();
+            if(c) op_type = e->getType()->getNew();
             return c;
         }
         

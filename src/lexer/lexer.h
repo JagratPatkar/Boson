@@ -41,7 +41,8 @@ class Lexer
         token_ampersand = -34,
         token_vertical_line = -35,
         token_left_square_brack = -36,
-        token_right_square_brack = -37
+        token_right_square_brack = -37,
+        token_increment = -38
     };
     map<string, token> KeywordRegistry;
     map<char, token> SymbolRegistry;
@@ -52,7 +53,6 @@ class Lexer
     string NumberString;
     string Identifier;
     int currentToken;
-
 public:
     Lexer(string name) : sourceName(name)
     {
@@ -70,7 +70,6 @@ public:
         KeywordRegistry["true"] = token_true;
         KeywordRegistry["false"] = token_false;
         SymbolRegistry[';'] = token_semi_colon;
-        SymbolRegistry['+'] = token_add_sym;
         SymbolRegistry['-'] = token_sub_sym;
         SymbolRegistry['*'] = token_mul_sym;
         SymbolRegistry['/'] = token_div_sym;
@@ -131,4 +130,5 @@ public:
     bool isTokenVerticalLine() { return currentToken == token_vertical_line; }
     bool isTokenRightSquareBrack() { return currentToken == token_right_square_brack; }
     bool isTokenLeftSquareBrack() { return currentToken == token_left_square_brack; }
+    bool isTokenIncrement() { return currentToken == token_increment; }
 };
