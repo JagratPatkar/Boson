@@ -523,7 +523,7 @@ namespace AST
     };
 
 
-    class PostIncrement : public UnOps {
+    class AddPostIncrement : public UnOps {
         public:
         bool validOperandSet(Expression * e) override {
             bool c = (e->getType()->isInt() || e->getType()->isDouble()) && e->isVariable();
@@ -534,6 +534,59 @@ namespace AST
         unique_ptr<::Type> getOperatorEvalTy() override { return op_type.get()->getNew(); }
         llvm::Value* codeGen(llvm::Value*,Expression* e) override;
     };
+
+
+    class SubPostIncrement : public UnOps {
+        public:
+        bool validOperandSet(Expression * e) override {
+            bool c = (e->getType()->isInt() || e->getType()->isDouble()) && e->isVariable();
+            if(c) op_type = e->getType()->getNew();
+            return c;
+        }
+        
+        unique_ptr<::Type> getOperatorEvalTy() override { return op_type.get()->getNew(); }
+        llvm::Value* codeGen(llvm::Value*,Expression* e) override;
+    };
+
+    class AddPreIncrement : public UnOps {
+        public:
+        bool validOperandSet(Expression * e) override {
+            bool c = (e->getType()->isInt() || e->getType()->isDouble()) && e->isVariable();
+            if(c) op_type = e->getType()->getNew();
+            return c;
+        }
+        
+        unique_ptr<::Type> getOperatorEvalTy() override { return op_type.get()->getNew(); }
+        llvm::Value* codeGen(llvm::Value*,Expression* e) override;
+    };
+
+
+    class SubPreIncrement : public UnOps {
+        public:
+        bool validOperandSet(Expression * e) override {
+            bool c = (e->getType()->isInt() || e->getType()->isDouble()) && e->isVariable();
+            if(c) op_type = e->getType()->getNew();
+            return c;
+        }
+        
+        unique_ptr<::Type> getOperatorEvalTy() override { return op_type.get()->getNew(); }
+        llvm::Value* codeGen(llvm::Value*,Expression* e) override;
+    };
+
+
+    class PreNot : public UnOps {
+        public:
+        bool validOperandSet(Expression * e) override {
+            bool c = e->getType()->isBool();
+            if(c) op_type = e->getType()->getNew();
+            return c;
+        }
+        
+        unique_ptr<::Type> getOperatorEvalTy() override { return make_unique<Bool>(); }
+        llvm::Value* codeGen(llvm::Value* dest,Expression* e) override { return op_type->createNeg(dest); }
+    };
+
+
 
     class UnaryExpression : public Expression {
         unique_ptr<UnOps> op;

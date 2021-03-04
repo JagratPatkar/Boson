@@ -36,6 +36,9 @@ public:
         return cg->builder->CreateAlignedLoad(v, getAllignment(), name);
     }
     virtual void CreateLLVMRet(llvm::Value * v)  { cg->builder->CreateRet(createLoad(0,v,"retval")); }
+    virtual llvm::Value* createAdd(llvm::Value* v,int v1) = 0;
+    virtual llvm::Value* createSub(llvm::Value* v,int v1) = 0;
+    virtual llvm::Value* createNeg(llvm::Value* v) { return nullptr; }
 };
 
 class Void : public ::Type
@@ -50,6 +53,8 @@ public:
     llvm::AllocaInst *allocateLLVMVariable(const string &Name) override { return nullptr; }
     llvm::Constant *getConstant(int v) override { return nullptr; }
     void CreateLLVMRet(llvm::Value * v) override { cg->builder->CreateRetVoid(); }
+    llvm::Value* createAdd(llvm::Value* v,int v1) override { return nullptr; };
+    llvm::Value* createSub(llvm::Value* v,int v1) override { return nullptr; };
 };
 
 class Int : public ::Type
@@ -63,6 +68,9 @@ public:
     llvm::Constant *getDefaultConstant() override { return ConstantInt::get(getLLVMType(), 0, true); }
     llvm::Constant *getConstant(int v) override { return ConstantInt::get(getLLVMType(), v, true); }
     llvm::AllocaInst *allocateLLVMVariable(const string &Name) override { return new AllocaInst(getLLVMType(), 0, 0, Align(4), Name.c_str(), cg->builder->GetInsertBlock()); }
+    llvm::Value* createAdd(llvm::Value* v,int v1) override { return cg->builder->CreateAdd(v, getConstant(v1), "additmp"); }
+    llvm::Value* createSub(llvm::Value* v,int v1) override { return cg->builder->CreateSub(v, getConstant(v1), "subitmp"); }
+
 };
 
 class Double : public ::Type
@@ -76,7 +84,8 @@ public:
     llvm::Constant *getDefaultConstant() override { return ConstantFP::get(getLLVMType(), 0.0); }
     llvm::Constant *getConstant(int v) override { return ConstantFP::get(getLLVMType(), v); }
     llvm::AllocaInst *allocateLLVMVariable(const string &Name) override { return cg->builder->CreateAlloca(getLLVMType(), 0, Name.c_str()); }
-    
+    llvm::Value* createAdd(llvm::Value* v,int v1) override { return cg->builder->CreateFAdd(v, getConstant(v1), "addftmp"); }
+    llvm::Value* createSub(llvm::Value* v,int v1) override { return cg->builder->CreateFSub(v, getConstant(v1), "subftmp"); }
 };
 
 class Bool : public ::Type
@@ -89,6 +98,11 @@ public:
     llvm::Constant *getDefaultConstant() override { return ConstantInt::getFalse(getLLVMType()); }
     llvm::Constant *getConstant(int v) override { return nullptr; }
     llvm::AllocaInst *allocateLLVMVariable(const string &Name) override { return new AllocaInst(getLLVMType(), 0, 0, Align(4), Name.c_str(), cg->builder->GetInsertBlock()); }
+    llvm::Value* createAdd(llvm::Value* v,int v1) override { return nullptr; };
+    llvm::Value* createSub(llvm::Value* v,int v1) override { return nullptr; };
+    llvm::Value* createNeg(llvm::Value* v) override {
+        return cg->builder->CreateNot(v);
+    }
 };
 
 class Array : public ::Type
@@ -150,6 +164,8 @@ public:
     }
     void CreateLLVMRet(llvm::Value * v) override {  }
     llvm::Constant *getConstant(int v) override { return nullptr; }
+    llvm::Value* createAdd(llvm::Value* v,int v1) override { return nullptr; };
+    llvm::Value* createSub(llvm::Value* v,int v1) override { return nullptr; };
 };
 
 #endif

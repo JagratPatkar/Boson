@@ -31,7 +31,8 @@ int Lexer::getToken()
     if (it != SymbolRegistry.end())
         return it->second;
     int tmp; 
-
+    if(curChar == '-')
+        return (tmp = peekOneAhead('-',token_decrement)) ? tmp : token_sub_sym;
     if(curChar == '+')
         return (tmp = peekOneAhead('+',token_increment)) ? tmp : token_add_sym;
     if (curChar == '=')
@@ -41,10 +42,7 @@ int Lexer::getToken()
     if (curChar == '>')
         return (tmp = peekOneAhead('=', token_greater_than_eq)) ? tmp : token_greater_then;
     if (curChar == '!')
-    {
-        if ((tmp = peekOneAhead('=', token_not_equal_to)))
-            return tmp;
-    }
+        return (tmp = peekOneAhead('=', token_not_equal_to)) ? tmp : token_not;
 
     if (source.eof())
         return token_eof;

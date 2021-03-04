@@ -16,21 +16,46 @@ llvm::Value *ArrayVal::codeGen()
 
 llvm::Value* UnaryExpression::codeGen()  { 
     llvm::Value* v; 
-    Variable* var = static_cast<Variable*>(VAL.get());
-    v = cg->LocalVarTable.getElement(var->getName());
-    if(!v){
-        GlobalVariable *gVar = cg->GlobalVarTable.getElement(var->getName());
-        return op->codeGen(gVar,VAL.get()); 
+    if(VAL->isVariable()){
+        Variable* var = static_cast<Variable*>(VAL.get());
+        v = cg->LocalVarTable.getElement(var->getName());
+        if(!v){
+            GlobalVariable *gVar = cg->GlobalVarTable.getElement(var->getName());
+            return op->codeGen(gVar,VAL.get()); 
+        }
+        return op->codeGen(v,VAL.get());
     }
-    return op->codeGen(v,VAL.get()); 
+    return op->codeGen(VAL->codeGen(),0);
 }
 
-llvm::Value* PostIncrement::codeGen(llvm::Value* dest,Expression* e)  {
+llvm::Value* AddPostIncrement::codeGen(llvm::Value* dest,Expression* e)  {
     llvm::Value* v1 = e->codeGen();
-    if(op_type->isInt()) op_type->createWrite(0,cg->builder->CreateAdd(v1, op_type->getConstant(1), "additmp"),dest);
-    else op_type->createWrite(0,cg->builder->CreateFAdd(v1, op_type->getConstant(1), "addftmp"),dest);
+    op_type->createWrite(0,op_type->createAdd(v1,1),dest);
     return v1;
 }
+
+llvm::Value* SubPostIncrement::codeGen(llvm::Value* dest,Expression* e)  {
+    llvm::Value* v1 = e->codeGen();
+    op_type->createWrite(0,op_type->createSub(v1,1),dest);
+    return v1;
+}
+
+
+llvm::Value* AddPreIncrement::codeGen(llvm::Value* dest,Expression* e)  {
+    llvm::Value* v1 = e->codeGen();
+    op_type->createWrite(0,op_type->createAdd(v1,1),dest);
+    v1 = e->codeGen();
+    return v1;
+}
+
+llvm::Value* SubPreIncrement::codeGen(llvm::Value* dest,Expression* e)  {
+    llvm::Value* v1 = e->codeGen();
+    op_type->createWrite(0,op_type->createSub(v1,1),dest);
+    v1 = e->codeGen();
+    return v1;
+}
+
+
 
 void UnaryExpression::VarDecCodeGen(GlobalVariable *gVar, ::Type *t){
     cg->builder->SetInsertPoint(cg->getCOPBB());
@@ -141,12 +166,8 @@ void GlobalVariableDeclaration::codegen()
     cg->module->getOrInsertGlobal(Name, vt->getLLVMType());
     GlobalVariable *gVar = cg->module->getNamedGlobal(Name);
     gVar->setAlignment(vt->getAllignment());
-    if (exp)
-        exp->VarDecCodeGen(gVar, vt);
-    else
-    {
-        gVar->setInitializer(vt->getDefaultConstant());
-    }
+    gVar->setInitializer(vt->getDefaultConstant());
+    if (exp) exp->VarDecCodeGen(gVar, vt);
     cg->GlobalVarTable.addElement(Name, gVar);
 }
 

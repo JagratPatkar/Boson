@@ -28,26 +28,70 @@ void Parser::parse()
     }
 }
 
+unique_ptr<Expression> Parser::ParsePreUnary(){
+    bool flag = false;
+    unique_ptr<UnOps> unop;
+    if(lexer.isTokenIncrement()){
+        
+        unop = make_unique<AddPreIncrement>();
+        flag = true;
+    }
+    else if(lexer.isTokenDecrement()){
+        unop = make_unique<SubPreIncrement>();
+        flag = true;
+    }else if(lexer.isTokenNot()){
+        unop = make_unique<PreNot>();
+        flag = true;
+    }
 
+    if(flag){
+        lexer.getNextToken();
+        auto e = ParsePrimary();
+        if(!e){
+            LogError("Invalid use of operator");
+        }
+        if(!unop->validOperandSet(e.get())){
+            LogError("Cannot Apply operator to this type");
+            return nullptr;
+        }
+        
+        auto ty = unop->getOperatorEvalTy();
+       
+        return make_unique<UnaryExpression>(move(unop),move(e),move(ty));
+    }
+
+    return ParsePrimary();
+}
 
 unique_ptr<Expression> Parser::ParsePostUnary(unique_ptr<Expression> e){
+    bool flag = false;
+    unique_ptr<UnOps> unop;
     if(lexer.isTokenIncrement()){
-        auto unop = make_unique<PostIncrement>();
+        unop = make_unique<AddPostIncrement>();
+        flag = true;
+    }
+    else if(lexer.isTokenDecrement()){
+        unop = make_unique<SubPostIncrement>();
+        flag = true;
+    }
+
+    if(flag){
         if(!unop->validOperandSet(e.get())){
-            LogError("Cannot Apply '++' operator to this type");
+            LogError("Cannot Apply operator to non-variable element");
             return nullptr;
         }
         lexer.getNextToken();
         auto ty = unop->getOperatorEvalTy();
         return make_unique<UnaryExpression>(move(unop),move(e),move(ty));
     }
+
     return move(e);
 }
 
 
 unique_ptr<Expression> Parser::ParseExpression()
 {
-    auto lvalue = ParsePostUnary(ParsePrimary());
+    auto lvalue = ParsePostUnary(ParsePreUnary());
     if (!lvalue)
         return nullptr;
     return ParseBinOP(0, move(lvalue));
@@ -270,7 +314,7 @@ unique_ptr<Expression> Parser::ParseBinOP(int minPrec, unique_ptr<Expression> lv
             return move(lvalue);
         auto BinOp = returnBinOpsType();
         lexer.getNextToken();
-        auto rvalue = ParsePrimary();
+        auto rvalue = ParsePostUnary(ParsePreUnary());
         if (!rvalue)
             return nullptr;
         auto ltype = lvalue->getType();

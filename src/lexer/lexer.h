@@ -42,7 +42,9 @@ class Lexer
         token_vertical_line = -35,
         token_left_square_brack = -36,
         token_right_square_brack = -37,
-        token_increment = -38
+        token_increment = -38,
+        token_decrement = -39,
+        token_not = -40
     };
     map<string, token> KeywordRegistry;
     map<char, token> SymbolRegistry;
@@ -70,7 +72,6 @@ public:
         KeywordRegistry["true"] = token_true;
         KeywordRegistry["false"] = token_false;
         SymbolRegistry[';'] = token_semi_colon;
-        SymbolRegistry['-'] = token_sub_sym;
         SymbolRegistry['*'] = token_mul_sym;
         SymbolRegistry['/'] = token_div_sym;
         SymbolRegistry['('] = token_left_paren;
@@ -131,4 +132,6 @@ public:
     bool isTokenRightSquareBrack() { return currentToken == token_right_square_brack; }
     bool isTokenLeftSquareBrack() { return currentToken == token_left_square_brack; }
     bool isTokenIncrement() { return currentToken == token_increment; }
+    bool isTokenDecrement() { return currentToken == token_decrement; }
+    bool isTokenNot() { return currentToken == token_not; }
 };
