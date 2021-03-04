@@ -31,8 +31,18 @@ int Lexer::getToken()
     if (it != SymbolRegistry.end())
         return it->second;
     int tmp; 
-    if(curChar == '-')
-        return (tmp = peekOneAhead('-',token_decrement)) ? tmp : token_sub_sym;
+    if(curChar == '-'){
+        if((tmp = peekOneAhead('-',token_decrement)))
+            return tmp;
+        else if(isdigit(source.peek())){
+            NumberString = "";
+            NumberString += curChar;
+            source.get(curChar);
+            NumberString += curChar;
+            return extractNumber();
+        }else return token_sub_sym;
+
+    }
     if(curChar == '+')
         return (tmp = peekOneAhead('+',token_increment)) ? tmp : token_add_sym;
     if (curChar == '=')
