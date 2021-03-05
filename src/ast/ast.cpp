@@ -18,14 +18,18 @@ llvm::Value* UnaryExpression::codeGen()  {
     llvm::Value* v; 
     if(VAL->isVariable()){
         Variable* var = static_cast<Variable*>(VAL.get());
-        v = cg->LocalVarTable.getElement(var->getName());
-        if(!v){
+        if (cg->getGeneratingFunction() && cg->LocalVarTable.doesElementExist(var->getName()))
+        {
+            v = cg->LocalVarTable.getElement(var->getName());
+            return op->codeGen(v,VAL.get());
+        }
+        else if(cg->GlobalVarTable.doesElementExist(var->getName())){
             GlobalVariable *gVar = cg->GlobalVarTable.getElement(var->getName());
             return op->codeGen(gVar,VAL.get()); 
         }
-        return op->codeGen(v,VAL.get());
+        return nullptr;
     }
-    return op->codeGen(VAL->codeGen(),0);
+    return op->codeGen(VAL->codeGen(),VAL.get());
 }
 
 llvm::Value* AddPostIncrement::codeGen(llvm::Value* dest,Expression* e)  {
@@ -123,26 +127,17 @@ void FunctionCall::VarDecCodeGen(GlobalVariable *gVar, ::Type *t)
 
 llvm::Value *Variable::codeGen()
 {
-    if (cg->getGeneratingFunction())
+    if (cg->getGeneratingFunction() && cg->LocalVarTable.doesElementExist(Name))
     {
         llvm::Value *v = cg->LocalVarTable.getElement(Name);
-        if (isArrayElem && v)
-        {
-            return arrayType->createLoad(getElement(), v, Name);
-        }
-        else if (v)
-        {
-            return type->createLoad(0, v, Name);
-        }
+        if (isArrayElem) return arrayType->createLoad(getElement(), v, Name);
+        return type->createLoad(0, v, Name);
+    }else if(cg->GlobalVarTable.doesElementExist(Name)){
+        GlobalVariable *gVar = cg->GlobalVarTable.getElement(Name);
+        if (isArrayElem) return arrayType->createLoad(getElement(), gVar, Name);
+        return type->createLoad(0, gVar, Name);
     }
-    GlobalVariable *gVar = cg->GlobalVarTable.getElement(Name);
-    if (!gVar)
-        return nullptr;
-    if (isArrayElem)
-    {
-        return arrayType->createLoad(getElement(), gVar, Name);
-    }
-    return type->createLoad(0, gVar, Name);
+    return nullptr;
 }
 
 void Variable::VarDecCodeGen(GlobalVariable *gVar, ::Type *t)
@@ -212,17 +207,13 @@ void VariableAssignment::codegen()
     llvm::Value *val = exp->codeGen();
     if (!val)
         return;
-    llvm::Value *dest = cg->LocalVarTable.getElement(Name);
-    if (!dest)
+    if(cg->LocalVarTable.doesElementExist(Name)){
+        llvm::Value *dest = cg->LocalVarTable.getElement(Name);
+        var->getType()->createWrite(var->getElement(), val, dest);
+    }else if (cg->GlobalVarTable.doesElementExist(Name))
     {
         GlobalVariable *globalDest = cg->GlobalVarTable.getElement(Name);
-        if (!globalDest)
-            return;
         var->getType()->createWrite(var->getElement(), val, globalDest);
-    }
-    else
-    {
-        var->getType()->createWrite(var->getElement(), val, dest);
     }
 }
 

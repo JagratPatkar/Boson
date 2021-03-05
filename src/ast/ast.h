@@ -583,7 +583,12 @@ namespace AST
         }
         
         unique_ptr<::Type> getOperatorEvalTy() override { return make_unique<Bool>(); }
-        llvm::Value* codeGen(llvm::Value* dest,Expression* e) override { return op_type->createNeg(dest); }
+        llvm::Value* codeGen(llvm::Value* dest,Expression* e) override { 
+            if(e->isVariable()){
+                return op_type->createNeg(e->codeGen());
+            }
+            return op_type->createNeg(dest); 
+        }
     };
 
 
