@@ -42,6 +42,9 @@ unique_ptr<Expression> Parser::ParsePreUnary(){
     }else if(lexer.isTokenNot()){
         unop = make_unique<PreNot>();
         flag = true;
+    }else if(lexer.isTokenSubSym()){
+        unop = make_unique<Neg>();
+        flag = true;
     }
 
     if(flag){

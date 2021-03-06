@@ -14,6 +14,14 @@ llvm::Value *ArrayVal::codeGen()
 }
 
 
+llvm::Value* Neg::codeGen(llvm::Value* dest,Expression * e){
+    if(e->isVariable()){
+        return op_type->createNeg(e->codeGen());
+    }
+    return op_type->createNeg(dest); 
+}
+
+
 llvm::Value* UnaryExpression::codeGen()  { 
     llvm::Value* v; 
     if(VAL->isVariable()){
@@ -44,7 +52,6 @@ llvm::Value* SubPostIncrement::codeGen(llvm::Value* dest,Expression* e)  {
     return v1;
 }
 
-
 llvm::Value* AddPreIncrement::codeGen(llvm::Value* dest,Expression* e)  {
     llvm::Value* v1 = e->codeGen();
     op_type->createWrite(0,op_type->createAdd(v1,1),dest);
@@ -58,8 +65,6 @@ llvm::Value* SubPreIncrement::codeGen(llvm::Value* dest,Expression* e)  {
     v1 = e->codeGen();
     return v1;
 }
-
-
 
 void UnaryExpression::VarDecCodeGen(GlobalVariable *gVar, ::Type *t){
     cg->builder->SetInsertPoint(cg->getCOPBB());

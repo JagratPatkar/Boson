@@ -585,10 +585,21 @@ namespace AST
         unique_ptr<::Type> getOperatorEvalTy() override { return make_unique<Bool>(); }
         llvm::Value* codeGen(llvm::Value* dest,Expression* e) override { 
             if(e->isVariable()){
-                return op_type->createNeg(e->codeGen());
+                return op_type->createNot(e->codeGen());
             }
-            return op_type->createNeg(dest); 
+            return op_type->createNot(dest); 
         }
+    };
+
+    class Neg : public UnOps {
+        public:
+        bool validOperandSet(Expression * e) override {
+            bool c = e->getType()->isInt() || e->getType()->isDouble();
+            if(c) op_type = e->getType()->getNew();
+            return c;
+        }
+        unique_ptr<::Type> getOperatorEvalTy() override { return op_type.get()->getNew(); }
+        llvm::Value* codeGen(llvm::Value*,Expression* e) override;
     };
 
 
