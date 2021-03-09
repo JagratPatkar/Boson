@@ -78,7 +78,7 @@ void Bridge::createObjFile()
     raw_fd_ostream dest(filename, EC, sys::fs::OF_None);
     if (EC)
     {
-        cerr << "Could not open file: " << EC.message();
+        cerr << "Could not open file: " << EC.message() << endl;
         return;
     }
 

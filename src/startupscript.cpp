@@ -2,7 +2,7 @@
 
 extern "C"
 {
-    int start();
+    void start();
 }
 
 extern "C" void printchar(int ascii)
