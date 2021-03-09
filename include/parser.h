@@ -1,11 +1,11 @@
-#include "../ast/ast.h"
+#include "ast.h"
 #include <memory>
 #include <map>
 #include <utility>
-#include "../codegen/codegen.h"
-#include "../lexer/lexer.h"
-#include "../ast/type.h"
-#include "../symboltable/symboltable.h"
+#include "codegen.h"
+#include "lexer.h"
+#include "type.h"
+#include "symboltable.h"
 using namespace AST;
 using namespace std;
 

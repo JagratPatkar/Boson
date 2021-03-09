@@ -6,7 +6,7 @@
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/IR/Module.h"
-#include "../codegen/codegen.h"
+#include "codegen.h"
 #include "type.h"
 using namespace llvm;
 using namespace std;

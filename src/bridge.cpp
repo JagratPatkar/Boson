@@ -15,7 +15,7 @@
 #include "llvm/Target/TargetOptions.h"
 using namespace std;
 using namespace llvm;
-#include "../parser/parser.h"
+#include "parser.h"
 
 class Bridge
 {
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
     Bridge bridge(FileName);
     bridge.startCompilation();
     bridge.verifyIR();
-    bridge.createObjFile();
+    // bridge.createObjFile();
     printf("Successfully Compiled");
     return 0;
 }

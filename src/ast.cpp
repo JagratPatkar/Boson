@@ -1,5 +1,5 @@
 #include "ast.h"
-#include "../codegen/codegen.h"
+#include "codegen.h"
 #include <vector>
 #include "llvm/IR/Verifier.h"
 using namespace std;

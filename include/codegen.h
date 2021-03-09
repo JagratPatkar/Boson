@@ -2,7 +2,7 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
-#include "../symboltable/symboltable.h"
+#include "symboltable.h"
 using namespace std;
 using namespace llvm;
 
