@@ -34,13 +34,7 @@ int Lexer::getToken()
     if(curChar == '-'){
         if((tmp = peekOneAhead('-',token_decrement)))
             return tmp;
-        else if(isdigit(source.peek())){
-            NumberString = "";
-            NumberString += curChar;
-            source.get(curChar);
-            NumberString += curChar;
-            return extractNumber();
-        }else return token_sub_sym;
+        else return token_sub_sym;
 
     }
     if(curChar == '+')

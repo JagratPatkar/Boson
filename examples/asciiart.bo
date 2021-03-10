@@ -39,7 +39,7 @@ fn printKeys() void {
 
 fn printSpecLine(int lim,int d1,int d2,int c1,int c2) void {
     printLine(lim+d1,c1);
-    printLine(lim- d2,c2);
+    printLine(lim-d2,c2);
     printLine(lim+d1,c1);
     return;
 }
@@ -51,28 +51,28 @@ fn printArt() void {
     int limit2 = 40;
     printSpecLine(limit1,0,0,32,45);
     nextLine();
-    printLine(limit1- 1,32);
+    printLine(limit1-1,32);
     printchar(39);
     printBoson();
-    printLine(limit2- 14,32);
+    printLine(limit2-14,32);
     printchar(39);
-    printLine(limit1- 1,32);
+    printLine(limit1-1,32);
 
     for(;i < 9; i = i + 1){
         nextLine();
-        printLine(limit1- 1,32);
+        printLine(limit1-1,32);
         printchar(124);
         printLine(limit2,32);
         printchar(124);
-        printLine(limit1- 1,32);
+        printLine(limit1-1,32);
     }
     nextLine();
 
-    printLine(limit1- 1,32);
+    printLine(limit1-1,32);
     printchar(46);
     printLine(limit2,32);
     printchar(46);
-    printLine(limit1- 1,32);
+    printLine(limit1-1,32);
     nextLine();
     printSpecLine(limit1,0,0,32,45);
     i = 0;

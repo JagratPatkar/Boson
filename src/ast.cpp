@@ -15,9 +15,6 @@ llvm::Value *ArrayVal::codeGen()
 
 
 llvm::Value* Neg::codeGen(llvm::Value* dest,Expression * e){
-    if(e->isVariable()){
-        return op_type->createNeg(e->codeGen());
-    }
     return op_type->createNeg(dest); 
 }
 
@@ -28,12 +25,12 @@ llvm::Value* UnaryExpression::codeGen()  {
         Variable* var = static_cast<Variable*>(VAL.get());
         if (cg->getGeneratingFunction() && cg->LocalVarTable.doesElementExist(var->getName()))
         {
-            v = cg->LocalVarTable.getElement(var->getName());
-            return op->codeGen(v,VAL.get());
+            // v = cg->LocalVarTable.getElement(var->getName());
+            return op->codeGen(VAL->codeGen(),VAL.get());
         }
         else if(cg->GlobalVarTable.doesElementExist(var->getName())){
-            GlobalVariable *gVar = cg->GlobalVarTable.getElement(var->getName());
-            return op->codeGen(gVar,VAL.get()); 
+            // GlobalVariable *gVar = cg->GlobalVarTable.getElement(var->getName());
+            return op->codeGen(VAL->codeGen(),VAL.get()); 
         }
         return nullptr;
     }
