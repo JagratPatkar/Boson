@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <fstream>
 #include <iostream>
 #include <string.h>
 #include "llvm/IR/IRBuilder.h"
@@ -72,12 +73,12 @@ void Bridge::createObjFile()
     cg->module->setTargetTriple(TargetTriple);
     char delim = '.';
     char *name = strtok(&(FileName[0]), &delim);
+    
     string filename(name);
     filename += ".o";
     error_code EC;
-    raw_fd_ostream dest(filename, EC, sys::fs::OF_None);
-    if (EC)
-    {
+    raw_fd_ostream dest(filename, EC);
+    if(EC){
         cerr << "Could not open file: " << EC.message() << endl;
         return;
     }
