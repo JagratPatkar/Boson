@@ -25,11 +25,9 @@ llvm::Value* UnaryExpression::codeGen()  {
         Variable* var = static_cast<Variable*>(VAL.get());
         if (cg->getGeneratingFunction() && cg->LocalVarTable.doesElementExist(var->getName()))
         {
-            // v = cg->LocalVarTable.getElement(var->getName());
             return op->codeGen(VAL->codeGen(),VAL.get());
         }
         else if(cg->GlobalVarTable.doesElementExist(var->getName())){
-            // GlobalVariable *gVar = cg->GlobalVarTable.getElement(var->getName());
             return op->codeGen(VAL->codeGen(),VAL.get()); 
         }
         return nullptr;
