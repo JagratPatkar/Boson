@@ -33,9 +33,9 @@ jobs:
 
     - name : Cd build
       run : cd build
-      
+
     - name : Cmake build 
-      run : cmake -G make -DLLVM_ENABLE_PROJECTS="clang;libcxx;libcxxabi" ../llvm
+      run : cmake -G Ninja -DLLVM_ENABLE_PROJECTS="clang;libcxx;libcxxabi" ../llvm
 
     - name : Cmake install
       run : cmake --build . --target install
