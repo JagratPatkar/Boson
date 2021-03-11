@@ -37,7 +37,7 @@ jobs:
     - name : Install dependencies
       run: |
             sudo apt-get update -y
-            sudo apt-get install -y llvm g++
+            sudo apt-get install -y llvm g++ ninja-build
         # git clone https://github.com/llvm/llvm-project.git
         # cd llvm-project
         # mkdir build
@@ -62,11 +62,17 @@ jobs:
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
       run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 
+    - name: Generate
+      working-directory: ${{github.workspace}}/build
+      shell: bash
+      run: cmake -G Ninja .. 
+
+
     - name: Build
       working-directory: ${{github.workspace}}/build
       shell: bash
       # Execute the build.  You can specify a specific target with "--target <NAME>"
-      run: cmake --build . -DCMAKE_CXX_COMPILER=g++ #--config $BUILD_TYPE
+      run: cmake --build . #--config $BUILD_TYPE
 
     # - name: Test
     #   working-directory: ${{github.workspace}}/build
