@@ -37,7 +37,7 @@ jobs:
     - name : Install dependencies
       run: |
             sudo apt-get update -y
-            sudo apt-get install -y llvm clang 
+            sudo apt-get install -y llvm g++ 
         # git clone https://github.com/llvm/llvm-project.git
         # cd llvm-project
         # mkdir build
