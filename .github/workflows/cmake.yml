@@ -22,13 +22,22 @@ jobs:
     #   run : 
 
 
-    - name : LLVM
-      shell : bash
+    - name : Clone LLVM
       run : git clone https://github.com/llvm/llvm-project.git
+
+    - name : Cd LLVM
       run : cd llvm-project
+      
+    - name : Mkdir LLVM
       run : mkdir build 
+
+    - name : Cd build
       run : cd build
+      
+    - name : Cmake build 
       run : cmake -G make -DLLVM_ENABLE_PROJECTS="clang;libcxx;libcxxabi" ../llvm
+
+    - name : Cmake install
       run : cmake --build . --target install
 
     - name: Create Build Environment
