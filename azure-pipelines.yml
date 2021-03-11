@@ -12,6 +12,11 @@ pool:
 steps:
 - script: echo Hello, world!
   displayName: 'LLVM SETUP AND CLANG SETUP'
+  
+- task: CMake@1
+  inputs:
+    cmakeArgs: 
+    runInsideShell: true
 
 - script: |
           sudo apt-get update -y
