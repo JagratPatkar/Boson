@@ -32,7 +32,7 @@ jobs:
 
     strategy:
       matrix:
-        cc : [gcc, clang]
+        cc : [llvm, clang]
 
     
 
