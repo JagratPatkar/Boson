@@ -39,6 +39,8 @@ jobs:
     steps:
     - name : Install dependencies
       run: |
+            sudo apt-get update -y
+            sudo apt-get install -y ninja-build
             git clone https://github.com/llvm/llvm-project.git
             cd llvm-project
             mkdir build
