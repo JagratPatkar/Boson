@@ -27,6 +27,9 @@ jobs:
 
     - name : Cd LLVM
       run : cd llvm-project
+
+    - name : pwd
+      run : pwd
       
     - name : Mkdir LLVM
       run : mkdir build 
