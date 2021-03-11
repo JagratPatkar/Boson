@@ -26,6 +26,6 @@ steps:
           clang --version
           mkdir build 
           cd build 
-          cmake -G Ninja .. -DCMAKE_CXX_COMPILER=g++
+          cmake -G Ninja .. 
           cmake --build .
   displayName: 'LLVM SetUp'
