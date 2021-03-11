@@ -1,7 +1,5 @@
 # Starter pipeline
-- task: CMake@1
-  inputs:
-    cmakeArgs: 
+
 
 # Start with a minimal pipeline that you can customize to build and deploy your code.
 # Add steps that build, run tests, deploy, and more:
@@ -10,12 +8,15 @@
 trigger:
 - main
 
+
 pool:
   vmImage: ubuntu-latest
 
 steps:
-- script: echo Hello, world!
-  displayName: 'LLVM SETUP AND CLANG SETUP'
+- task: CMake@1
+  inputs:
+    cmakeArgs: 
+
 
 - script: |
           sudo apt-get update -y
