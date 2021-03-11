@@ -37,7 +37,8 @@ jobs:
     - name : Install dependencies
       run: |
             sudo apt-get update -y
-            sudo apt-get install -y llvm clang-9 ninja-build
+            sudo apt-get install -y llvm ninja-build
+            sudo apt-get clang-12
         # git clone https://github.com/llvm/llvm-project.git
         # cd llvm-project
         # mkdir build
