@@ -44,11 +44,11 @@ jobs:
 
 
     - name: Display Configuration
-        run: |
-          echo "C Compiler:"
-          ${CC} --version
-        env:
-          CC: ${{ matrix.cc }}
+      run: |
+        echo "C Compiler:"
+        ${CC} --version
+      env:
+        CC: ${{ matrix.cc }}
 
 
     - uses: actions/checkout@v2
