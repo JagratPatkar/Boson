@@ -43,12 +43,12 @@ jobs:
             sudo apt-get install -y ${{ matrix.cc }}
 
 
-    - name: Display Configuration
-      run: |
-        echo "C Compiler:"
-        ${CC} --version
-      env:
-        CC: ${{ matrix.cc }}
+    # - name: Display Configuration
+    #   run: |
+    #     echo "C Compiler:"
+    #     ${CC} --version
+    #   env:
+    #     CC: ${{ matrix.cc }}
 
 
     - uses: actions/checkout@v2
