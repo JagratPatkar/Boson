@@ -25,3 +25,6 @@ steps:
           sudo apt install clang-6.0
           clang --version
   displayName: 'LLVM SetUp'
+
+- script: pwd
+  displayName : 'pwd'
