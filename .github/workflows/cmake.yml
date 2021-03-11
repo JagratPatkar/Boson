@@ -67,7 +67,7 @@ jobs:
     - name: Generate
       working-directory: ${{github.workspace}}/build
       shell: bash
-      run: cmake -G Ninja .. -DCMAKE_CXX_COMPILER=clang
+      run: cmake -G Ninja .. -DCMAKE_CXX_COMPILER=g++
 
 
     - name: Build
