@@ -9,13 +9,13 @@ trigger:
 pool:
   vmImage: ubuntu-latest
 
-  - task: CMake@1
-    inputs:
-      runInsideShell: true
+steps:
+- script: echo Hello, world!
+  displayName: 'LLVM SETUP AND CLANG SETUP'
 
-  - script: |
+- script: |
           sudo apt-get update -y
           sudo apt-get install -y llvm
           sudo apt install clang-6.0
           clang --version
-    displayName: 'LLVM SetUp'
+  displayName: 'LLVM SetUp'
