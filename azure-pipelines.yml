@@ -9,6 +9,10 @@ trigger:
 pool:
   vmImage: ubuntu-latest
 
+- task: CMake@1
+  inputs:
+    runInsideShell: true
+
 - script: |
           sudo apt-get update -y
           sudo apt-get install -y llvm
