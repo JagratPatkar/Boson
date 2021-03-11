@@ -15,7 +15,7 @@ pool:
 steps:
 - task: CMake@1
   inputs:
-    cmakeArgs: 
+    workingDirectory: main/build
 
 
 - script: |
