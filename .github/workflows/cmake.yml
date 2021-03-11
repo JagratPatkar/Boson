@@ -17,30 +17,35 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    # - name : Ninja
-    #   shell : bash
-    #   run : 
-
-
     - name : Clone LLVM
+      shell : bash
       run : git clone https://github.com/llvm/llvm-project.git
 
-    - name : Cd LLVM
-      run : cd llvm-project
+    - name : LLVM build
+      run : cmake -E make_directory llvm-project/build
 
     - name : pwd
       run : pwd
-      
-    - name : Mkdir LLVM
-      run : mkdir build 
 
-    - name : Cd build
-      run : cd build
+    - name: Configure CMake
+      shell: bash
+      working-directory: llvm-project/build
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+      
+    # - name : Mkdir LLVM
+    #   run : mkdir build 
+
+    # - name : Cd build
+    #   run : cd build
 
     - name : Cmake build 
+      shell: bash
+      working-directory: llvm-project/build
       run : cmake -G Ninja -DLLVM_ENABLE_PROJECTS="clang;libcxx;libcxxabi" ../llvm
 
     - name : Cmake install
+      shell: bash
+      working-directory: llvm-project/build
       run : cmake --build . --target install
 
     - name: Create Build Environment
