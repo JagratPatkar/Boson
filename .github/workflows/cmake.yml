@@ -9,16 +9,18 @@ env:
 
 
 jobs:
-  setup:
-      name : LLVM setup
-      runs-on : ubuntu-latest
-      steps:
-        - run : git clone https://github.com/llvm/llvm-project.git
-        - run : cd llvm-project
-        - run : mkdir build
-        - run : cd build 
-        - run : cmake -G Ninja -DLLVM_ENABLE_PROJECTS="clang;libcxx;libcxxabi" ../llvm
-        - run : cmake --build . --target install
+
+
+  # setup:
+  #     name : LLVM setup
+  #     runs-on : ubuntu-latest
+  #     steps:
+  #       - run : git clone https://github.com/llvm/llvm-project.git
+  #       - run : cd llvm-project
+  #       - run : mkdir build
+  #       - run : cd build 
+  #       - run : cmake -G Ninja -DLLVM_ENABLE_PROJECTS="clang;libcxx;libcxxabi" ../llvm
+  #       - run : cmake --build . --target install
 
 
   build:
@@ -28,9 +30,27 @@ jobs:
     # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        cc : [gcc, clang]
 
+    
 
     steps:
+    - name : Install dependencies
+      run: |
+            sudo apt-get update
+            sudo apt-get install -y ${{ matrix.cc }}
+
+
+    - name: Display Configuration
+        run: |
+          echo "C Compiler:"
+          ${CC} --version
+        env:
+          CC: ${{ matrix.cc }}
+
+
     - uses: actions/checkout@v2
 
    
