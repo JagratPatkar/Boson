@@ -9,9 +9,6 @@ trigger:
 pool:
   vmImage: ubuntu-latest
 
-steps:
-- script: echo Hello, world!
-  displayName: 'LLVM SETUP AND CLANG SETUP'
   
 - task: CMake@1
   inputs:
