@@ -1,4 +1,6 @@
 #include "codegen.h"
+#include <memory>
+
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 using namespace llvm;
