@@ -27,7 +27,8 @@ steps:
                 cd build 
                 cmake -G Ninja -DLLVM_ENABLE_PROJECTS="clang;libcxx;libcxxabi" ../llvm
                 cmake --build . --target install
-        workingDirectory: /
+    workingDirectory: /
+    runInsideShell: true
   displayName: 'LLVM SETUP'
 
 
