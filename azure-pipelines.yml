@@ -17,7 +17,7 @@ steps:
   inputs:
     # workingDirectory: main/build
     runInsideShell: true
--task:
+- task:
     inputs:
         script: |
                 git clone https://github.com/llvm/llvm-project.git
