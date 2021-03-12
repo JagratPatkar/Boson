@@ -15,17 +15,30 @@ pool:
 steps:
 - task: CMake@1
   inputs:
-    workingDirectory: main/build
+    # workingDirectory: main/build
     runInsideShell: true
+-task:
+    inputs:
+        script: |
+                git clone https://github.com/llvm/llvm-project.git
+                cd llvm-project
+                mkdir build
+                cd build 
+                cmake -G Ninja -DLLVM_ENABLE_PROJECTS="clang;libcxx;libcxxabi" ../llvm
+                cmake --build . --target install
+        workingDirectory: /
+  displayName: 'LLVM SETUP'
 
 
 - script: |
-          sudo apt-get update -y
-          sudo apt-get install -y llvm ninja-build
-          sudo apt install clang-6.0
-          clang --version
+# sudo apt-get update -y
+    # sudo apt-get install -y llvm ninja-build
+          # sudo apt install clang-6.0
+          # clang --version
           mkdir build 
           cd build 
           cmake -G Ninja .. 
           cmake --build .
-  displayName: 'LLVM SetUp'
+
+
+  displayName: 'build '
