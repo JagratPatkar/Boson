@@ -36,16 +36,26 @@ jobs:
     steps:
     - name : Install dependencies
       run: |
-            sudo apt-get update -y
-            sudo apt-get install -y llvm ninja-build
-            sudo apt install clang-6.0
-            clang --version
-        # git clone https://github.com/llvm/llvm-project.git
-        # cd llvm-project
-        # mkdir build
-        # cd build 
-        # cmake -G Ninja -DLLVM_ENABLE_PROJECTS="clang;libcxx;libcxxabi" ../llvm
-        # cmake --build . --target install
+          wget https://github.com/llvm/llvm-project/releases/download/llvmorg-11.1.0/clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
+          tar -xvf "clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz"
+          cd clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04
+          cd bin
+          sudo mv ./* ../../../../../../../usr/local/bin
+          cd ..
+          cd include 
+          sudo mv ./* ../../../../../../../usr/local/include
+          cd ..
+          cd lib 
+          sudo mv ./* ../../../../../../../usr/local/lib
+          cd ..
+          cd share 
+          sudo mv ./* ../../../../../../../usr/local/share
+          cd ..
+          cd libexec
+          sudo mv ./* ../../../../../../../usr/libexec
+          cd ..
+          cd ..
+  
 
     - uses: actions/checkout@v2
    
@@ -54,20 +64,20 @@ jobs:
       # We'll use this as our working directory for all subsequent commands
       run: cmake -E make_directory ${{github.workspace}}/build
 
-    # - name: Configure CMake
-    #   # Use a bash shell so we can use the same syntax for environment variable
-    #   # access regardless of the host operating system
-    #   shell: bash
-    #   working-directory: ${{github.workspace}}/build
-    #   # Note the current convention is to use the -S and -B options here to specify source 
-    #   # and build directories, but this is only available with CMake 3.13 and higher.  
-    #   # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
-    #   run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+    - name: Configure CMake
+      # Use a bash shell so we can use the same syntax for environment variable
+      # access regardless of the host operating system
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      # Note the current convention is to use the -S and -B options here to specify source 
+      # and build directories, but this is only available with CMake 3.13 and higher.  
+      # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
 
     - name: Generate
       working-directory: ${{github.workspace}}/build
       shell: bash
-      run: cmake -G Ninja .. -DCMAKE_CXX_COMPILER=g++
+      run: cmake ..
 
 
     - name: Build
