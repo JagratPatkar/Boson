@@ -21,12 +21,10 @@ steps:
 - task: LLVM@1
     inputs:
         script: |
-                git clone https://github.com/llvm/llvm-project.git
-                cd llvm-project
-                mkdir build
-                cd build 
-                cmake -G Ninja -DLLVM_ENABLE_PROJECTS="clang;libcxx;libcxxabi" ../llvm
-                cmake --build . --target install
+                wget https://github.com/llvm/llvm-project/releases/download/llvmorg-11.1.0/clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
+                tar -xvf "clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz"
+                cd clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04
+                pwd
     workingDirectory: /
     runInsideShell: true
   displayName: 'LLVM SETUP'
