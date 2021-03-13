@@ -18,7 +18,7 @@ steps:
     # workingDirectory: main/build
     runInsideShell: true
 
-- task: LLVM@1
+- task:
     inputs:
         script: |
                 wget https://github.com/llvm/llvm-project/releases/download/llvmorg-11.1.0/clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
