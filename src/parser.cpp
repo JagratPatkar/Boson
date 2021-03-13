@@ -20,7 +20,6 @@ void Parser::parse()
             if (FunctionTable.find("start") == FunctionTable.end())
                 LogError("Start Function Not Found");
             cg->terminateCOPBB();
-            cg->dumpIR();
             lexer.closeFile();
             return;
         }
