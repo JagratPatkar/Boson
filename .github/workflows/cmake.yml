@@ -36,25 +36,23 @@ jobs:
     steps:
     - name : Install dependencies
       run: |
-          wget https://github.com/llvm/llvm-project/releases/download/llvmorg-11.1.0/clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
+         wget https://github.com/llvm/llvm-project/releases/download/llvmorg-11.1.0/clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
           tar -xvf "clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz"
           cd clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04
           cd bin
-          sudo mv ./* ../../../../../../../usr/local/bin
+          sudo cp -r ./* ../../../../../../../usr/local/bin && rm -R ./* 
           cd ..
           cd include 
-          sudo mv ./* ../../../../../../../usr/local/include
+          sudo cp -r ./* ../../../../../../../usr/local/include && rm -R ./*
           cd ..
           cd lib 
-          sudo mv ./* ../../../../../../../usr/local/lib
+          sudo cp -r ./* ../../../../../../../usr/local/lib && rm -R ./*
           cd ..
           cd share 
-          sudo mv ./* ../../../../../../../usr/local/share
+          sudo cp -r ./* ../../../../../../../usr/local/share && rm -R ./* 
           cd ..
           cd libexec
-          sudo mv ./* ../../../../../../../usr/libexec
-          cd ..
-          cd ..
+          sudo cp -r ./* ../../../../../../../usr/libexec && rm -R ./*
   
 
     - uses: actions/checkout@v2

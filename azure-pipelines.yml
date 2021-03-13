@@ -27,23 +27,20 @@ steps:
           sudo cp -r ./* ../../../../../../../usr/local/bin && rm -R ./* 
           cd ..
           cd include 
-          sudo mv ./* ../../../../../../../usr/local/include
-           cp -r ./* ../../../../../../../usr/local/bin
+          sudo cp -r ./* ../../../../../../../usr/local/include && rm -R ./*
           cd ..
           cd lib 
-          sudo mv ./* ../../../../../../../usr/local/lib
+          sudo cp -r ./* ../../../../../../../usr/local/lib && rm -R ./*
           cd ..
           cd share 
-          sudo mv ./* ../../../../../../../usr/local/share
+          sudo cp -r ./* ../../../../../../../usr/local/share && rm -R ./* 
           cd ..
           cd libexec
-          sudo mv ./* ../../../../../../../usr/libexec
+          sudo cp -r ./* ../../../../../../../usr/libexec && rm -R ./*
   displayName: 'LLVM SETUP'
 
 - script: |
-          pwd
-          mkdir build 
-          cd build 
+          cd build
           cmake ..
           cmake --build .
   displayName: 'build '
