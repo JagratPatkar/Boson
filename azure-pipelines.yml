@@ -18,18 +18,13 @@ steps:
     # workingDirectory: main/build
     runInsideShell: true
 
-- task:
-    inputs:
-        script: |
-                wget https://github.com/llvm/llvm-project/releases/download/llvmorg-11.1.0/clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
-                tar -xvf "clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz"
-                cd clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04
-                pwd
-    workingDirectory: /
-    runInsideShell: true
-  displayName: 'LLVM SETUP'
 
-
+- script: |
+          wget https://github.com/llvm/llvm-project/releases/download/llvmorg-11.1.0/clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
+          tar -xvf "clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz"
+          cd clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04
+          pwd
+displayName: 'LLVM SETUP'
 - script: |
           mkdir build 
           cd build 
