@@ -24,10 +24,11 @@ steps:
           tar -xvf "clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz"
           cd clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04
           cd bin
-          sudo mv ./* ../../../../../../../usr/local/bin
+          cp -r ./* ../../../../../../../usr/local/bin && rm -R ./* 
           cd ..
           cd include 
           sudo mv ./* ../../../../../../../usr/local/include
+           cp -r ./* ../../../../../../../usr/local/bin
           cd ..
           cd lib 
           sudo mv ./* ../../../../../../../usr/local/lib
