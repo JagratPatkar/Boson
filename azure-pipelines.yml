@@ -43,6 +43,6 @@ steps:
           pwd
           mkdir build 
           cd build 
-          cmake .. 
+          cmake ..  -DLLVM_ENABLE_DUMP=ON
           cmake --build .
   displayName: 'build '
