@@ -23,12 +23,26 @@ steps:
           wget https://github.com/llvm/llvm-project/releases/download/llvmorg-11.1.0/clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
           tar -xvf "clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz"
           cd clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04
-          pwd
+          cd bin
+          sudo mv ./* ../../../../../../../usr/local/bin
+          cd ..
+          cd include 
+          sudo mv ./* ../../../../../../../usr/local/include
+          cd ..
+          cd lib 
+          sudo mv ./* ../../../../../../../usr/local/lib
+          cd ..
+          cd share 
+          sudo mv ./* ../../../../../../../usr/local/share
+          cd ..
+          cd libexec
+          sudo mv ./* ../../../../../../../usr/libexec
   displayName: 'LLVM SETUP'
-  
+
 - script: |
+          pwd
           mkdir build 
           cd build 
-          cmake -G Ninja .. 
+          cmake .. 
           cmake --build .
   displayName: 'build '
