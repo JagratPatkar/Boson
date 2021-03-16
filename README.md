@@ -5,35 +5,8 @@
 
 
 #
-__Boson__ is envisioned to be a multi-paradigm language, with a **Static and Strong Type System**. __Boson Compiler__ currently in its initial stage has a Type System and the Idioms of *Structural Paradigm* implemented, the list of features have been described below. The compiler is in active development and will evolve with more paradigms incrementally.
+__Boson__ is envisioned to be a multi-paradigm language, with a **Static and Strong Type System**. __Boson Compiler__ currently in its initial stage has a Type System and the Idioms of *Structural Paradigm* implemented, for more on language reference here[https://boson.jagrat.com/]. The compiler is in active development and will evolve with more paradigms incrementally.
 
-
-
-
-# Features
-
-* __Data Types__
-  * Int
-  * Double
-  * Bool
-* __Variables__
-  * Global
-  * Local
-  * Argument
-* __Functional Idioms__
-   * Functions 
-   * Recursion
-* __Operators__
-  * Arithmetic Operators
-  * Logical Operators
-  * Relational Operators
-* __Composite Types__
-  * Array
-* __Structural Idioms__
-  * For Loop
-  * If Else
-* __C Native Calls__
-  * Consume
 
 # Examples 
 
