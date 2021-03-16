@@ -5,7 +5,7 @@
 
 
 #
-__Boson__ is envisioned to be a multi-paradigm language, with a **Static and Strong Type System**. __Boson Compiler__ currently in its initial stage has a Type System and the Idioms of *Structural Paradigm* implemented, for more on language reference here[https://boson.jagrat.com/]. The compiler is in active development and will evolve with more paradigms incrementally.
+__Boson__ is envisioned to be a multi-paradigm language, with a **Static and Strong Type System**. __Boson Compiler__ currently in its initial stage has a Type System and the Idioms of *Structural Paradigm* implemented, for more on language reference [here][https://boson.jagrat.com/]. The compiler is in active development and will evolve with more paradigms incrementally.
 
 
 # Examples 
