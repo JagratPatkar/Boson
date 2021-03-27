@@ -12,14 +12,32 @@ struct Cli{
     path : std::path::PathBuf,
 }
 
-#[allow(dead_code)]
+#[derive(Debug)]
+enum Keyword{
+    FN,
+    INT,
+    DOUBLE,
+    VOID,
+    CONSUME
+}
+
+impl Keyword {
+    fn is_keyword(name : &str) -> Option<Keyword> {
+        match name {
+            "fn"  => Some(Keyword::FN),
+            "int" => Some(Keyword::INT),
+            "double" => Some(Keyword::DOUBLE),
+            "void" => Some(Keyword::VOID),
+            "consume" => Some(Keyword::CONSUME),
+            _ => None
+        }
+    }
+}
+
+#[derive(Debug)]
 enum Token{
-    LeftParen(char),
-    RightParen(char),
-    Op(char),
-    IntNum(i64),
-    DoubleNum(f64),
-    String(String)
+    Keyword(Keyword),
+    Identifier(String)
 }
 
 #[allow(dead_code)]
@@ -28,7 +46,7 @@ struct Lexer{
     token : char
 }
 
-impl Lexer 
+impl Lexer
 {
     fn new(name : PathBuf) -> Result<Lexer> {
         let f = File::open(name).with_context(|| format!("Failed to read file"))?;
@@ -39,28 +57,44 @@ impl Lexer
     }  
 
    
-    // fn getNextToken(&self) -> Option<Token> {
-    //     let mut char = self.reader.chars().map(|x| x.unwrap()).peekable();
-    //     let char = char.next().unwrap();
+    fn get_next_token(&mut self) -> Option<Token> {
+        let mut char = self.reader.chars().map(|x| x.unwrap()).peekable();
+        let mut token : char = ' ';
+        match char.next() {
+            Some(tok) => {
+                token = tok;
+            },
+            _ => {}
+        }
+       
+        while token.is_whitespace() {
+            token = char.next().unwrap();
+        };
 
-    // }
+        if token.is_alphabetic() {
+            let mut iden = String::from("");
+            iden.push(token);
 
-    //Will be used later for testing
-    // fn testNew(name : String) -> Lexer<T> {
-
-    // }
-
-
+            while token.is_alphanumeric() {
+                token = char.next().unwrap();
+                iden.push(token);
+                token = char.peek().unwrap().clone();
+            }
+            if let Some(keyword) = Keyword::is_keyword(&iden) {
+                return Some(Token::Keyword(keyword));
+            }else {
+                return Some(Token::Identifier(iden));
+            };
+        }
+        unreachable!();
+    }
 }
 
 fn main() -> Result<()> {
     let args = Cli::from_args();
-    let content = std::fs::read_to_string(&args.path).with_context(|| format!("could not read file '{:?}'",args.path))?;
-    let mut f = File::open(&args.path)?;
-    let mut reader = BufReader::new(f);
-    let mut char = reader.chars().map(|x| x.unwrap()).peekable();
-    println!("{}",char.next().unwrap());
-    // let lexer  = Lexer::new(args.path)?;
-    
+    let mut lexer = Lexer::new(args.path)?;
+    println!("Token One = {:?}",lexer.get_next_token().unwrap());
+    println!("Token Two = {:?}",lexer.get_next_token().unwrap());
+    println!("Token Three = {:?}",lexer.get_next_token().unwrap());
     return Ok(());
 }
