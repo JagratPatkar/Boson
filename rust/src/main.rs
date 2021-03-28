@@ -1,7 +1,6 @@
 use structopt::StructOpt; 
 use anyhow::{Context,Result};
 use utf8_chars::{BufReadCharsExt};
-use utf8_chars::Chars;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
@@ -37,13 +36,14 @@ impl Keyword {
 #[derive(Debug)]
 enum Token{
     Keyword(Keyword),
-    Identifier(String)
+    Identifier(String),
+    EOF
 }
 
 #[allow(dead_code)]
 struct Lexer{
     reader :BufReader<File>,
-    token : char
+    token : Option<Token>
 }
 
 impl Lexer
@@ -52,49 +52,45 @@ impl Lexer
         let f = File::open(name).with_context(|| format!("Failed to read file"))?;
         Ok(Lexer {
             reader : BufReader::new(f),
-            token : ' '
+            token : None
         })
     }  
-
    
-    fn get_next_token(&mut self) -> Option<Token> {
+    fn get_next_token(&mut self) {
         let mut char = self.reader.chars().map(|x| x.unwrap()).peekable();
-        let mut token : char = ' ';
-        match char.next() {
-            Some(tok) => {
-                token = tok;
-            },
-            _ => {}
-        }
-       
-        while token.is_whitespace() {
-            token = char.next().unwrap();
-        };
-
-        if token.is_alphabetic() {
-            let mut iden = String::from("");
-            iden.push(token);
-
-            while token.is_alphanumeric() {
-                token = char.next().unwrap();
-                iden.push(token);
-                token = char.peek().unwrap().clone();
+        let mut token : Option<char> = Some(' ');
+        'outer:loop{
+            match token {
+                Some(t) if t.is_whitespace() => { token = char.next(); },
+                Some(t) if t.is_alphabetic() => {
+                    let mut ch :char = t;
+                    let mut iden = String::from("");
+                    iden.push(t);
+                    while ch.is_alphanumeric(){
+                        token = char.next();
+                        if let Some(it) = token { iden.push(it); }
+                        else { continue 'outer; }
+                        if let Some(c) = char.peek(){ ch = c.clone(); }
+                        else { break; }
+                    }
+                    if let Some(keyword) = Keyword::is_keyword(&iden) { self.token = Some(Token::Keyword(keyword)); break; }
+                    else { self.token = Some(Token::Identifier(iden)); break; }
+                },
+                Some(_) => {},
+                None => { self.token = Some(Token::EOF); }
             }
-            if let Some(keyword) = Keyword::is_keyword(&iden) {
-                return Some(Token::Keyword(keyword));
-            }else {
-                return Some(Token::Identifier(iden));
-            };
-        }
-        unreachable!();
+        }  
     }
 }
 
 fn main() -> Result<()> {
     let args = Cli::from_args();
     let mut lexer = Lexer::new(args.path)?;
-    println!("Token One = {:?}",lexer.get_next_token().unwrap());
-    println!("Token Two = {:?}",lexer.get_next_token().unwrap());
-    println!("Token Three = {:?}",lexer.get_next_token().unwrap());
+    lexer.get_next_token();
+    println!("Token One = {:?}",lexer.token.unwrap());
+    lexer.get_next_token();
+    println!("Token Two = {:?}",lexer.token.unwrap());
+    lexer.get_next_token();
+    println!("Token Three = {:?}",lexer.token.unwrap());
     return Ok(());
 }
