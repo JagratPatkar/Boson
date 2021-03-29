@@ -61,7 +61,7 @@ impl Lexer
         let mut token : Option<char> = Some(' ');
         'outer:loop{
             match token {
-                Some(t) if t.is_whitespace() => { token = char.next(); },
+                Some(t) if t.is_ascii_whitespace() => { token = char.next(); },
                 Some(t) if t.is_alphabetic() => {
                     let mut ch :char = t;
                     let mut iden = String::from("");
@@ -73,13 +73,22 @@ impl Lexer
                         if let Some(c) = char.peek(){ ch = c.clone(); }
                         else { break; }
                     }
-                    if let Some(keyword) = Keyword::is_keyword(&iden) { self.token = Some(Token::Keyword(keyword)); break; }
+                    if let Some(keyword) = Keyword::is_keyword(&iden) 
+                    { self.token = Some(Token::Keyword(keyword)); break; }
                     else { self.token = Some(Token::Identifier(iden)); break; }
                 },
+                // Some(t) if t.
                 Some(_) => {},
                 None => { self.token = Some(Token::EOF); }
             }
         }  
+    }
+
+    fn print_token(&self) {
+        match &self.token {
+            Some(s) => { println!("Token = {:?}",s); }
+            None => {}
+        }
     }
 }
 
@@ -87,10 +96,10 @@ fn main() -> Result<()> {
     let args = Cli::from_args();
     let mut lexer = Lexer::new(args.path)?;
     lexer.get_next_token();
-    println!("Token One = {:?}",lexer.token.unwrap());
+    lexer.print_token();
     lexer.get_next_token();
-    println!("Token Two = {:?}",lexer.token.unwrap());
+    lexer.print_token();
     lexer.get_next_token();
-    println!("Token Three = {:?}",lexer.token.unwrap());
+    lexer.print_token();
     return Ok(());
 }
