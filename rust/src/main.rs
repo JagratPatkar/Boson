@@ -17,7 +17,9 @@ enum Keyword{
     INT,
     DOUBLE,
     VOID,
-    CONSUME
+    CONSUME,
+    TURE,
+    FALSE,
 }
 
 impl Keyword {
@@ -28,6 +30,8 @@ impl Keyword {
             "double" => Some(Keyword::DOUBLE),
             "void" => Some(Keyword::VOID),
             "consume" => Some(Keyword::CONSUME),
+            "true" => Some(Keyword::TURE),
+            "false" => Some(Keyword::FALSE),
             _ => None
         }
     }
@@ -37,9 +41,32 @@ impl Keyword {
 enum Token{
     KEYWORD(Keyword),
     IDENTIFIER(String),
-    INT(i32),
+    VALUE(Value),
     EOF,
-    ERROR
+    ERROR(Error)
+}
+
+impl Token {
+    fn semantical_pack (ky: Keyword) -> Token {
+        match ky {
+            Keyword::TURE => Token::VALUE(Value::BOOL(true)),
+            Keyword::FALSE => Token::VALUE(Value::BOOL(false)),
+            _ => Token::KEYWORD(ky)
+        }
+    }
+}
+
+#[derive(Debug)]
+enum Value {
+    INT(i32),
+    DOUBLE(f64),
+    BOOL(bool)
+}
+
+#[derive(Debug)]
+enum Error{
+    IlleagalNumber,
+    InternalConversionError
 }
 
 #[allow(dead_code)]
@@ -47,7 +74,6 @@ struct Lexer{
     reader :BufReader<File>,
     token : Option<Token>
 }
-
 impl Lexer
 {
     fn new(name : PathBuf) -> Result<Lexer> {
@@ -76,25 +102,36 @@ impl Lexer
                         else { break; }
                     }
                     if let Some(keyword) = Keyword::is_keyword(&iden) 
-                    { self.token = Some(Token::KEYWORD(keyword)); break; }
+                    { self.token = Some(Token::semantical_pack(keyword)); break; }
                     else { self.token = Some(Token::IDENTIFIER(iden)); break; }
                 },
                 Some(t) if t.is_digit(10) => {
                     let mut ch : char = t;
                     let mut num : String = String::new();
+                    let mut flag : bool = false;
                     num.push(ch);
-                    while ch.is_digit(10) {
+                    while ch.is_digit(10) || ch == '.' {
+                        if ch == '.' {
+                            if !flag { flag = true;} 
+                            else { self.token = Some(Token::ERROR(Error::IlleagalNumber)); break 'outer; }
+                        }
                         token = char.next();
                         if let Some(it) = token { num.push(it); }
                         else { continue 'outer; }
                         if let Some(c) = char.peek() { ch = c.clone(); }
                         else { break; }
                     }
-                    if let Ok(number) = num.parse::<i32>(){ self.token = Some(Token::INT(number)); break; }
-                    else { self.token = Some(Token::ERROR); break; }
+                    if flag { 
+                        if let Ok(number) = num.parse::<f64>(){ self.token = Some(Token::VALUE(Value::DOUBLE(number))); break; }
+                        else { self.token = Some(Token::ERROR(Error::InternalConversionError)); break; }
+                    }
+                    else{
+                        if let Ok(number) = num.parse::<i32>(){ self.token = Some(Token::VALUE(Value::INT(number))); break; }
+                        else { self.token = Some(Token::ERROR(Error::InternalConversionError)); break; }
+                    }  
                 },
-                Some(_) => {},
-                None => { self.token = Some(Token::EOF); }
+                Some(_) => {break; },
+                None => { self.token = Some(Token::EOF); break; }
             }
         }  
     }
@@ -110,17 +147,9 @@ impl Lexer
 fn main() -> Result<()> {
     let args = Cli::from_args();
     let mut lexer = Lexer::new(args.path)?;
-    lexer.get_next_token();
-    lexer.print_token();
-    lexer.get_next_token();
-    lexer.print_token();
-    lexer.get_next_token();
-    lexer.print_token();
-    lexer.get_next_token();
-    lexer.print_token();
-    lexer.get_next_token();
-    lexer.print_token();
-    lexer.get_next_token();
-    lexer.print_token();
+    for _i in  1..13 {
+        lexer.get_next_token();
+        lexer.print_token();
+    }
     return Ok(());
 }
