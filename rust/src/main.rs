@@ -20,6 +20,79 @@ enum Keyword{
     CONSUME,
     TURE,
     FALSE,
+    AND,
+    OR,
+    NOT
+}
+
+#[derive(Debug)]
+enum Token{
+    KEYWORD(Keyword),
+    IDENTIFIER(String),
+    VALUE(Value),
+    SYMBOL(Symbol),
+    OPERATOR(Operator),
+    EOF,
+    ERROR(Error)
+}
+
+#[derive(Debug)]
+enum Symbol {
+    LeftCurlyBracket,
+    RightCurlyBracket,
+    LeftSquareBracket,
+    RightSquareBracket,
+    LeftParen,
+    RghtParen,
+    COMMA,
+    SEMICOLON,
+}
+
+#[derive(Debug)]
+enum Operator{
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+    INC,
+    DEC,
+    ASSIGN,
+    GT,
+    LT,
+    GTE,
+    LTE,
+    EQ,
+    AND,
+    OR,
+    NOT,
+    NEQ
+}
+
+#[derive(Debug)]
+enum Value {
+    INT(i32),
+    DOUBLE(f64),
+    BOOL(bool)
+}
+
+#[derive(Debug)]
+enum Error{
+    IllegalNumber,
+    InternalConversionError,
+    IllegalToken
+}
+
+impl Token {
+    fn semantical_pack (ky: Keyword) -> Token {
+        match ky {
+            Keyword::TURE => Token::VALUE(Value::BOOL(true)),
+            Keyword::FALSE => Token::VALUE(Value::BOOL(false)),
+            Keyword::AND => Token::OPERATOR(Operator::AND),
+            Keyword::OR => Token::OPERATOR(Operator::OR),
+            Keyword::NOT => Token::OPERATOR(Operator::NOT),
+            _ => Token::KEYWORD(ky)
+        }
+    }
 }
 
 impl Keyword {
@@ -32,46 +105,62 @@ impl Keyword {
             "consume" => Some(Keyword::CONSUME),
             "true" => Some(Keyword::TURE),
             "false" => Some(Keyword::FALSE),
+            "and" => Some(Keyword::AND),
+            "or" => Some(Keyword::OR),
+            "not" => Some(Keyword::NOT),
             _ => None
         }
     }
 }
 
-#[derive(Debug)]
-enum Token{
-    KEYWORD(Keyword),
-    IDENTIFIER(String),
-    VALUE(Value),
-    EOF,
-    ERROR(Error)
-}
+impl Operator {
+    fn is_single_operator(ch : char) -> Option<Operator> {
+        match ch {
+            '+' => Some(Operator::ADD),
+            '-' => Some(Operator::SUB),
+            '*' => Some(Operator::MUL),
+            '/' => Some(Operator::DIV),
+            '<' => Some(Operator::LT),
+            '>' => Some(Operator::GT),
+            '=' => Some(Operator::ASSIGN),
+            _ => None
+        }
+    }
 
-impl Token {
-    fn semantical_pack (ky: Keyword) -> Token {
-        match ky {
-            Keyword::TURE => Token::VALUE(Value::BOOL(true)),
-            Keyword::FALSE => Token::VALUE(Value::BOOL(false)),
-            _ => Token::KEYWORD(ky)
+    fn is_multiple_op(str : &str) -> Option<Operator> {
+        match str {
+            "++" => Some(Operator::INC),
+            "--" => Some(Operator::DEC),
+            "<=" => Some(Operator::LTE),
+            ">=" => Some(Operator::GTE),
+            "==" => Some(Operator::EQ),
+            "!=" => Some(Operator::NEQ),
+            _ => None
         }
     }
 }
 
-#[derive(Debug)]
-enum Value {
-    INT(i32),
-    DOUBLE(f64),
-    BOOL(bool)
+impl Symbol {
+    fn is_symbol(ch : char) -> Option<Symbol> {
+        match ch {
+            '{' => Some(Symbol::LeftCurlyBracket),
+            '}' => Some(Symbol::RightCurlyBracket),
+            '[' => Some(Symbol::LeftSquareBracket),
+            ']' => Some(Symbol::RightSquareBracket),
+            '(' => Some(Symbol::LeftParen),
+            ')' => Some(Symbol::RghtParen),
+            ',' => Some(Symbol::COMMA),
+            ';' => Some(Symbol::SEMICOLON),
+            _ => None
+        }
+    }
 }
 
-#[derive(Debug)]
-enum Error{
-    IlleagalNumber,
-    InternalConversionError
-}
+
 
 #[allow(dead_code)]
 struct Lexer{
-    reader :BufReader<File>,
+    reader : BufReader<File>,
     token : Option<Token>
 }
 impl Lexer
@@ -113,7 +202,7 @@ impl Lexer
                     while ch.is_digit(10) || ch == '.' {
                         if ch == '.' {
                             if !flag { flag = true;} 
-                            else { self.token = Some(Token::ERROR(Error::IlleagalNumber)); break 'outer; }
+                            else { self.token = Some(Token::ERROR(Error::IllegalNumber)); break 'outer; }
                         }
                         token = char.next();
                         if let Some(it) = token { num.push(it); }
@@ -130,7 +219,18 @@ impl Lexer
                         else { self.token = Some(Token::ERROR(Error::InternalConversionError)); break; }
                     }  
                 },
-                Some(_) => {break; },
+                Some(t) if t.is_ascii_punctuation() => {
+                    if let Some(c) = Symbol::is_symbol(t) { self.token = Some(Token::SYMBOL(c)); break; }
+                    else {
+                        let mut op_str = String::new();
+                        op_str.push(t);
+                        if let Some(c) = char.peek() { op_str.push(c.clone()); }
+                        if let Some(c) = Operator::is_multiple_op(&op_str)  { self.token = Some(Token::OPERATOR(c)); break; }
+                        else if let Some(c) = Operator::is_single_operator(t) { self.token = Some(Token::OPERATOR(c)); break; }
+                        else { self.token = Some(Token::ERROR(Error::IllegalToken)); break; }
+                    }
+                },
+                Some(_) => { break; },
                 None => { self.token = Some(Token::EOF); break; }
             }
         }  
@@ -147,7 +247,7 @@ impl Lexer
 fn main() -> Result<()> {
     let args = Cli::from_args();
     let mut lexer = Lexer::new(args.path)?;
-    for _i in  1..13 {
+    for _i in  1..37 {
         lexer.get_next_token();
         lexer.print_token();
     }
