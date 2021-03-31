@@ -1,5 +1,6 @@
 use structopt::StructOpt; 
 use anyhow::{Context,Result};
+use thiserror::Error;
 use utf8_chars::{BufReadCharsExt};
 use std::fs::File;
 use std::io::BufReader;
@@ -32,8 +33,7 @@ enum Token{
     VALUE(Value),
     SYMBOL(Symbol),
     OPERATOR(Operator),
-    EOF,
-    ERROR(Error)
+    EOF
 }
 
 #[derive(Debug)]
@@ -75,11 +75,14 @@ enum Value {
     BOOL(bool)
 }
 
-#[derive(Debug)]
+#[derive(Error,Debug)]
 enum Error{
+    #[error("Illegal Number used")]
     IllegalNumber,
+    #[error("Internal Error, Please Try Again!")]
     InternalConversionError,
-    IllegalToken
+    #[error("Illegal Token `{0}` ")]
+    IllegalToken(char)
 }
 
 impl Token {
@@ -173,7 +176,7 @@ impl Lexer
         })
     }  
    
-    fn get_next_token(&mut self) {
+    fn get_next_token(&mut self) -> Result<(),Error> {
         let mut char = self.reader.chars().map(|x| x.unwrap()).peekable();
         let mut token : Option<char> = Some(' ');
         'outer:loop{
@@ -202,7 +205,7 @@ impl Lexer
                     while ch.is_digit(10) || ch == '.' {
                         if ch == '.' {
                             if !flag { flag = true;} 
-                            else { self.token = Some(Token::ERROR(Error::IllegalNumber)); break 'outer; }
+                            else { return Err(Error::IllegalNumber) }
                         }
                         token = char.next();
                         if let Some(it) = token { num.push(it); }
@@ -212,11 +215,11 @@ impl Lexer
                     }
                     if flag { 
                         if let Ok(number) = num.parse::<f64>(){ self.token = Some(Token::VALUE(Value::DOUBLE(number))); break; }
-                        else { self.token = Some(Token::ERROR(Error::InternalConversionError)); break; }
+                        else { return Err(Error::InternalConversionError) }
                     }
                     else{
                         if let Ok(number) = num.parse::<i32>(){ self.token = Some(Token::VALUE(Value::INT(number))); break; }
-                        else { self.token = Some(Token::ERROR(Error::InternalConversionError)); break; }
+                        else { return Err(Error::InternalConversionError) }
                     }  
                 },
                 Some(t) if t.is_ascii_punctuation() => {
@@ -227,13 +230,14 @@ impl Lexer
                         if let Some(c) = char.peek() { op_str.push(c.clone()); }
                         if let Some(c) = Operator::is_multiple_op(&op_str)  { self.token = Some(Token::OPERATOR(c)); break; }
                         else if let Some(c) = Operator::is_single_operator(t) { self.token = Some(Token::OPERATOR(c)); break; }
-                        else { self.token = Some(Token::ERROR(Error::IllegalToken)); break; }
+                        else { return Err(Error::IllegalToken(t)) }
                     }
                 },
-                Some(_) => { break; },
+                Some(t) => return Err(Error::IllegalToken(t)),
                 None => { self.token = Some(Token::EOF); break; }
             }
-        }  
+        }
+        Ok(())  
     }
 
     fn print_token(&self) {
@@ -248,7 +252,7 @@ fn main() -> Result<()> {
     let args = Cli::from_args();
     let mut lexer = Lexer::new(args.path)?;
     for _i in  1..37 {
-        lexer.get_next_token();
+        lexer.get_next_token()?;
         lexer.print_token();
     }
     return Ok(());
