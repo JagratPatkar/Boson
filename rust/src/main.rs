@@ -181,6 +181,14 @@ impl Lexer
         let mut token : Option<char> = Some(' ');
         'outer:loop{
             match token {
+                Some(t) if t == '#' => {
+                    let mut c : char = t;
+                    while c != '\n' && c != '\r' {
+                        token = char.next();
+                        if let Some(tok) = token { c = tok; }
+                        else { break; }
+                    } 
+                }
                 Some(t) if t.is_ascii_whitespace() => { token = char.next(); },
                 Some(t) if t.is_ascii_alphabetic() => {
                     let mut ch :char = t;
