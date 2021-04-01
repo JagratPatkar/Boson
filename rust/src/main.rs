@@ -72,13 +72,16 @@ enum Operator{
 enum Value {
     INT(i32),
     DOUBLE(f64),
-    BOOL(bool)
+    BOOL(bool),
+    STRING(String)
 }
 
 #[derive(Error,Debug)]
 enum Error{
     #[error("Illegal Literal `{0}`")]
     IllegalLiteral(String),
+    #[error("Missing `\"` at the end of String Literal `{0}`")]
+    MissingQuote(String),
     #[error("Internal Error, Please Try Again!")]
     InternalConversionError,
     #[error("Illegal Token `{0}` ")]
@@ -180,6 +183,19 @@ impl Lexer
         let mut token : Option<char> = Some(' ');
         'outer:loop{
             match token {
+                Some(t) if t == '"' => {
+                    let mut str = String::from("");
+                    loop {
+                        token = char.next();
+                        if let Some(tok) = token {
+                            if tok != '"' { str.push(tok); }
+                            else { break; }
+                        }                           
+                        else { return Err(Error::MissingQuote(str)) }
+                    }
+                    self.token = Some(Token::VALUE(Value::STRING(str)));
+                    break;
+                },
                 Some(t) if t == '#' => {
                     let mut c : char = t;
                     while c != '\n' && c != '\r' {
