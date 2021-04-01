@@ -77,8 +77,8 @@ enum Value {
 
 #[derive(Error,Debug)]
 enum Error{
-    #[error("Illegal Number used")]
-    IllegalNumber,
+    #[error("Illegal Literal `{0}`")]
+    IllegalLiteral(String),
     #[error("Internal Error, Please Try Again!")]
     InternalConversionError,
     #[error("Illegal Token `{0}` ")]
@@ -160,7 +160,6 @@ impl Symbol {
 }
 
 
-
 #[allow(dead_code)]
 struct Lexer{
     reader : BufReader<File>,
@@ -209,11 +208,12 @@ impl Lexer
                     let mut ch : char = t;
                     let mut num : String = String::new();
                     let mut flag : bool = false;
+                    let mut lit_err : bool = false;
                     num.push(ch);
                     while ch.is_digit(10) || ch == '.' {
                         if ch == '.' {
                             if !flag { flag = true;} 
-                            else { return Err(Error::IllegalNumber) }
+                            else { lit_err = true; }
                         }
                         token = char.next();
                         if let Some(it) = token { num.push(it); }
@@ -221,6 +221,7 @@ impl Lexer
                         if let Some(c) = char.peek() { ch = c.clone(); }
                         else { break; }
                     }
+                    if lit_err { return Err(Error::IllegalLiteral(num)) }
                     if flag { 
                         if let Ok(number) = num.parse::<f64>(){ self.token = Some(Token::VALUE(Value::DOUBLE(number))); break; }
                         else { return Err(Error::InternalConversionError) }
