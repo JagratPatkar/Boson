@@ -166,27 +166,50 @@ impl Symbol {
 #[allow(dead_code)]
 struct Lexer{
     reader : BufReader<File>,
-    token : Option<Token>
-}
+    token : Option<Token>,
+    row : u32,
+    col : u32,
+} 
+
+
 impl Lexer
 {
     fn new(name : PathBuf) -> Result<Lexer> {
         let f = File::open(name).with_context(|| format!("Failed to read file"))?;
         Ok(Lexer {
             reader : BufReader::new(f),
-            token : None
+            token : None,
+            row : 0,
+            col : 0,
         })
     }  
-   
+     
+
     fn get_next_token(&mut self) -> Result<(),Error> {
-        let mut char = self.reader.chars().map(|x| x.unwrap()).peekable();
+        let mut row : u32 = self.row;
+        let mut col : u32 = self.col;
+        let mut char = self.reader.chars().peekable();
+        let mut get_next_char = |flg| {
+            if flg {  
+                let token = char.next();
+                if let Some(Ok(t)) = token {
+                    if t == '\n' || t == '\r' { row += 1; }
+                    else { col += 1; }
+                    Some(t)
+                }else { None }
+            }else {
+                let token = char.peek();
+                if let Some(Ok(t)) = token { Some(t.clone()) }
+                else { None }
+            }
+        };
         let mut token : Option<char> = Some(' ');
         'outer:loop{
             match token {
                 Some(t) if t == '"' => {
                     let mut str = String::from("");
                     loop {
-                        token = char.next();
+                        token = get_next_char(true);
                         if let Some(tok) = token {
                             if tok != '"' { str.push(tok); }
                             else { break; }
@@ -199,21 +222,21 @@ impl Lexer
                 Some(t) if t == '#' => {
                     let mut c : char = t;
                     while c != '\n' && c != '\r' {
-                        token = char.next();
+                        token =  get_next_char(true);
                         if let Some(tok) = token { c = tok; }
                         else { break; }
                     } 
                 }
-                Some(t) if t.is_ascii_whitespace() => { token = char.next(); },
+                Some(t) if t.is_ascii_whitespace() => { token =  get_next_char(true); },
                 Some(t) if t.is_ascii_alphabetic() => {
                     let mut ch :char = t;
                     let mut iden = String::from("");
                     iden.push(t);
                     while ch.is_ascii_alphanumeric(){
-                        token = char.next();
-                        if let Some(it) = token { iden.push(it); }
+                        token =  get_next_char(true);
+                        if let Some(it) = token {  iden.push(it); }
                         else { continue 'outer; }
-                        if let Some(c) = char.peek(){ ch = c.clone(); }
+                        if let Some(c) = get_next_char(false){ ch = c; }
                         else { break; }
                     }
                     if let Some(keyword) = Keyword::is_keyword(&iden) 
@@ -231,10 +254,10 @@ impl Lexer
                             if !flag { flag = true;} 
                             else { lit_err = true; }
                         }
-                        token = char.next();
+                        token = get_next_char(true);
                         if let Some(it) = token { num.push(it); }
                         else { continue 'outer; }
-                        if let Some(c) = char.peek() { ch = c.clone(); }
+                        if let Some(c) = get_next_char(false) { ch = c; }
                         else { break; }
                     }
                     if lit_err { return Err(Error::IllegalLiteral(num)) }
@@ -252,7 +275,7 @@ impl Lexer
                     else {
                         let mut op_str = String::new();
                         op_str.push(t);
-                        if let Some(c) = char.peek() { op_str.push(c.clone()); }
+                        if let Some(c) = get_next_char(false) { op_str.push(c); }
                         if let Some(c) = Operator::is_multiple_op(&op_str)  { self.token = Some(Token::OPERATOR(c)); break; }
                         else if let Some(c) = Operator::is_single_operator(t) { self.token = Some(Token::OPERATOR(c)); break; }
                         else { return Err(Error::IllegalToken(t)) }
