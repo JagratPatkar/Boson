@@ -78,14 +78,14 @@ enum Value {
 
 #[derive(Error,Debug)]
 enum Error{
-    #[error("Illegal Literal `{0}`")]
-    IllegalLiteral(String),
-    #[error("Missing `\"` at the end of String Literal `{0}`")]
-    MissingQuote(String),
-    #[error("Internal Error, Please Try Again!")]
-    InternalConversionError,
-    #[error("Illegal Token `{0}` ")]
-    IllegalToken(char)
+    #[error("Illegal Literal `{0}` at line no. {1} col no. {2}")]
+    IllegalLiteral(String,u32,u32),
+    #[error("Missing `\"` at the end of String Literal `{0}` at line no. {1} col no. {2}")]
+    MissingQuote(String,u32,u32),
+    #[error("Internal Error, at line no. {0} col no. {1}, Please Try Again!")]
+    InternalConversionError(u32,u32),
+    #[error("Illegal Token `{0}` at line no. {1} col no. {2} ")]
+    IllegalToken(char,u32,u32)
 }
 
 impl Token {
@@ -179,11 +179,16 @@ impl Lexer
         Ok(Lexer {
             reader : BufReader::new(f),
             token : None,
-            row : 0,
-            col : 0,
+            row : 1,
+            col : 1,
         })
     }  
      
+
+    fn trsnf_data(&mut self,row :u32,col : u32){
+        self.row = row;
+        self.col = col;
+    }
 
     fn get_next_token(&mut self) -> Result<(),Error> {
         let mut row : u32 = self.row;
@@ -193,7 +198,10 @@ impl Lexer
             if flg {  
                 let token = char.next();
                 if let Some(Ok(t)) = token {
-                    if t == '\n' || t == '\r' { row += 1; }
+                    if t == '\n' || t == '\r' { 
+                        row += 1; 
+                        col = 0;
+                    }
                     else { col += 1; }
                     Some(t)
                 }else { None }
@@ -204,6 +212,7 @@ impl Lexer
             }
         };
         let mut token : Option<char> = Some(' ');
+        token = get_next_char(true);
         'outer:loop{
             match token {
                 Some(t) if t == '"' => {
@@ -214,7 +223,10 @@ impl Lexer
                             if tok != '"' { str.push(tok); }
                             else { break; }
                         }                           
-                        else { return Err(Error::MissingQuote(str)) }
+                        else { 
+                            self.trsnf_data(row, col);
+                            return Err(Error::MissingQuote(str,row,col)) 
+                        }
                     }
                     self.token = Some(Token::VALUE(Value::STRING(str)));
                     break;
@@ -260,14 +272,23 @@ impl Lexer
                         if let Some(c) = get_next_char(false) { ch = c; }
                         else { break; }
                     }
-                    if lit_err { return Err(Error::IllegalLiteral(num)) }
+                    if lit_err {
+                        self.trsnf_data(row, col); 
+                        return Err(Error::IllegalLiteral(num,row,col)) 
+                    }
                     if flag { 
                         if let Ok(number) = num.parse::<f64>(){ self.token = Some(Token::VALUE(Value::DOUBLE(number))); break; }
-                        else { return Err(Error::InternalConversionError) }
+                        else { 
+                            self.trsnf_data(row, col);
+                            return Err(Error::InternalConversionError(row,col)) 
+                        }
                     }
                     else{
                         if let Ok(number) = num.parse::<i32>(){ self.token = Some(Token::VALUE(Value::INT(number))); break; }
-                        else { return Err(Error::InternalConversionError) }
+                        else { 
+                            self.trsnf_data(row, col);
+                            return Err(Error::InternalConversionError(row,col)) 
+                        }
                     }  
                 },
                 Some(t) if t.is_ascii_punctuation() => {
@@ -278,13 +299,20 @@ impl Lexer
                         if let Some(c) = get_next_char(false) { op_str.push(c); }
                         if let Some(c) = Operator::is_multiple_op(&op_str)  { self.token = Some(Token::OPERATOR(c)); break; }
                         else if let Some(c) = Operator::is_single_operator(t) { self.token = Some(Token::OPERATOR(c)); break; }
-                        else { return Err(Error::IllegalToken(t)) }
+                        else { 
+                            self.trsnf_data(row, col);
+                            return Err(Error::IllegalToken(t,row,col)) 
+                        }
                     }
                 },
-                Some(t) => return Err(Error::IllegalToken(t)),
+                Some(t) => {
+                    self.trsnf_data(row, col);
+                    return Err(Error::IllegalToken(t,row,col))
+                }
                 None => { self.token = Some(Token::EOF); break; }
             }
         }
+        self.trsnf_data(row, col);
         Ok(())  
     }
 
@@ -299,7 +327,7 @@ impl Lexer
 fn main() -> Result<()> {
     let args = Cli::from_args();
     let mut lexer = Lexer::new(args.path)?;
-    for _i in  1..37 {
+    for _i in  1..39 {
         lexer.get_next_token()?;
         lexer.print_token();
     }
