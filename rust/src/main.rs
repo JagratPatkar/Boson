@@ -211,8 +211,7 @@ impl Lexer
                 else { None }
             }
         };
-        let mut token : Option<char> = Some(' ');
-        token = get_next_char(true);
+        let mut token : Option<char> = get_next_char(true);
         'outer:loop{
             match token {
                 Some(t) if t == '"' => {
@@ -244,11 +243,14 @@ impl Lexer
                     let mut ch :char = t;
                     let mut iden = String::from("");
                     iden.push(t);
-                    while ch.is_ascii_alphanumeric(){
-                        token =  get_next_char(true);
-                        if let Some(it) = token {  iden.push(it); }
-                        else { continue 'outer; }
-                        if let Some(c) = get_next_char(false){ ch = c; }
+                    loop {
+                        if let Some(c) = get_next_char(false){ println!("{}",c); ch = c; }
+                        else { break; }
+                        if ch.is_ascii_alphanumeric(){
+                            token = get_next_char(true);
+                            if let Some(it) = token {  iden.push(it); }
+                            else { continue 'outer; }
+                        }
                         else { break; }
                     }
                     if let Some(keyword) = Keyword::is_keyword(&iden) 
@@ -297,7 +299,11 @@ impl Lexer
                         let mut op_str = String::new();
                         op_str.push(t);
                         if let Some(c) = get_next_char(false) { op_str.push(c); }
-                        if let Some(c) = Operator::is_multiple_op(&op_str)  { self.token = Some(Token::OPERATOR(c)); break; }
+                        if let Some(c) = Operator::is_multiple_op(&op_str)  { 
+                            self.token = Some(Token::OPERATOR(c));
+                            get_next_char(true);
+                            break; 
+                        }
                         else if let Some(c) = Operator::is_single_operator(t) { self.token = Some(Token::OPERATOR(c)); break; }
                         else { 
                             self.trsnf_data(row, col);
