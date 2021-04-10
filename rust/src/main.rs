@@ -1,10 +1,13 @@
 use structopt::StructOpt; 
 use anyhow::{Context,Result};
 use thiserror::Error;
-use utf8_chars::{BufReadCharsExt};
+use utf8_chars::{BufReadCharsExt,Chars};
+use std::iter::Peekable;
+use std::vec::Vec;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
+use std::slice::Iter;
 
 #[derive(StructOpt)]
 struct Cli{
@@ -169,6 +172,7 @@ struct Lexer{
     token : Option<Token>,
     row : u32,
     col : u32,
+    peekd_char : Option<char> 
 } 
 
 
@@ -177,10 +181,11 @@ impl Lexer
     fn new(name : PathBuf) -> Result<Lexer> {
         let f = File::open(name).with_context(|| format!("Failed to read file"))?;
         Ok(Lexer {
-            reader : BufReader::new(f),
+            reader :  BufReader::new(f),
             token : None,
             row : 1,
             col : 1,
+            peekd_char : None
         })
     }  
      
@@ -193,6 +198,7 @@ impl Lexer
     fn get_next_token(&mut self) -> Result<(),Error> {
         let mut row : u32 = self.row;
         let mut col : u32 = self.col;
+        let mut ch : Option<char> = None;
         let mut char = self.reader.chars().peekable();
         let mut get_next_char = |flg| {
             if flg {  
@@ -211,7 +217,12 @@ impl Lexer
                 else { None }
             }
         };
-        let mut token : Option<char> = get_next_char(true);
+        let mut token : Option<char>;
+        if let Some(t) = self.peekd_char { 
+            token = Some(t); 
+            self.peekd_char = None; 
+        }
+        else { token = get_next_char(true); }
         'outer:loop{
             match token {
                 Some(t) if t == '"' => {
@@ -244,14 +255,14 @@ impl Lexer
                     let mut iden = String::from("");
                     iden.push(t);
                     loop {
-                        if let Some(c) = get_next_char(false){ println!("{}",c); ch = c; }
+                        if let Some(c) = get_next_char(false){ ch = c; }
                         else { break; }
                         if ch.is_ascii_alphanumeric(){
                             token = get_next_char(true);
                             if let Some(it) = token {  iden.push(it); }
                             else { continue 'outer; }
                         }
-                        else { break; }
+                        else { self.peekd_char = Some(ch); break; }
                     }
                     if let Some(keyword) = Keyword::is_keyword(&iden) 
                     { self.token = Some(Token::semantical_pack(keyword)); break; }
@@ -265,7 +276,7 @@ impl Lexer
                     num.push(ch);
                     while ch.is_digit(10) || ch == '.' {
                         if ch == '.' {
-                            if !flag { flag = true;} 
+                            if !flag { flag = true; } 
                             else { lit_err = true; }
                         }
                         token = get_next_char(true);
@@ -274,6 +285,7 @@ impl Lexer
                         if let Some(c) = get_next_char(false) { ch = c; }
                         else { break; }
                     }
+                    self.peekd_char = Some(ch);
                     if lit_err {
                         self.trsnf_data(row, col); 
                         return Err(Error::IllegalLiteral(num,row,col)) 
@@ -297,15 +309,23 @@ impl Lexer
                     if let Some(c) = Symbol::is_symbol(t) { self.token = Some(Token::SYMBOL(c)); break; }
                     else {
                         let mut op_str = String::new();
+                        let mut sec_ch : Option<char> = None;
                         op_str.push(t);
-                        if let Some(c) = get_next_char(false) { op_str.push(c); }
+                        if let Some(c) = get_next_char(false) { 
+                            sec_ch = Some(c); 
+                            op_str.push(c); 
+                        }
                         if let Some(c) = Operator::is_multiple_op(&op_str)  { 
                             self.token = Some(Token::OPERATOR(c));
                             get_next_char(true);
                             break; 
                         }
-                        else if let Some(c) = Operator::is_single_operator(t) { self.token = Some(Token::OPERATOR(c)); break; }
+                        else if let Some(c) = Operator::is_single_operator(t) { 
+                            self.token = Some(Token::OPERATOR(c));
+                            break; 
+                        }
                         else { 
+                            self.peekd_char =sec_ch;
                             self.trsnf_data(row, col);
                             return Err(Error::IllegalToken(t,row,col)) 
                         }
@@ -329,6 +349,7 @@ impl Lexer
         }
     }
 }
+
 
 fn main() -> Result<()> {
     let args = Cli::from_args();
