@@ -1,13 +1,11 @@
 use structopt::StructOpt; 
 use anyhow::{Context,Result};
 use thiserror::Error;
-use utf8_chars::{BufReadCharsExt,Chars};
-use std::iter::Peekable;
-use std::vec::Vec;
+use utf8_chars::{BufReadCharsExt};
+
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
-use std::slice::Iter;
 
 #[derive(StructOpt)]
 struct Cli{
@@ -81,13 +79,13 @@ enum Value {
 
 #[derive(Error,Debug)]
 enum Error{
-    #[error("Illegal Literal `{0}` at line no. {1} col no. {2}")]
+    #[error("Illegal Literal `{0}` at Ln. {1}, Col. {2}")]
     IllegalLiteral(String,u32,u32),
-    #[error("Missing `\"` at the end of String Literal `{0}` at line no. {1} col no. {2}")]
+    #[error("Missing `\"` at the end of String Literal `{0}` at Ln. {1}, Col. {2}")]
     MissingQuote(String,u32,u32),
-    #[error("Internal Error, at line no. {0} col no. {1}, Please Try Again!")]
+    #[error("Internal Error, at Ln. {0}, Col. {1}, Please Try Again!")]
     InternalConversionError(u32,u32),
-    #[error("Illegal Token `{0}` at line no. {1} col no. {2} ")]
+    #[error("Illegal Token `{0}` at Ln. {1}, Col. {2} ")]
     IllegalToken(char,u32,u32)
 }
 
@@ -196,9 +194,18 @@ impl Lexer
     }
 
     fn get_next_token(&mut self) -> Result<(),Error> {
+        let mut token : Option<char> = None;
+        if let Some(t) = self.peekd_char { 
+            token = Some(t);    
+            if t == '\n' || t == '\r' {
+                self.row += 1;
+                self.col = 1;
+            }else { self.col += 1; }
+            self.peekd_char = None;     
+        } 
         let mut row : u32 = self.row;
         let mut col : u32 = self.col;
-        let mut ch : Option<char> = None;
+        let ch : Option<char> = None;
         let mut char = self.reader.chars().peekable();
         let mut get_next_char = |flg| {
             if flg {  
@@ -206,7 +213,7 @@ impl Lexer
                 if let Some(Ok(t)) = token {
                     if t == '\n' || t == '\r' { 
                         row += 1; 
-                        col = 0;
+                        col = 1;
                     }
                     else { col += 1; }
                     Some(t)
@@ -217,12 +224,7 @@ impl Lexer
                 else { None }
             }
         };
-        let mut token : Option<char>;
-        if let Some(t) = self.peekd_char { 
-            token = Some(t); 
-            self.peekd_char = None; 
-        }
-        else { token = get_next_char(true); }
+        if let None = token { token = get_next_char(true); }
         'outer:loop{
             match token {
                 Some(t) if t == '"' => {
@@ -233,7 +235,7 @@ impl Lexer
                             if tok != '"' { str.push(tok); }
                             else { break; }
                         }                           
-                        else { 
+                        else {  
                             self.trsnf_data(row, col);
                             return Err(Error::MissingQuote(str,row,col)) 
                         }
@@ -322,10 +324,12 @@ impl Lexer
                         }
                         else if let Some(c) = Operator::is_single_operator(t) { 
                             self.token = Some(Token::OPERATOR(c));
+                            self.peekd_char = sec_ch;
+                            self.trsnf_data(row, col);
                             break; 
                         }
                         else { 
-                            self.peekd_char =sec_ch;
+                            self.peekd_char = sec_ch;
                             self.trsnf_data(row, col);
                             return Err(Error::IllegalToken(t,row,col)) 
                         }
