@@ -204,6 +204,18 @@ impl<T: std::io::Read> Lexer<T> {
         Ok(lex)
     }  
 
+    fn test(text : &[u8]) -> Lexer<&[u8]> {
+        let bf = BufReader::new(text);
+        let iter = DataIterator{data : bf};
+        let iter = iter.peekable();
+        Lexer {
+            token : None,
+            row : 1,
+            col : 1,
+            iter
+        }
+    }
+
     fn get_next_char(&mut self) -> Option<char> {
         let token = self.iter.next();
         if let Some(Ok(t)) = token {
