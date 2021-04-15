@@ -2,9 +2,10 @@ use structopt::StructOpt;
 use anyhow::{Context,Result};
 use thiserror::Error;
 use utf8_chars::{BufReadCharsExt};
-
+use std::iter::Peekable;
 use std::fs::File;
 use std::io::BufReader;
+use std::io::BufRead;
 use std::path::PathBuf;
 
 #[derive(StructOpt)]
@@ -20,6 +21,7 @@ enum Keyword{
     DOUBLE,
     VOID,
     CONSUME,
+    RETURN,
     TURE,
     FALSE,
     AND,
@@ -86,7 +88,9 @@ enum Error{
     #[error("Internal Error, at Ln. {0}, Col. {1}, Please Try Again!")]
     InternalConversionError(u32,u32),
     #[error("Illegal Token `{0}` at Ln. {1}, Col. {2} ")]
-    IllegalToken(char,u32,u32)
+    IllegalToken(char,u32,u32),
+    #[error("Internal Error, Please Try again.")]
+    InternalError
 }
 
 impl Token {
@@ -115,6 +119,7 @@ impl Keyword {
             "and" => Some(Keyword::AND),
             "or" => Some(Keyword::OR),
             "not" => Some(Keyword::NOT),
+            "return" => Some(Keyword::RETURN),
             _ => None
         }
     }
@@ -164,185 +169,162 @@ impl Symbol {
 }
 
 
+struct DataIterator<T: BufRead + ?Sized>{
+    data : T
+}
+
+impl<T: BufRead + ?Sized> Iterator for DataIterator<T> {
+    type Item = Result<char,std::io::Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.data.read_char_raw().map_err(|x| x.into_io_error()).transpose()
+    }
+}
+
 #[allow(dead_code)]
 struct Lexer{
-    reader : BufReader<File>,
     token : Option<Token>,
     row : u32,
     col : u32,
-    peekd_char : Option<char> 
+    iter : Peekable<DataIterator<BufReader<File>>>
 } 
 
-
-impl Lexer
-{
+impl Lexer {
     fn new(name : PathBuf) -> Result<Lexer> {
         let f = File::open(name).with_context(|| format!("Failed to read file"))?;
-        Ok(Lexer {
-            reader :  BufReader::new(f),
+        let bf = BufReader::new(f);
+        let iter = DataIterator{ data : bf };
+        let  iter = iter.peekable();
+        let lex = Lexer {
             token : None,
             row : 1,
             col : 1,
-            peekd_char : None
-        })
+            iter
+        };
+        Ok(lex)
     }  
-     
 
-    fn trsnf_data(&mut self,row :u32,col : u32){
-        self.row = row;
-        self.col = col;
-    }
-
-    fn get_next_token(&mut self) -> Result<(),Error> {
-        let mut token : Option<char> = None;
-        if let Some(t) = self.peekd_char { 
-            token = Some(t);    
+    fn get_next_char(&mut self) -> Option<char> {
+        let token = self.iter.next();
+        if let Some(Ok(t)) = token {
             if t == '\n' || t == '\r' {
                 self.row += 1;
                 self.col = 1;
             }else { self.col += 1; }
-            self.peekd_char = None;     
-        } 
-        let mut row : u32 = self.row;
-        let mut col : u32 = self.col;
-        let ch : Option<char> = None;
-        let mut char = self.reader.chars().peekable();
-        let mut get_next_char = |flg| {
-            if flg {  
-                let token = char.next();
-                if let Some(Ok(t)) = token {
-                    if t == '\n' || t == '\r' { 
-                        row += 1; 
-                        col = 1;
-                    }
-                    else { col += 1; }
-                    Some(t)
-                }else { None }
-            }else {
-                let token = char.peek();
-                if let Some(Ok(t)) = token { Some(t.clone()) }
-                else { None }
-            }
+            Some(t)
+        }else { None }
+    }
+
+    fn peek_next_char(&mut self) -> Option<char> {
+        let token = self.iter.peek();
+        if let Some(Ok(t)) = token { Some(t.clone())}
+        else { None }
+    }
+
+    fn lex_string(&mut self) -> Result<(),Error> {
+        let mut str = String::from("");
+        let mut token : Option<char>;
+        loop { 
+            token = self.get_next_char();
+            if let Some(t) = token {
+                if t != '"' { str.push(t); }
+                else { break; }
+            }else { return Err(Error::MissingQuote(str,self.row,self.col))  }
+        }
+        self.token = Some(Token::VALUE(Value::STRING(str)));
+        Ok(())
+    }
+
+    fn lex_comment(&mut self)  {
+        let mut c : char = '#';
+        let mut token : Option<char>;
+        while c != '\n' || c != '\r' {
+            token = self.get_next_char();
+            if let Some(tok) = token { c = tok; }
+            else { break; }
         };
-        if let None = token { token = get_next_char(true); }
-        'outer:loop{
+    }
+
+
+    fn lex_alphabetic_seq(&mut self,start : char) ->  Result<(),Error> {
+        let mut ch : char = start;
+        let mut str = String::from("");
+        str.push(ch);
+        while ch.is_ascii_alphanumeric() {
+            if let Some(c) = self.get_next_char(){ str.push(c);}
+            else { return Err(Error::InternalError) }
+            if let Some(c) = self.peek_next_char(){ ch  = c; }
+            else { break; }
+        };
+        if let Some(keyword) = Keyword::is_keyword(&str) 
+        { self.token = Some(Token::semantical_pack(keyword)); }
+        else { self.token = Some(Token::IDENTIFIER(str)); }
+        Ok(())
+    }
+
+
+    fn lex_digit(&mut self,start : char) -> Result<(),Error> {
+        let mut ch : char = start;
+        let mut str = String::from("");
+        let mut flag : bool = false;
+        let mut lit_err : bool = false;
+        loop {
+            if ch.is_digit(10) || ch == '.'  {
+                str.push(ch);
+                self.get_next_char();
+                if ch == '.' {
+                    if !flag { flag = true; } 
+                    else { lit_err = true; }
+                }
+            }else { break; }
+            if let Some(tok) = self.peek_next_char() { ch = tok; }
+            else { break; }
+        };
+        if lit_err { return Err(Error::IllegalLiteral(str,self.row,self.col))  }
+        else if flag { 
+            if let Ok(number) = str.parse::<f64>(){ self.token = Some(Token::VALUE(Value::DOUBLE(number))); } 
+            else {  return Err(Error::InternalConversionError(self.row,self.col))  }
+        }
+        else { 
+            if let Ok(number) = str.parse::<i32>(){ self.token = Some(Token::VALUE(Value::INT(number))); } 
+            else { return Err(Error::InternalConversionError(self.row,self.col)) }
+        };
+        Ok(())
+    }
+
+    fn lex_op_sym(&mut self,start :char) -> Result<(),Error>{
+        if let Some(c) = Symbol::is_symbol(start) { 
+            self.token = Some(Token::SYMBOL(c)); 
+
+        }
+        else {
+            let mut op_str = String::new();
+            op_str.push(start);
+            if let Some(c) = self.peek_next_char() { op_str.push(c); }
+            if let Some(c) =  Operator::is_multiple_op(&op_str) {
+                self.token =  Some(Token::OPERATOR(c)); 
+                self.get_next_char();
+            }
+            else if let Some(c) = Operator::is_single_operator(start) {  self.token = Some(Token::OPERATOR(c)); }
+            else {  return Err(Error::IllegalToken(start,self.row,self.col)) }
+        };
+        Ok(())
+    }
+
+    fn get_next_token(&mut self) -> Result<(),Error> {
+        let mut token : Option<char> = self.get_next_char();
+        loop{
             match token {
-                Some(t) if t == '"' => {
-                    let mut str = String::from("");
-                    loop {
-                        token = get_next_char(true);
-                        if let Some(tok) = token {
-                            if tok != '"' { str.push(tok); }
-                            else { break; }
-                        }                           
-                        else {  
-                            self.trsnf_data(row, col);
-                            return Err(Error::MissingQuote(str,row,col)) 
-                        }
-                    }
-                    self.token = Some(Token::VALUE(Value::STRING(str)));
-                    break;
-                },
-                Some(t) if t == '#' => {
-                    let mut c : char = t;
-                    while c != '\n' && c != '\r' {
-                        token =  get_next_char(true);
-                        if let Some(tok) = token { c = tok; }
-                        else { break; }
-                    } 
-                }
-                Some(t) if t.is_ascii_whitespace() => { token =  get_next_char(true); },
-                Some(t) if t.is_ascii_alphabetic() => {
-                    let mut ch :char = t;
-                    let mut iden = String::from("");
-                    iden.push(t);
-                    loop {
-                        if let Some(c) = get_next_char(false){ ch = c; }
-                        else { break; }
-                        if ch.is_ascii_alphanumeric(){
-                            token = get_next_char(true);
-                            if let Some(it) = token {  iden.push(it); }
-                            else { continue 'outer; }
-                        }
-                        else { self.peekd_char = Some(ch); break; }
-                    }
-                    if let Some(keyword) = Keyword::is_keyword(&iden) 
-                    { self.token = Some(Token::semantical_pack(keyword)); break; }
-                    else { self.token = Some(Token::IDENTIFIER(iden)); break; }
-                },
-                Some(t) if t.is_digit(10) => {
-                    let mut ch : char = t;
-                    let mut num : String = String::new();
-                    let mut flag : bool = false;
-                    let mut lit_err : bool = false;
-                    num.push(ch);
-                    while ch.is_digit(10) || ch == '.' {
-                        if ch == '.' {
-                            if !flag { flag = true; } 
-                            else { lit_err = true; }
-                        }
-                        token = get_next_char(true);
-                        if let Some(it) = token { num.push(it); }
-                        else { continue 'outer; }
-                        if let Some(c) = get_next_char(false) { ch = c; }
-                        else { break; }
-                    }
-                    self.peekd_char = Some(ch);
-                    if lit_err {
-                        self.trsnf_data(row, col); 
-                        return Err(Error::IllegalLiteral(num,row,col)) 
-                    }
-                    if flag { 
-                        if let Ok(number) = num.parse::<f64>(){ self.token = Some(Token::VALUE(Value::DOUBLE(number))); break; }
-                        else { 
-                            self.trsnf_data(row, col);
-                            return Err(Error::InternalConversionError(row,col)) 
-                        }
-                    }
-                    else{
-                        if let Ok(number) = num.parse::<i32>(){ self.token = Some(Token::VALUE(Value::INT(number))); break; }
-                        else { 
-                            self.trsnf_data(row, col);
-                            return Err(Error::InternalConversionError(row,col)) 
-                        }
-                    }  
-                },
-                Some(t) if t.is_ascii_punctuation() => {
-                    if let Some(c) = Symbol::is_symbol(t) { self.token = Some(Token::SYMBOL(c)); break; }
-                    else {
-                        let mut op_str = String::new();
-                        let mut sec_ch : Option<char> = None;
-                        op_str.push(t);
-                        if let Some(c) = get_next_char(false) { 
-                            sec_ch = Some(c); 
-                            op_str.push(c); 
-                        }
-                        if let Some(c) = Operator::is_multiple_op(&op_str)  { 
-                            self.token = Some(Token::OPERATOR(c));
-                            get_next_char(true);
-                            break; 
-                        }
-                        else if let Some(c) = Operator::is_single_operator(t) { 
-                            self.token = Some(Token::OPERATOR(c));
-                            self.peekd_char = sec_ch;
-                            self.trsnf_data(row, col);
-                            break; 
-                        }
-                        else { 
-                            self.peekd_char = sec_ch;
-                            self.trsnf_data(row, col);
-                            return Err(Error::IllegalToken(t,row,col)) 
-                        }
-                    }
-                },
-                Some(t) => {
-                    self.trsnf_data(row, col);
-                    return Err(Error::IllegalToken(t,row,col))
-                }
+                Some(t) if t == '"' => { self.lex_string()?; break; },
+                Some(t) if t == '#' => { self.lex_comment(); }
+                Some(t) if t.is_ascii_whitespace() => { token = self.get_next_char(); },
+                Some(t) if t.is_ascii_alphabetic() => { self.lex_alphabetic_seq(t)?; break; },
+                Some(t) if t.is_digit(10) => { self.lex_digit(t)?; break; },
+                Some(t) if t.is_ascii_punctuation() => { self.lex_op_sym(t)?; break; },
+                Some(t) => { return Err(Error::IllegalToken(t,self.row,self.col)) }
                 None => { self.token = Some(Token::EOF); break; }
             }
         }
-        self.trsnf_data(row, col);
         Ok(())  
     }
 
