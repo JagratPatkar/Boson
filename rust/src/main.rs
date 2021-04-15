@@ -182,15 +182,15 @@ impl<T: BufRead + ?Sized> Iterator for DataIterator<T> {
 }
 
 #[allow(dead_code)]
-struct Lexer{
+struct Lexer<T : std::io::Read>{
     token : Option<Token>,
     row : u32,
     col : u32,
-    iter : Peekable<DataIterator<BufReader<File>>>
+    iter : Peekable<DataIterator<BufReader<T>>>
 } 
 
-impl Lexer {
-    fn new(name : PathBuf) -> Result<Lexer> {
+impl<T: std::io::Read> Lexer<T> {
+    fn new(name : PathBuf) -> Result<Lexer<File>> {
         let f = File::open(name).with_context(|| format!("Failed to read file"))?;
         let bf = BufReader::new(f);
         let iter = DataIterator{ data : bf };
@@ -339,7 +339,7 @@ impl Lexer {
 
 fn main() -> Result<()> {
     let args = Cli::from_args();
-    let mut lexer = Lexer::new(args.path)?;
+    let mut lexer = Lexer::<File>::new(args.path)?;
     for _i in  1..39 {
         lexer.get_next_token()?;
         lexer.print_token();
