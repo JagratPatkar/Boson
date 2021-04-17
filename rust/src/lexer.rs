@@ -1,4 +1,15 @@
-#[derive(Debug)]
+use thiserror::Error;
+use utf8_chars::{BufReadCharsExt};
+use std::iter::Peekable;
+use std::io::BufRead;
+use std::io::BufReader;
+use std::path::PathBuf;
+use std::fs::File;
+use anyhow::{Context,Result};
+
+
+
+#[derive(Debug,PartialEq)]
 enum Keyword{
     FN,
     INT,
@@ -13,7 +24,7 @@ enum Keyword{
     NOT
 }
 
-#[derive(Debug)]
+#[derive(Debug,PartialEq)]
 enum Token{
     KEYWORD(Keyword),
     IDENTIFIER(String),
@@ -23,7 +34,7 @@ enum Token{
     EOF
 }
 
-#[derive(Debug)]
+#[derive(Debug,PartialEq)]
 enum Symbol {
     LeftCurlyBracket,
     RightCurlyBracket,
@@ -35,7 +46,7 @@ enum Symbol {
     SEMICOLON,
 }
 
-#[derive(Debug)]
+#[derive(Debug,PartialEq)]
 enum Operator{
     ADD,
     SUB,
@@ -55,7 +66,7 @@ enum Operator{
     NEQ
 }
 
-#[derive(Debug)]
+#[derive(Debug,PartialEq)]
 enum Value {
     INT(i32),
     DOUBLE(f64),
@@ -63,8 +74,8 @@ enum Value {
     STRING(String)
 }
 
-#[derive(Error,Debug)]
-enum Error{
+#[derive(Error,Debug,PartialEq)]
+pub enum Error{
     #[error("Illegal Literal `{0}` at Ln. {1}, Col. {2}")]
     IllegalLiteral(String,u32,u32),
     #[error("Missing `\"` at the end of String Literal `{0}` at Ln. {1}, Col. {2}")]
@@ -166,7 +177,7 @@ impl<T: BufRead + ?Sized> Iterator for DataIterator<T> {
 }
 
 #[allow(dead_code)]
-struct Lexer<T : std::io::Read>{
+pub struct Lexer<T : std::io::Read>{
     token : Option<Token>,
     row : u32,
     col : u32,
@@ -174,7 +185,7 @@ struct Lexer<T : std::io::Read>{
 } 
 
 impl<T: std::io::Read> Lexer<T> {
-    fn new(name : PathBuf) -> Result<Lexer<File>> {
+    pub fn new(name : PathBuf) -> Result<Lexer<File>> {
         let f = File::open(name).with_context(|| format!("Failed to read file"))?;
         let bf = BufReader::new(f);
         let iter = DataIterator{ data : bf };
@@ -307,7 +318,7 @@ impl<T: std::io::Read> Lexer<T> {
         Ok(())
     }
 
-    fn get_next_token(&mut self) -> Result<(),Error> {
+    pub fn get_next_token(&mut self) -> Result<(),Error> {
         let mut token : Option<char> = self.get_next_char();
         loop{
             match token {
@@ -324,10 +335,24 @@ impl<T: std::io::Read> Lexer<T> {
         Ok(())  
     }
 
-    fn print_token(&self) {
+    pub fn print_token(&self) {
         match &self.token {
             Some(s) => { println!("Token = {:?}",s); }
             None => {}
         }
     }
+}
+
+#[cfg(test)]
+mod test{
+    use super::*;
+
+    #[test]
+    fn test_string_lex() {
+        let str = "\"this_is_a_string\"";
+        let mut lexer = Lexer::<&[u8]>::test(str.as_bytes());
+        lexer.get_next_token();
+        assert_eq!(lexer.token,Some(Token::VALUE(Value::STRING(str.to_string()))));
+    }
+
 }
