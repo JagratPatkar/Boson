@@ -17,7 +17,7 @@ enum Keyword{
     VOID,
     CONSUME,
     RETURN,
-    TURE,
+    TRUE,
     FALSE,
     AND,
     OR,
@@ -91,7 +91,7 @@ pub enum Error{
 impl Token {
     fn semantical_pack (ky: Keyword) -> Token {
         match ky {
-            Keyword::TURE => Token::VALUE(Value::BOOL(true)),
+            Keyword::TRUE => Token::VALUE(Value::BOOL(true)),
             Keyword::FALSE => Token::VALUE(Value::BOOL(false)),
             Keyword::AND => Token::OPERATOR(Operator::AND),
             Keyword::OR => Token::OPERATOR(Operator::OR),
@@ -109,7 +109,7 @@ impl Keyword {
             "double" => Some(Keyword::DOUBLE),
             "void" => Some(Keyword::VOID),
             "consume" => Some(Keyword::CONSUME),
-            "true" => Some(Keyword::TURE),
+            "true" => Some(Keyword::TRUE),
             "false" => Some(Keyword::FALSE),
             "and" => Some(Keyword::AND),
             "or" => Some(Keyword::OR),
@@ -380,4 +380,51 @@ mod test{
         assert_eq!(lexer.token,Some(Token::EOF));
     }
 
+    #[test]
+    fn test_keyword_lex(){
+        let mut lexer = Lexer::<&[u8]>::test("fn return consume and or not int double void true false".as_bytes());
+        let mut _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::KEYWORD(Keyword::FN)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::KEYWORD(Keyword::RETURN)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::KEYWORD(Keyword::CONSUME)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::AND)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::OR)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::NOT)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::KEYWORD(Keyword::INT)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::KEYWORD(Keyword::DOUBLE)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::KEYWORD(Keyword::VOID)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::VALUE(Value::BOOL(true))));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::VALUE(Value::BOOL(false))));
+    }
 }
