@@ -41,7 +41,7 @@ enum Symbol {
     LeftSquareBracket,
     RightSquareBracket,
     LeftParen,
-    RghtParen,
+    RightParen,
     COMMA,
     SEMICOLON,
 }
@@ -157,7 +157,7 @@ impl Symbol {
             '[' => Some(Symbol::LeftSquareBracket),
             ']' => Some(Symbol::RightSquareBracket),
             '(' => Some(Symbol::LeftParen),
-            ')' => Some(Symbol::RghtParen),
+            ')' => Some(Symbol::RightParen),
             ',' => Some(Symbol::COMMA),
             ';' => Some(Symbol::SEMICOLON),
             _ => None
@@ -482,7 +482,6 @@ mod test{
     #[test]
     fn test_operator_lex() {
         let mut lexer = Lexer::<&[u8]>::test("+ - * / = ++ -- and or not >= <= > < == !=".as_bytes());
-
         let mut _res = lexer.get_next_token();
         assert_eq!(_res,Ok(()));
         assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::ADD)));
@@ -546,5 +545,47 @@ mod test{
         _res = lexer.get_next_token();
         assert_eq!(_res,Ok(()));
         assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::NEQ)));
+    }
+
+    #[test]
+    fn test_symbol_lex() {
+        let mut lexer = Lexer::<&[u8]>::test("{ ) } , ; ( [ ]".as_bytes());
+        let mut _res = lexer.get_next_token();
+        
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::SYMBOL(Symbol::LeftCurlyBracket)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::SYMBOL(Symbol::RightParen)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::SYMBOL(Symbol::RightCurlyBracket)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::SYMBOL(Symbol::COMMA)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::SYMBOL(Symbol::SEMICOLON)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::SYMBOL(Symbol::LeftParen)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::SYMBOL(Symbol::LeftSquareBracket)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::SYMBOL(Symbol::RightSquareBracket)));
+    }
+
+    #[test]
+    fn test_unknown_token_err() {
+        
     }
 }
