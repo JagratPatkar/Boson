@@ -68,7 +68,7 @@ enum Operator{
 
 #[derive(Debug,PartialEq)]
 enum Value {
-    INT(i32),
+    INT(i64),
     DOUBLE(f64),
     BOOL(bool),
     STRING(String)
@@ -78,12 +78,14 @@ enum Value {
 pub enum Error{
     #[error("Illegal Literal `{0}` at Ln. {1}, Col. {2}")]
     IllegalLiteral(String,u32,u32),
-    #[error("Missing `\"` at the end of String Literal `{0}` at Ln. {1}, Col. {2}")]
+    #[error("Missing `\"` at the end of String Literal `{0}`, at Ln. {1}, Col. {2}")]
     MissingQuote(String,u32,u32),
     #[error("Internal Error, at Ln. {0}, Col. {1}, Please Try Again!")]
     InternalConversionError(u32,u32),
-    #[error("Illegal Token `{0}` at Ln. {1}, Col. {2} ")]
+    #[error("Illegal Token `{0}`, at Ln. {1}, Col. {2} ")]
     IllegalToken(char,u32,u32),
+    #[error("32 bit Integer Literal Out of Range, at Ln. {0}, Col. {1}")]
+    ThirtyTwoBitIntOutOfRange(String,u32,u32),
     #[error("Internal Error, Please Try again.")]
     InternalError
 }
@@ -275,15 +277,16 @@ impl<T: std::io::Read> Lexer<T> {
         let mut str = String::from("");
         let mut flag : bool = false;
         let mut lit_err : bool = false;
-        loop {
-            if ch.is_digit(10) || ch == '.'  {
-                str.push(ch);
-                self.get_next_char();
-                if ch == '.' {
-                    if !flag { flag = true; } 
-                    else { lit_err = true; }
-                }
-            }else { break; }
+        let mut counter : u32 = 0;
+        str.push(start);
+        while ch.is_digit(10) || ch == '.' {
+            if let Some(tok) = self.get_next_char(){ ch = tok; }
+            str.push(ch);
+            counter += 1;
+            if ch == '.' {
+                if !flag { flag = true; } 
+                else { lit_err = true; }
+            }
             if let Some(tok) = self.peek_next_char() { ch = tok; }
             else { break; }
         };
@@ -293,7 +296,8 @@ impl<T: std::io::Read> Lexer<T> {
             else {  return Err(Error::InternalConversionError(self.row,self.col))  }
         }
         else { 
-            if let Ok(number) = str.parse::<i32>(){ self.token = Some(Token::VALUE(Value::INT(number))); } 
+            if counter > 39 { return Err(Error::ThirtyTwoBitIntOutOfRange(str,self.row,self.col))  }
+            if let Ok(number) = str.parse::<i64>(){ self.token = Some(Token::VALUE(Value::INT(number))); } 
             else { return Err(Error::InternalConversionError(self.row,self.col)) }
         };
         Ok(())
@@ -382,7 +386,7 @@ mod test{
 
     #[test]
     fn test_keyword_lex(){
-        let mut lexer = Lexer::<&[u8]>::test("fn return consume and or not int double void true false".as_bytes());
+        let mut lexer = Lexer::<&[u8]>::test("fn return consume int double void ".as_bytes());
         let mut _res = lexer.get_next_token();
         assert_eq!(_res,Ok(()));
         assert_eq!(lexer.token,Some(Token::KEYWORD(Keyword::FN)));
@@ -397,18 +401,6 @@ mod test{
 
         _res = lexer.get_next_token();
         assert_eq!(_res,Ok(()));
-        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::AND)));
-
-        _res = lexer.get_next_token();
-        assert_eq!(_res,Ok(()));
-        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::OR)));
-
-        _res = lexer.get_next_token();
-        assert_eq!(_res,Ok(()));
-        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::NOT)));
-
-        _res = lexer.get_next_token();
-        assert_eq!(_res,Ok(()));
         assert_eq!(lexer.token,Some(Token::KEYWORD(Keyword::INT)));
 
         _res = lexer.get_next_token();
@@ -419,13 +411,6 @@ mod test{
         assert_eq!(_res,Ok(()));
         assert_eq!(lexer.token,Some(Token::KEYWORD(Keyword::VOID)));
 
-        _res = lexer.get_next_token();
-        assert_eq!(_res,Ok(()));
-        assert_eq!(lexer.token,Some(Token::VALUE(Value::BOOL(true))));
-
-        _res = lexer.get_next_token();
-        assert_eq!(_res,Ok(()));
-        assert_eq!(lexer.token,Some(Token::VALUE(Value::BOOL(false))));
     }
 
     #[test]
@@ -451,5 +436,49 @@ mod test{
         assert_eq!(_res,Ok(()));
         assert_eq!(lexer.token,Some(Token::IDENTIFIER("x2".to_string())));
     }
+
+
+    #[test]
+    fn test_values_lex() {
+        let mut lexer = Lexer::<&[u8]>::test("10 12312.12313 10.2 12012 true false \"this_is_a_string_value\" ".as_bytes());
+        let mut _res = lexer.get_next_token();
+
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::VALUE(Value::INT(10))));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::VALUE(Value::DOUBLE(12312.12313))));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::VALUE(Value::DOUBLE(10.2))));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::VALUE(Value::INT(12012))));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::VALUE(Value::BOOL(true))));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::VALUE(Value::BOOL(false))));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::VALUE(Value::STRING("this_is_a_string_value".to_string()))));
+    }
+
+    #[test]
+    fn test_value_limit_errs() {
+        let mut lexer = Lexer::<&[u8]>::test("12312314231254".as_bytes());
+        let mut _res = lexer.get_next_token();
+        assert_eq!(_res,Err(Error::ThirtyTwoBitIntOutOfRange("12312314231254".to_string(),1,15)));
+        assert_eq!(lexer.token,None);
+    }
+
+    
 
 }
