@@ -85,7 +85,7 @@ pub enum Error{
     #[error("Illegal Token `{0}`, at Ln. {1}, Col. {2} ")]
     IllegalToken(char,u32,u32),
     #[error("32 bit Integer Literal Out of Range, at Ln. {0}, Col. {1}")]
-    ThirtyTwoBitIntOutOfRange(String,u32,u32),
+    SixtyFourBitIntOutOfRange(String,u32,u32),
     #[error("Internal Error, Please Try again.")]
     InternalError
 }
@@ -296,7 +296,7 @@ impl<T: std::io::Read> Lexer<T> {
             else {  return Err(Error::InternalConversionError(self.row,self.col))  }
         }
         else { 
-            if counter > 39 { return Err(Error::ThirtyTwoBitIntOutOfRange(str,self.row,self.col))  }
+            if counter > 39 { return Err(Error::SixtyFourBitIntOutOfRange(str,self.row,self.col))  }
             if let Ok(number) = str.parse::<i64>(){ self.token = Some(Token::VALUE(Value::INT(number))); } 
             else { return Err(Error::InternalConversionError(self.row,self.col)) }
         };
@@ -473,12 +473,12 @@ mod test{
 
     #[test]
     fn test_value_limit_errs() {
-        let mut lexer = Lexer::<&[u8]>::test("12312314231254".as_bytes());
+        let mut lexer = Lexer::<&[u8]>::test("1231231423125412312312312312312312312312312".as_bytes());
         let mut _res = lexer.get_next_token();
-        assert_eq!(_res,Err(Error::ThirtyTwoBitIntOutOfRange("12312314231254".to_string(),1,15)));
+        assert_eq!(_res,Err(Error::SixtyFourBitIntOutOfRange("1231231423125412312312312312312312312312312".to_string(),1,44)));
         assert_eq!(lexer.token,None);
     }
 
-    
+
 
 }
