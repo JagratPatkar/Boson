@@ -479,6 +479,72 @@ mod test{
         assert_eq!(lexer.token,None);
     }
 
+    #[test]
+    fn test_operator_lex() {
+        let mut lexer = Lexer::<&[u8]>::test("+ - * / = ++ -- and or not >= <= > < == !=".as_bytes());
 
+        let mut _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::ADD)));
 
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::SUB)));
+        
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::MUL)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::DIV)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::ASSIGN)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::INC)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::DEC)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::AND)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::OR)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::NOT)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::GTE)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::LTE)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::GT)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::LT)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::EQ)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::OPERATOR(Operator::NEQ)));
+    }
 }
