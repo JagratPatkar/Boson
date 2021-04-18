@@ -183,7 +183,7 @@ pub struct Lexer<T : std::io::Read>{
     col : u32,
     iter : Peekable<DataIterator<BufReader<T>>>
 } 
-
+#[allow(dead_code)]
 impl<T: std::io::Read> Lexer<T> {
     pub fn new(name : PathBuf) -> Result<Lexer<File>> {
         let f = File::open(name).with_context(|| format!("Failed to read file"))?;
@@ -198,7 +198,7 @@ impl<T: std::io::Read> Lexer<T> {
         };
         Ok(lex)
     }  
-
+   
     fn test(text : &[u8]) -> Lexer<&[u8]> {
         let bf = BufReader::new(text);
         let iter = DataIterator{data : bf};
@@ -245,7 +245,7 @@ impl<T: std::io::Read> Lexer<T> {
     fn lex_comment(&mut self)  {
         let mut c : char = '#';
         let mut token : Option<char>;
-        while c != '\n' || c != '\r' {
+        while c != '\n' && c != '\r' {
             token = self.get_next_char();
             if let Some(tok) = token { c = tok; }
             else { break; }
@@ -323,7 +323,10 @@ impl<T: std::io::Read> Lexer<T> {
         loop{
             match token {
                 Some(t) if t == '"' => { self.lex_string()?; break; },
-                Some(t) if t == '#' => { self.lex_comment(); }
+                Some(t) if t == '#' => {  
+                    self.lex_comment(); 
+                    token = self.get_next_char();
+                }
                 Some(t) if t.is_ascii_whitespace() => { token = self.get_next_char(); },
                 Some(t) if t.is_ascii_alphabetic() => { self.lex_alphabetic_seq(t)?; break; },
                 Some(t) if t.is_digit(10) => { self.lex_digit(t)?; break; },
@@ -348,11 +351,33 @@ mod test{
     use super::*;
 
     #[test]
-    fn test_string_lex() {
-        let str = "\"this_is_a_string\"";
-        let mut lexer = Lexer::<&[u8]>::test(str.as_bytes());
-        lexer.get_next_token();
-        assert_eq!(lexer.token,Some(Token::VALUE(Value::STRING(str.to_string()))));
+    fn test_simple_string() {
+        let mut lexer = Lexer::<&[u8]>::test("\"this_is_a_string\"".as_bytes());
+        let res = lexer.get_next_token();
+        assert_eq!(res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::VALUE(Value::STRING("this_is_a_string".to_string()))));
+    }
+
+    #[test]
+    fn test_str_misng_quote_error() {
+        let mut lexer = Lexer::<&[u8]>::test("\"".as_bytes());
+        let mut _res = lexer.get_next_token();
+        assert_eq!(_res,Err(Error::MissingQuote("".to_string(),1,2)));
+        assert_eq!(lexer.token,None)
+    }
+
+    #[test]
+    fn test_comment_lex() {
+        let mut lexer = Lexer::<&[u8]>::test("#t#his is a comment@ for test 12342134 \n # this is another comment \r fn".as_bytes());
+        let mut _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::KEYWORD(Keyword::FN)));
+
+        let mut lexer =  Lexer::<&[u8]>::test("fn #t#his is a comment@ for test 12342134 \n # this is another comment \r ".as_bytes());
+        _res = lexer.get_next_token();
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::EOF));
     }
 
 }
