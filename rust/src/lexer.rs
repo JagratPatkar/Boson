@@ -427,4 +427,29 @@ mod test{
         assert_eq!(_res,Ok(()));
         assert_eq!(lexer.token,Some(Token::VALUE(Value::BOOL(false))));
     }
+
+    #[test]
+    fn test_iden_lex() {
+        let mut lexer = Lexer::<&[u8]>::test("thisisaniden fn x1 return x2".as_bytes());
+        let mut _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::IDENTIFIER("thisisaniden".to_string())));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::KEYWORD(Keyword::FN)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::IDENTIFIER("x1".to_string())));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::KEYWORD(Keyword::RETURN)));
+
+        _res = lexer.get_next_token();
+        assert_eq!(_res,Ok(()));
+        assert_eq!(lexer.token,Some(Token::IDENTIFIER("x2".to_string())));
+    }
+
 }
