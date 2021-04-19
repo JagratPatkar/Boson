@@ -587,16 +587,8 @@ mod test{
     }
 
     #[test]
-    fn test_unknown_token_err() {
+    fn test_illegal_tok_err() {
         let mut lexer = Lexer::<&[u8]>::test("^".as_bytes());
-        let mut _res = lexer.get_next_token();
-        assert_eq!(_res,Err(Error::IllegalToken('^',1,2)));
-        assert_eq!(lexer.token,None);
-    }
-
-    
-    fn test_random_stress_lex() {
-        let mut lexer = Lexer::<&[u8]>::test("fn func1() int { return 10 + 20 - 30 * 40; }  ".as_bytes());
         let mut _res = lexer.get_next_token();
         assert_eq!(_res,Err(Error::IllegalToken('^',1,2)));
         assert_eq!(lexer.token,None);
