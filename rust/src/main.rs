@@ -1,5 +1,6 @@
 use structopt::StructOpt; 
 mod lexer;
+mod error;
 use lexer::Lexer;
 use std::fs::File;
 use anyhow::{Result};

@@ -1,4 +1,3 @@
-use thiserror::Error;
 use utf8_chars::{BufReadCharsExt};
 use std::iter::Peekable;
 use std::io::BufRead;
@@ -6,8 +5,7 @@ use std::io::BufReader;
 use std::path::PathBuf;
 use std::fs::File;
 use anyhow::{Context,Result};
-
-
+use super::error::LexError;
 
 #[derive(Debug,PartialEq)]
 enum Keyword{
@@ -75,21 +73,6 @@ enum Value {
     STRING(String)
 }
 
-#[derive(Error,Debug,PartialEq)]
-pub enum Error{
-    #[error("Illegal Literal `{0}` at Ln. {1}, Col. {2}")]
-    IllegalLiteral(String,u32,u32),
-    #[error("Missing `\"` at the end of String Literal `{0}`, at Ln. {1}, Col. {2}")]
-    MissingQuote(String,u32,u32),
-    #[error("Internal Error, at Ln. {0}, Col. {1}, Please Try Again!")]
-    InternalConversionError(u32,u32),
-    #[error("Illegal Token `{0}`, at Ln. {1}, Col. {2} ")]
-    IllegalToken(char,u32,u32),
-    #[error("32 bit Integer Literal Out of Range, at Ln. {0}, Col. {1}")]
-    SixtyFourBitIntOutOfRange(String,u32,u32),
-    #[error("Internal Error, Please Try again.")]
-    InternalError
-}
 
 impl Token {
     fn semantical_pack (ky: Keyword) -> Token {
@@ -232,7 +215,7 @@ impl<T: std::io::Read> Lexer<T> {
         else { None }
     }
 
-    fn lex_string(&mut self) -> Result<(),Error> {
+    fn lex_string(&mut self) -> Result<(),LexError> {
         let mut str = String::from("");
         let mut token : Option<char>;
         loop { 
@@ -240,7 +223,7 @@ impl<T: std::io::Read> Lexer<T> {
             if let Some(t) = token {
                 if t != '"' { str.push(t); }
                 else { break; }
-            }else { return Err(Error::MissingQuote(str,self.row,self.col))  }
+            }else { return Err(LexError::MissingQuote(str,self.row,self.col))  }
         }
         self.token = Some(Token::VALUE(Value::STRING(str)));
         Ok(())
@@ -257,13 +240,13 @@ impl<T: std::io::Read> Lexer<T> {
     }
 
 
-    fn lex_alphabetic_seq(&mut self,start : char) ->  Result<(),Error> {
+    fn lex_alphabetic_seq(&mut self,start : char) ->  Result<(),LexError> {
         let mut ch : char = start;
         let mut str = String::from("");
         str.push(ch);
         while ch.is_ascii_alphanumeric() {
             if let Some(c) = self.get_next_char(){ str.push(c);}
-            else { return Err(Error::InternalError) }
+            else { return Err(LexError::InternalError) }
             if let Some(c) = self.peek_next_char(){ ch  = c; }
             else { break; }
         };
@@ -274,7 +257,7 @@ impl<T: std::io::Read> Lexer<T> {
     }
 
 
-    fn lex_digit(&mut self,start : char) -> Result<(),Error> {
+    fn lex_digit(&mut self,start : char) -> Result<(),LexError> {
         let mut ch : char = start;
         let mut str = String::from("");
         let mut flag : bool = false;
@@ -292,20 +275,20 @@ impl<T: std::io::Read> Lexer<T> {
             if let Some(tok) = self.peek_next_char() { ch = tok; }
             else { break; }
         };
-        if lit_err { return Err(Error::IllegalLiteral(str,self.row,self.col))  }
+        if lit_err { return Err(LexError::IllegalLiteral(str,self.row,self.col))  }
         else if flag { 
             if let Ok(number) = str.parse::<f64>(){ self.token = Some(Token::VALUE(Value::DOUBLE(number))); } 
-            else {  return Err(Error::InternalConversionError(self.row,self.col))  }
+            else {  return Err(LexError::InternalConversionError(self.row,self.col))  }
         }
         else { 
-            if counter > 39 { return Err(Error::SixtyFourBitIntOutOfRange(str,self.row,self.col))  }
+            if counter > 39 { return Err(LexError::SixtyFourBitIntOutOfRange(str,self.row,self.col))  }
             if let Ok(number) = str.parse::<i64>(){ self.token = Some(Token::VALUE(Value::INT(number))); } 
-            else { return Err(Error::InternalConversionError(self.row,self.col)) }
+            else { return Err(LexError::InternalConversionError(self.row,self.col)) }
         };
         Ok(())
     }
 
-    fn lex_op_sym(&mut self,start :char) -> Result<(),Error>{
+    fn lex_op_sym(&mut self,start :char) -> Result<(),LexError>{
         if let Some(c) = Symbol::is_symbol(start) { 
             self.token = Some(Token::SYMBOL(c)); 
 
@@ -319,12 +302,12 @@ impl<T: std::io::Read> Lexer<T> {
                 self.get_next_char();
             }
             else if let Some(c) = Operator::is_single_operator(start) {  self.token = Some(Token::OPERATOR(c)); }
-            else {  return Err(Error::IllegalToken(start,self.row,self.col)) }
+            else {  return Err(LexError::IllegalToken(start,self.row,self.col)) }
         };
         Ok(())
     }
 
-    pub fn get_next_token(&mut self) -> Result<(),Error> {
+    pub fn get_next_token(&mut self) -> Result<(),LexError> {
         let mut token : Option<char> = self.get_next_char();
         loop{
             match token {
@@ -337,7 +320,7 @@ impl<T: std::io::Read> Lexer<T> {
                 Some(t) if t.is_ascii_alphabetic() => { self.lex_alphabetic_seq(t)?; break; },
                 Some(t) if t.is_digit(10) => { self.lex_digit(t)?; break; },
                 Some(t) if t.is_ascii_punctuation() => { self.lex_op_sym(t)?; break; },
-                Some(t) => { return Err(Error::IllegalToken(t,self.row,self.col)) }
+                Some(t) => { return Err(LexError::IllegalToken(t,self.row,self.col)) }
                 None => { self.token = Some(Token::EOF); break; }
             }
         }
@@ -365,10 +348,10 @@ mod test{
     }
 
     #[test]
-    fn test_str_misng_quote_error() {
+    fn test_str_misng_quote_err() {
         let mut lexer = Lexer::<&[u8]>::test("\"".as_bytes());
         let mut _res = lexer.get_next_token();
-        assert_eq!(_res,Err(Error::MissingQuote("".to_string(),1,2)));
+        assert_eq!(_res,Err(LexError::MissingQuote("".to_string(),1,2)));
         assert_eq!(lexer.token,None)
     }
 
@@ -477,7 +460,7 @@ mod test{
     fn test_value_limit_errs() {
         let mut lexer = Lexer::<&[u8]>::test("1231231423125412312312312312312312312312312".as_bytes());
         let mut _res = lexer.get_next_token();
-        assert_eq!(_res,Err(Error::SixtyFourBitIntOutOfRange("1231231423125412312312312312312312312312312".to_string(),1,44)));
+        assert_eq!(_res,Err(LexError::SixtyFourBitIntOutOfRange("1231231423125412312312312312312312312312312".to_string(),1,44)));
         assert_eq!(lexer.token,None);
     }
 
@@ -590,7 +573,7 @@ mod test{
     fn test_illegal_tok_err() {
         let mut lexer = Lexer::<&[u8]>::test("^".as_bytes());
         let mut _res = lexer.get_next_token();
-        assert_eq!(_res,Err(Error::IllegalToken('^',1,2)));
+        assert_eq!(_res,Err(LexError::IllegalToken('^',1,2)));
         assert_eq!(lexer.token,None);
     }
 }
