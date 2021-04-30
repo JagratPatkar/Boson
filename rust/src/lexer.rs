@@ -170,6 +170,7 @@ pub struct Lexer<T : std::io::Read>{
     col : u32,
     iter : Peekable<DataIterator<BufReader<T>>>
 } 
+
 #[allow(dead_code)]
 impl<T: std::io::Read> Lexer<T> {
     pub fn new(name : PathBuf) -> Result<Lexer<File>> {
