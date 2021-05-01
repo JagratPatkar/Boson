@@ -15,13 +15,12 @@ use std::process::Command;
 use std::{mem,ptr,slice};
 use tempfile::NamedTempFile;
 use llvm::target_machine::LLVMCodeGenFileType::*;
+
 #[derive(StructOpt)]
 struct Cli{
     #[structopt(parse(from_os_str))]
     path : std::path::PathBuf,
 }
-
-
 
 // struct Compiler {
 //     parser : 
@@ -61,10 +60,17 @@ fn main() -> Result<()> {
         LLVMDumpModule(module);
     };
     let clon = filename.clone();
-    let outpath : Vec<&str> = clon.split(".").collect();
-    let mut OutFile = OpenOptions::new();
-    OutFile.create(true).write(true);
-    let mut outfile = OutFile.open(outpath.get(0).unwrap())?;
+    let mut outpath : Vec<&str> = clon.split(".").collect();
+    let mut str : String = outpath.get(0).unwrap().to_string();
+    if cfg!(target_os = "windows") { str.push_str(".exe"); }
+    else { str.push_str(".out"); }
+    let mut out_file = OpenOptions::new();
+    out_file.create(true).write(true);
+    if cfg!(unix) {
+        use std::os::unix::fs::OpenOptionsExt;
+        out_file.mode(0o777);
+    }
+    let mut outfile = out_file.open(str)?;
     let mut obj = NamedTempFile::new()?;
     let mut temp_bin = NamedTempFile::new()?;
     use llvm::target_machine::*;
