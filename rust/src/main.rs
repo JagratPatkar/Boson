@@ -3,6 +3,10 @@ extern crate  llvm_sys as llvm;
 use structopt::StructOpt; 
 mod lexer;
 mod error;
+mod llvm_code_gen;
+mod code_gen;
+mod parser;
+mod r#type;
 use lexer::Lexer;
 use std::fs::{File,OpenOptions};
 use anyhow::{Result};
@@ -23,15 +27,13 @@ struct Cli{
 }
 
 // struct Compiler {
-//     parser : 
-//     codegen :
-    
+//     parser :   
 // }
 
 fn main() -> Result<()> {
     let args = Cli::from_args();
     let filename = args.path.to_str().unwrap().to_string();
-    let mut lexer = Lexer::<File>::new(args.path)?;
+    let  lexer = Lexer::<File>::new(args.path)?;
     // for _i in  1..39 {
     //     lexer.get_next_token()?;
     //     lexer.print_token();
@@ -60,7 +62,7 @@ fn main() -> Result<()> {
         LLVMDumpModule(module);
     };
     let clon = filename.clone();
-    let mut outpath : Vec<&str> = clon.split(".").collect();
+    let  outpath : Vec<&str> = clon.split(".").collect();
     let mut str : String = outpath.get(0).unwrap().to_string();
     if cfg!(target_os = "windows") { str.push_str(".exe"); }
     else { str.push_str(".out"); }

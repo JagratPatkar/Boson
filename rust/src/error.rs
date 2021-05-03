@@ -1,5 +1,11 @@
 use thiserror::Error;
 
+#[derive(Debug,PartialEq)]
+pub enum Errors{
+    LexError(LexError),
+    ParseError(ParseError)
+}
+
 #[derive(Error,Debug,PartialEq)]
 pub enum LexError{
     #[error("Illegal Literal `{0}` at Ln. {1}, Col. {2}")]
@@ -14,4 +20,9 @@ pub enum LexError{
     SixtyFourBitIntOutOfRange(String,u32,u32),
     #[error("Internal Error, Please Try again.")]
     InternalError
+}
+
+#[derive(Debug,PartialEq)]
+pub enum ParseError{
+    DUMMY
 }

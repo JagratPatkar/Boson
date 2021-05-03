@@ -5,7 +5,7 @@ use std::io::BufReader;
 use std::path::PathBuf;
 use std::fs::File;
 use anyhow::{Context,Result};
-use super::error::LexError;
+use super::error::{LexError,Errors};
 
 #[derive(Debug,PartialEq)]
 enum Keyword{
@@ -166,13 +166,40 @@ impl<T: BufRead + ?Sized> Iterator for DataIterator<T> {
 #[allow(dead_code)]
 pub struct Lexer<T : std::io::Read>{
     token : Option<Token>,
-    row : u32,
-    col : u32,
+    pub row : u32,
+    pub col : u32,
     iter : Peekable<DataIterator<BufReader<T>>>
 } 
 
 #[allow(dead_code)]
 impl<T: std::io::Read> Lexer<T> {
+
+    pub fn is_token_valid_type(&self) -> bool {
+        match self.token {
+            Some(Token::KEYWORD(Keyword::INT)) => true,
+            Some(Token::KEYWORD(Keyword::BOOL)) => true,
+            Some(Token::KEYWORD(Keyword::DOUBLE)) => true,
+            Some(Token::KEYWORD(Keyword::VOID))=> true,
+            _ => false
+        }
+    }
+
+    pub fn is_token_eof(&self) -> bool { self.token == Some(Token::EOF) }
+
+    pub fn is_token_iden(&self) -> bool {  
+        match self.token {
+            Some(Token::IDENTIFIER(_)) => true,
+            _ => false
+        }
+    }
+
+    pub fn get_iden(&mut self) -> Result<String,Errors> {
+        match &mut self.token {
+            Some(Token::IDENTIFIER(str)) => Ok(str.to_string()),
+            _ => Err(Errors::LexError(LexError::InternalError))
+        }
+    }
+
     pub fn new(name : PathBuf) -> Result<Lexer<File>> {
         let f = File::open(name).with_context(|| format!("Failed to read file"))?;
         let bf = BufReader::new(f);
@@ -327,7 +354,7 @@ impl<T: std::io::Read> Lexer<T> {
         }
         Ok(())  
     }
-
+    
     pub fn print_token(&self) {
         match &self.token {
             Some(s) => { println!("Token = {:?}",s); }
