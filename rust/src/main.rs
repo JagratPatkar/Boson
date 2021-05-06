@@ -7,6 +7,7 @@ mod llvm_code_gen;
 mod code_gen;
 mod parser;
 mod r#type;
+mod ast;
 use lexer::Lexer;
 use std::fs::{File,OpenOptions};
 use anyhow::{Result};

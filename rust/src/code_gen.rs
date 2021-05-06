@@ -1,7 +1,7 @@
-use llvm::prelude::*;
+use super::ast::*;
 
-
-trait Visitor{
+pub trait Visitor{
     type Exp;
-    fn variable_declaration_codegen() -> Option<Self::Exp>;
+    fn int_value_node(&mut self,node : &mut Int);
+    fn global_variable_declaration_codegen<T : Value>(&mut self,v: &mut VariableDeclaration<T>);
 }
