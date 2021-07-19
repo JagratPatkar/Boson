@@ -4,7 +4,7 @@ consume fn printint(int n) void;
 consume fn nextLine() void;
 
 fn printLine(int limit,int ch) void {
-    #for(int i = 0; i < limit; i = i + 1){ printchar(ch); }
+    for(int i = 0; i < limit; i = i + 1){ printchar(ch); }
     return;
 }
 
