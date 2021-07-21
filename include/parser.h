@@ -5,6 +5,8 @@
 #include "codegen.h"
 #include "lexer.h"
 #include "type.h"
+#include "scope.h"
+#include "scopelist.h"
 #include "symboltable.h"
 using namespace AST;
 using namespace std;
