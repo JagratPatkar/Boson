@@ -17,6 +17,7 @@ class Parser
     map<string, unique_ptr<::Type>> GlobalVarTable;
     map<string, unique_ptr<::Type>> LocalVarTable;
     map<string, pair<vector<unique_ptr<::Type>>, unique_ptr<::Type>>> FunctionTable;
+    ScopeList scopeList;
     map<string, int> OperatorPrecedence;
     bool parsingFuncDef;
     ::Type *currentFuncType;

@@ -13,4 +13,5 @@ class ScopeList {
     void createScope();
     void deleteScope();
     unique_ptr<::Type> searchScope(const string&);
+    bool addScopeVariable(const string&,unique_ptr<::Type>);
 };

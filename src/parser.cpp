@@ -20,6 +20,7 @@ void Parser::parse()
             if (FunctionTable.find("start") == FunctionTable.end())
                 LogError("Start Function Not Found");
             cg->terminateCOPBB();
+            cg->dumpIR();
             lexer.closeFile();
             return;
         }
@@ -565,6 +566,9 @@ unique_ptr<Statement> Parser::ParseVariableDeclarationStatement()
         return nullptr;
     }
     string name = lexer.getIdentifier();
+
+    
+
     if (parsingFuncDef)
     {
         if (LocalVarTable[name])
@@ -588,6 +592,12 @@ unique_ptr<Statement> Parser::ParseVariableDeclarationStatement()
     if (lexer.isTokenLeftSquareBrack())
     {
         return ParseArrayVariableDeclarationStatement(name, move(ty));
+    }   
+    
+    if(scopeList.addScopeVariable(name,move(ty->getNew())));
+    else {
+        LogError("Illegal Re-declaration");
+        return nullptr;
     }
 
     if (!parsingFuncDef)
@@ -832,6 +842,7 @@ unique_ptr<FunctionSignature> Parser::ParseConsume()
 
 unique_ptr<FunctionSignature> Parser::ParseFunctionSignature()
 {
+    scopeList.createScope();
     if (!lexer.isTokenIdentifier())
     {
         LogError("Expected an Identifier");
@@ -943,5 +954,6 @@ unique_ptr<FunctionDefinition> Parser::ParseFunctionDefinition()
     }
     parsingFuncDef = false;
     LocalVarTable.clear();
+    scopeList.deleteScope();
     return make_unique<FunctionDefinition>(move(FH), move(CS));
 }
