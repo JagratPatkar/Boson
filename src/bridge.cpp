@@ -32,8 +32,11 @@ public:
     void startCompilation() { parser.parse(); }
     void verifyIR()
     {
-        if (verifyModule(*(cg->module)))
-            cerr << "Error in CodeGen " << endl;
+        std::string errorMessage;
+        llvm::raw_string_ostream errorStream(errorMessage);
+        if (llvm::verifyModule(*(cg->module), &errorStream)) 
+            llvm::errs() << "Error: " << errorMessage << "\n";
+        //cg->module->print(llvm::outs(), nullptr);
     }
 
     void createObjFile();
@@ -71,13 +74,10 @@ void Bridge::createObjFile()
     auto TargetMachine = Target->createTargetMachine(TargetTriple, CPU, Features, opt, RM);
     cg->module->setDataLayout(TargetMachine->createDataLayout());
     cg->module->setTargetTriple(TargetTriple);
-    char delim = '.';
-    char *name = strtok(&(FileName[0]), &delim);
-    
-    string filename(name);
+    string filename = FileName.substr(0, FileName.find_last_of('.'));
     filename += ".o";
     error_code EC;
-    raw_fd_ostream dest(filename, EC);
+    raw_fd_ostream dest(filename, EC, sys::fs::OF_None);
     if(EC){
         cerr << "Could not open file: " << EC.message() << endl;
         return;
@@ -97,12 +97,29 @@ void Bridge::createObjFile()
 
 int main(int argc, char **argv)
 {
-    if (argc < 2)
+     if (argc < 2)
     {
         cerr << "Target File Not Specified" << endl;
         return 0;
     }
     string FileName(argv[1]);
+
+    // Check if the file has the .b extension
+    if (FileName.substr(FileName.find_last_of('.')).compare(".b") != 0)
+    {
+        cerr << "Error: File must have the .b extension" << endl;
+        return 0;
+    }
+
+    // Check if the file exists
+    std::ifstream file(FileName);
+    if (!file.good())
+    {
+        cerr << "Error: File does not exist or cannot be opened" << endl;
+        return 0;
+    }
+    file.close();
+
     Bridge bridge(FileName);
     bridge.startCompilation();
     bridge.verifyIR();

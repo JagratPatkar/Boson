@@ -398,7 +398,6 @@ namespace AST
         unique_ptr<::Type> getOperatorEvalTy() override { return make_unique<Bool>(); }
     };
 
-
     class Expression
     {
     protected:
@@ -457,13 +456,54 @@ namespace AST
     class ArrayVal : public Value
     {
         vector<unique_ptr<Expression>> ofVals;
-
+        unique_ptr<Expression> exp;
+        string name;
     public:
-        ArrayVal(vector<unique_ptr<Expression>> ofVals, unique_ptr<::Type> type, int size) : ofVals(move(ofVals)), Value(make_unique<Array>(size, move(type)))
+        ArrayVal(vector<unique_ptr<Expression>> ofVals, unique_ptr<::Type> type, string name) : name(name), ofVals(move(ofVals)), Value(move(type))
         {
+        }
+        ArrayVal(unique_ptr<Expression> exp, unique_ptr<::Type> type, string name) : name(name), exp(move(exp)), Value(move(type))
+        {
+        }
+        bool isExp() { 
+            if(exp){
+                return true;
+            }
+            return false;
         }
         llvm::Value *codeGen() override;
         void gen(llvm::Value *);
+        void VarDecCodeGen(GlobalVariable *, ::Type *) override;
+    };
+
+    class ObjMember
+    {
+    public:
+        std::string name;
+        unique_ptr<Expression> value;
+
+        ObjMember(const std::string &name, unique_ptr<Expression> value) : name(name), value(move(value)) {}
+        llvm::Value *codeGen();
+    };
+
+    class ObjLiteral: public Value
+    {
+    public:
+        std::vector<unique_ptr<ObjMember>> members;
+        unique_ptr<Expression> exp;
+        ObjLiteral(std::vector<unique_ptr<ObjMember>> members, unique_ptr<::Type> ty) : members(move(members)), Value(move(ty)) {}
+        ObjLiteral(unique_ptr<Expression> exp, unique_ptr<::Type> ty) : exp(move(exp)), Value(move(ty)) {}
+        virtual ~ObjLiteral()
+        {
+        }
+        bool isExp() { 
+            if(exp){
+                return true;
+            }
+            return false;
+        }
+        virtual llvm::Value *codeGen() override;
+        void gen(llvm::Value *, ::Type*);
         void VarDecCodeGen(GlobalVariable *, ::Type *) override;
     };
 
@@ -472,13 +512,16 @@ namespace AST
         string Name;
         int elemNum;
         bool isArrayElem;
+        bool isObjectElem;
         unique_ptr<::Type> arrayType;
+        unique_ptr<::Type> objectType;
         unique_ptr<Expression> elem;
 
     public:
         Variable(const string &Name, unique_ptr<::Type> type) : Name(Name), Expression(move(type))
         {
             isArrayElem = false;
+            isObjectElem = false;
         }
         const string getName() { return Name; }
         void VarDecCodeGen(GlobalVariable *, ::Type *) override;
@@ -490,8 +533,16 @@ namespace AST
             return nullptr;
         }
         void setArrayType(unique_ptr<::Type> t) { arrayType = move(t); }
+        ::Type* getObjectType() { return objectType.get(); }
+        ::Type* getArrayType() { return arrayType.get(); }
+        void setObjectType(unique_ptr<::Type> t) { objectType = move(t); }
         void setArrayFlag() { isArrayElem = true; }
+        bool getArrayFlag() { return isArrayElem; }
+        bool getObjectElemFlag() { return isObjectElem; }
+        void setObjElementFlag() { isObjectElem = true; }
         bool isVariable() override { return true; }
+        void setElementNumber(int i) { elemNum = i; }
+        int getElementNumber() { return elemNum; } 
         llvm::Value *codeGen() override;
     };
 
@@ -509,108 +560,126 @@ namespace AST
         void VarDecCodeGen(GlobalVariable *, ::Type *) override;
     };
 
-      class UnOps {
-        protected:
-        CodeGen* cg;
+    class UnOps
+    {
+    protected:
+        CodeGen *cg;
         unique_ptr<::Type> op_type;
-        public:
-        UnOps(){
+
+    public:
+        UnOps()
+        {
             cg = CodeGen::GetInstance();
         }
-        virtual bool validOperandSet(Expression * e) = 0;
-        virtual llvm::Value *codeGen(llvm::Value*,Expression* e) = 0;
+        virtual bool validOperandSet(Expression *e) = 0;
+        virtual llvm::Value *codeGen(llvm::Value *, Expression *e) = 0;
         virtual unique_ptr<::Type> getOperatorEvalTy() = 0;
         virtual ~UnOps() {}
     };
 
-
-    class AddPostIncrement : public UnOps {
-        public:
-        bool validOperandSet(Expression * e) override {
+    class AddPostIncrement : public UnOps
+    {
+    public:
+        bool validOperandSet(Expression *e) override
+        {
             bool c = (e->getType()->isInt() || e->getType()->isDouble()) && e->isVariable();
-            if(c) op_type = e->getType()->getNew();
+            if (c)
+                op_type = e->getType()->getNew();
             return c;
         }
-        
+
         unique_ptr<::Type> getOperatorEvalTy() override { return op_type.get()->getNew(); }
-        llvm::Value* codeGen(llvm::Value*,Expression* e) override;
+        llvm::Value *codeGen(llvm::Value *, Expression *e) override;
     };
 
-
-    class SubPostIncrement : public UnOps {
-        public:
-        bool validOperandSet(Expression * e) override {
+    class SubPostIncrement : public UnOps
+    {
+    public:
+        bool validOperandSet(Expression *e) override
+        {
             bool c = (e->getType()->isInt() || e->getType()->isDouble()) && e->isVariable();
-            if(c) op_type = e->getType()->getNew();
+            if (c)
+                op_type = e->getType()->getNew();
             return c;
         }
-        
+
         unique_ptr<::Type> getOperatorEvalTy() override { return op_type.get()->getNew(); }
-        llvm::Value* codeGen(llvm::Value*,Expression* e) override;
+        llvm::Value *codeGen(llvm::Value *, Expression *e) override;
     };
 
-    class AddPreIncrement : public UnOps {
-        public:
-        bool validOperandSet(Expression * e) override {
+    class AddPreIncrement : public UnOps
+    {
+    public:
+        bool validOperandSet(Expression *e) override
+        {
             bool c = (e->getType()->isInt() || e->getType()->isDouble()) && e->isVariable();
-            if(c) op_type = e->getType()->getNew();
+            if (c)
+                op_type = e->getType()->getNew();
             return c;
         }
-        
+
         unique_ptr<::Type> getOperatorEvalTy() override { return op_type.get()->getNew(); }
-        llvm::Value* codeGen(llvm::Value*,Expression* e) override;
+        llvm::Value *codeGen(llvm::Value *, Expression *e) override;
     };
 
-
-    class SubPreIncrement : public UnOps {
-        public:
-        bool validOperandSet(Expression * e) override {
+    class SubPreIncrement : public UnOps
+    {
+    public:
+        bool validOperandSet(Expression *e) override
+        {
             bool c = (e->getType()->isInt() || e->getType()->isDouble()) && e->isVariable();
-            if(c) op_type = e->getType()->getNew();
+            if (c)
+                op_type = e->getType()->getNew();
             return c;
         }
-        
+
         unique_ptr<::Type> getOperatorEvalTy() override { return op_type.get()->getNew(); }
-        llvm::Value* codeGen(llvm::Value*,Expression* e) override;
+        llvm::Value *codeGen(llvm::Value *, Expression *e) override;
     };
 
-
-    class PreNot : public UnOps {
-        public:
-        bool validOperandSet(Expression * e) override {
+    class PreNot : public UnOps
+    {
+    public:
+        bool validOperandSet(Expression *e) override
+        {
             bool c = e->getType()->isBool();
-            if(c) op_type = e->getType()->getNew();
+            if (c)
+                op_type = e->getType()->getNew();
             return c;
         }
-        
+
         unique_ptr<::Type> getOperatorEvalTy() override { return make_unique<Bool>(); }
-        llvm::Value* codeGen(llvm::Value* dest,Expression* e) override { 
-            if(e->isVariable()){
+        llvm::Value *codeGen(llvm::Value *dest, Expression *e) override
+        {
+            if (e->isVariable())
+            {
                 return op_type->createNot(e->codeGen());
             }
-            return op_type->createNot(dest); 
+            return op_type->createNot(dest);
         }
     };
 
-    class Neg : public UnOps {
-        public:
-        bool validOperandSet(Expression * e) override {
+    class Neg : public UnOps
+    {
+    public:
+        bool validOperandSet(Expression *e) override
+        {
             bool c = e->getType()->isInt() || e->getType()->isDouble();
-            if(c) op_type = e->getType()->getNew();
+            if (c)
+                op_type = e->getType()->getNew();
             return c;
         }
         unique_ptr<::Type> getOperatorEvalTy() override { return op_type.get()->getNew(); }
-        llvm::Value* codeGen(llvm::Value*,Expression* e) override;
+        llvm::Value *codeGen(llvm::Value *, Expression *e) override;
     };
 
-
-
-    class UnaryExpression : public Expression {
+    class UnaryExpression : public Expression
+    {
         unique_ptr<UnOps> op;
         unique_ptr<Expression> VAL;
 
-        public:
-        UnaryExpression(unique_ptr<UnOps> op,unique_ptr<Expression> VAL,unique_ptr<::Type> ExpressionType) : op(move(op)) , VAL(move(VAL)) , Expression(move(ExpressionType)) {}
+    public:
+        UnaryExpression(unique_ptr<UnOps> op, unique_ptr<Expression> VAL, unique_ptr<::Type> ExpressionType) : op(move(op)), VAL(move(VAL)), Expression(move(ExpressionType)) {}
         llvm::Value *codeGen() override;
         void VarDecCodeGen(GlobalVariable *, ::Type *) override;
     };
@@ -618,16 +687,20 @@ namespace AST
     class Statement
     {
         bool oneAhead;
+        bool globally;
     public:
         Statement()
         {
             oneAhead = false;
+            globally = false;
         }
         virtual ~Statement() {}
         virtual void codegen() = 0;
         virtual bool isReturnStatement() { return false; }
-        virtual void peekedOneAhead(bool t){ oneAhead = t; }
+        virtual void peekedOneAhead(bool t) { oneAhead = t; }
         virtual bool didPeekOneAhead() { return oneAhead; }
+        virtual void setGlobally() { globally = true; }
+        virtual bool getGlobally() { return globally; }
     };
 
     class Return : public Statement
@@ -650,8 +723,10 @@ namespace AST
     {
         vector<unique_ptr<Statement>> Statements;
         bool hasRet;
+
     public:
-        CompoundStatement(vector<unique_ptr<Statement>> Statements) : Statements(move(Statements)) {
+        CompoundStatement(vector<unique_ptr<Statement>> Statements) : Statements(move(Statements))
+        {
             hasRet = false;
         }
         bool isLastElementReturnStatement()
@@ -660,8 +735,12 @@ namespace AST
                 return true;
             return false;
         }
-        bool getHasRet(){ return hasRet; }
-        void setHasRetTrue(){ hasRet = true; }
+        ::Type* getReturnExpressionType()
+        {
+            return static_cast<Return*>(Statements.back().get())->getExpType();
+        }
+        bool getHasRet() { return hasRet; }
+        void setHasRetTrue() { hasRet = true; }
         void codegen() override;
     };
 
@@ -738,13 +817,16 @@ namespace AST
     {
         string Name;
         vector<unique_ptr<Expression>> args;
+        bool dalloc;
 
     public:
         FunctionCall(const string &Name, vector<unique_ptr<Expression>> args, unique_ptr<::Type> type) : Expression(move(type)), Name(Name), args(move(args))
         {
+            dalloc = false;
         }
         void codegen() override;
-
+        void setDalloc(bool v) { dalloc = v; }
+        bool getDalloc() { return dalloc; }
         llvm::Value *codeGen() override;
         void VarDecCodeGen(GlobalVariable *, ::Type *) override;
     };

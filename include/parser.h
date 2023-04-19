@@ -15,8 +15,10 @@ class Parser
     map<string, unique_ptr<::Type>> GlobalVarTable;
     map<string, unique_ptr<::Type>> LocalVarTable;
     map<string, pair<vector<unique_ptr<::Type>>, unique_ptr<::Type>>> FunctionTable;
+    bool parsingRetTy;
     map<string, int> OperatorPrecedence;
     bool parsingFuncDef;
+    string funcName;
     ::Type *currentFuncType;
 
 public:
@@ -37,9 +39,12 @@ public:
     }
     void parse();
     unique_ptr<::Type> getType();
+    unique_ptr<::Type> ParseObjectType();
+    unique_ptr<::Type> ParseArrayType(unique_ptr<::Type> );
     int getOperatorPrecedence();
     unique_ptr<BinOps> returnBinOpsType();
     unique_ptr<Expression> ParseArrayElemExpression(const string &);
+    unique_ptr<Expression> ParseObjectMemberExpression(const string &);
     std::unique_ptr<AST::Expression> ParseExpression();
     std::unique_ptr<AST::Expression> ParseParen();
     std::unique_ptr<AST::Statement> ParseStatement();
@@ -58,6 +63,7 @@ public:
     std::unique_ptr<AST::Expression> ParseBinOP(int, unique_ptr<Expression>);
     std::unique_ptr<AST::Statement> ParseVariableDeclarationStatement();
     std::unique_ptr<AST::Statement> ParseArrayVariableDeclarationStatement(const string &, unique_ptr<::Type>);
+    std::unique_ptr<AST::Statement> ParseObjectVariableDeclarationStatement(const string&, unique_ptr<::Type>);
     std::unique_ptr<AST::Statement> ParseLocalVariableDeclarationStatement();
     unique_ptr<AST::Statement> ParseVariableAssignmentStatement(const string &);
     unique_ptr<AST::VariableAssignment> VariableAssignmentStatementHelper(const string &);
@@ -69,7 +75,7 @@ public:
     std::unique_ptr<FunctionDefinition> ParseFunctionDefinition();
     void LogError(const char *errmsg) { cerr << "Error : " << errmsg << endl; }
     bool isExpression() { return (lexer.isTokenIntNum() || lexer.isTokenDoubleNum() ||
-                                  lexer.isTokenIdentifier() || lexer.isTokenLeftParen()) ||
+                                  lexer.isTokenIdentifier() || lexer.isTokenLeftParen() ||
                                  lexer.isTokenTrueValue() ||
-                                 lexer.isTokenFalseValue(); }
+                                 lexer.isTokenFalseValue()); }
 };

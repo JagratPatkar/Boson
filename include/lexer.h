@@ -46,7 +46,10 @@ class Lexer
         token_right_square_brack = -37,
         token_increment = -38,
         token_decrement = -39,
-        token_not = -40
+        token_not = -40,
+        token_obj = -41,
+        token_dot = -42,
+        token_colon = -43
     };
     map<string, token> KeywordRegistry;
     map<char, token> SymbolRegistry;
@@ -73,6 +76,7 @@ public:
         KeywordRegistry["bool"] = token_boolean;
         KeywordRegistry["true"] = token_true;
         KeywordRegistry["false"] = token_false;
+        KeywordRegistry["obj"] = token_obj;
         SymbolRegistry[';'] = token_semi_colon;
         SymbolRegistry['*'] = token_mul_sym;
         SymbolRegistry['/'] = token_div_sym;
@@ -85,6 +89,9 @@ public:
         SymbolRegistry['|'] = token_vertical_line;
         SymbolRegistry['['] = token_left_square_brack;
         SymbolRegistry[']'] = token_right_square_brack;
+        SymbolRegistry['.'] = token_dot;
+        SymbolRegistry[':'] = token_colon;
+
     }
     int getToken();
     int extractIdentifier();
@@ -110,7 +117,7 @@ public:
     bool isTokenDivSym() { return currentToken == token_div_sym; }
     bool isTokenLeftParen() { return currentToken == token_left_paren; }
     bool isTokenRightParen() { return currentToken == token_right_paren; }
-    bool isAnyType() { return (isTokenInt() || isTokenDouble() || isTokenVoid() || isTokenBoolean()); }
+    bool isAnyType() { return (isTokenInt() || isTokenDouble() || isTokenVoid() || isTokenBoolean() || isTokenObj()); }
     bool isTokenLeftCurlyBrace() { return currentToken == token_left_curly_brac; }
     bool isTokenRightCurlyBrace() { return currentToken == token_right_curly_brac; }
     bool isTokenFunctionKeyword() { return currentToken == token_fn; }
@@ -136,4 +143,8 @@ public:
     bool isTokenIncrement() { return currentToken == token_increment; }
     bool isTokenDecrement() { return currentToken == token_decrement; }
     bool isTokenNot() { return currentToken == token_not; }
+    bool isTokenObj() { return currentToken == token_obj; }
+    bool isTokenDot() { return currentToken == token_dot; }
+    bool isTokenEOF() { return currentToken == token_eof; }
+    bool isTokenColon() { return currentToken == token_colon; }
 };

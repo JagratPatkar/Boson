@@ -31,6 +31,7 @@ int Lexer::getToken()
     if (it != SymbolRegistry.end())
         return it->second;
     int tmp; 
+    
     if(curChar == '-'){
         if((tmp = peekOneAhead('-',token_decrement)))
             return tmp;
