@@ -47,6 +47,7 @@ class CodeGen
         irfc = llvm::Function::Create(rcf, llvm::Function::ExternalLinkage, "incrementRefCount", module.get());
         initVar = false;
         addrFunc = false;
+        decBB = nullptr;
     }
     FunctionType *funcType;
     Function *bin_func;
@@ -59,6 +60,7 @@ class CodeGen
     BasicBlock *bb;
     BasicBlock *ofretBB;
     BasicBlock *fb;
+    BasicBlock *decBB;
     int gcCounter;
     bool initVar;
     bool addrFunc;
@@ -171,6 +173,15 @@ public:
     {
         builder->CreateBr(ofretBB);
     }
+
+    void setDECBB(BasicBlock* decBB){
+        this->decBB = decBB;
+    }
+    void createDECBB()
+    {
+        builder->CreateBr(decBB);
+    }
+
     void generatingFunctionOn() { generatingFunction = true; }
     void generatingFunctionOff() { generatingFunction = false; }
     bool getGeneratingFunction() { return generatingFunction; }

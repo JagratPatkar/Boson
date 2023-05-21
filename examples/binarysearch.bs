@@ -1,44 +1,43 @@
 
 consume fn printint(int n) void;
 
+int[10] a = [55,98,67,23,1088,65,44,34,1,7];
 
-int a[10] = [55,98,67,23,1088,65,44,34,1,7];
-
-fn sortA() void {
+fn sort(int[10] b) void {
     int max;
     int index;
     int temp;
-    for(int i = 9; i >= 0; i = i - 1){
-        max = a[0];
+    for(int i = 9; i > 0; i = i - 1){
+        max = b[0];
         index = 0;
         for(int j = 1; j <= i; j = j + 1){
-            if(max < a[j]){
-                max = a[j];
+            if(max < b[j]){
+                max = b[j];
                 index = j;
             }
         }
-        temp = a[i];
-        a[i] = max;
-        a[index] = temp;
+        temp = b[i];
+        b[i] = max;
+        b[index] = temp;
     }
     return;
 }
 
-fn binarySearchA(int l,int t,int r) int {
+fn binarySearch(int l,int t,int r, int[10] ta) int {
     int m;
     if(l <= r){
         m = (l + r) / 2;
-        if(a[m] < t){  return binarySearchA(m+1,t,r);  }
+        if(ta[m] < t){  return binarySearch(m+1,t,r,ta);  }
         else {
-            if(a[m] > t){  return binarySearchA(l,t,m-1);  }
+            if(ta[m] > t){  return binarySearch(l,t,m-1,ta);  }
             else{ return m; }
         }
     }
-    return 101;
+    return -1;
 }
 
 fn start() void {
-    sortA();
-    printint(binarySearchA(0,7,9));
+    sort(a);
+    printint(binarySearch(0,34,9,a));
     return;
 }

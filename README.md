@@ -16,19 +16,18 @@ __Boson__ is envisioned to be a multi-paradigm language, with a **Static and Str
 
 ```rust
 ...
-int a[10] = [55,98,67,23,1088,65,44,34,1,7];
 
-fn binarySearchA(int l,int t,int r) int {
+fn binarySearch(int l,int t,int r, int[10] ta) int {
     int m;
     if(l <= r){
         m = (l + r) / 2;
-        if(a[m] < t){  return binarySearchA(m+1,t,r);  }
+        if(ta[m] < t){  return binarySearch(m+1,t,r,ta);  }
         else {
-            if(a[m] > t){  return binarySearchA(l,t,m-1);  }
+            if(ta[m] > t){  return binarySearch(l,t,m-1,ta);  }
             else{ return m; }
         }
     }
-    return 101;
+    return -1;
 }
 
 ...

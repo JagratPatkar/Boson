@@ -255,8 +255,13 @@ unique_ptr<Expression> Parser::ParseArrayElemExpression(const string &Name)
         LogError("Undefined Array Variable");
         return nullptr;
     }
-
-    ::Type *t = LocalVarTable[Name].get();
+     ::Type *t = nullptr;
+    if(LocalVarTable[Name].get()){
+        t = LocalVarTable[Name].get();
+    }
+    else{
+        t = GlobalVarTable[Name].get();
+    }
     if (t->isArray())
     {
         v = make_unique<Variable>(Name, static_cast<Array *>(t)->getOfType()->getNew());

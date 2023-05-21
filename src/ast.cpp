@@ -449,6 +449,7 @@ void Return::codegen()
             return;
         exp->getType()->createWrite(0, v, cg->allocaret);
     }
+    // cg->createDECBB();
 }
 
 void FunctionCall::codegen()
@@ -490,7 +491,7 @@ void IfElseStatement::codegen()
     cg->builder->SetInsertPoint(ThenBB);
     compoundStatements->codegen();
     if (compoundStatements->getHasRet())
-        cg->builder->CreateBr(cg->retBB);
+        cg->createDECBB();
     else
         cg->builder->CreateBr(AfterIfElse);
     if (elseCompoundStatements)
@@ -498,7 +499,7 @@ void IfElseStatement::codegen()
         cg->builder->SetInsertPoint(ElseBB);
         elseCompoundStatements->codegen();
         if (elseCompoundStatements->getHasRet())
-            cg->builder->CreateBr(cg->retBB);
+            cg->createDECBB();
         else
             cg->builder->CreateBr(AfterIfElse);
     }
@@ -564,6 +565,7 @@ void FunctionDefinition::codeGen()
     cg->allocaret = functionSignature->getRetType()->allocateLLVMVariable("ret");
     cg->retBB = BasicBlock::Create(*(cg->context), "retblock", function);
     llvm::BasicBlock *decBB = BasicBlock::Create(*(cg->context), "decblock", function);
+    cg->setDECBB(decBB);
     cg->builder->SetInsertPoint(cg->retBB);
     // Call the freeMemory function if the function is start
     if (functionSignature->getName() == "start")
@@ -627,6 +629,7 @@ void FunctionDefinition::codeGen()
     }
     cg->builder->CreateBr(cg->retBB);
     cg->generatingFunctionOff();
+    cg->setDECBB(nullptr);
     cg->LocalVarTable.clearTable();
     cg->allocaret = nullptr;
     cg->retBB = nullptr;
