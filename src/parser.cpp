@@ -619,6 +619,8 @@ unique_ptr<Statement> Parser::ParseStatement()
         return ParseIfElseStatement();
     if (lexer.isTokenFor())
         return ParseForStatement();
+    if (lexer.isTokenForeach())
+        return ParseForEach();
     LogError("Unknown statement!");
     return nullptr;
 }
@@ -1091,6 +1093,13 @@ unique_ptr<VariableAssignment> Parser::VariableAssignmentStatementHelper(const s
         return nullptr;
     }
 
+   
+    if (std::find(foreachNameList.begin(), foreachNameList.end(), name) != foreachNameList.end())
+    {
+        LogError("Cannot Assign to foreach variables");
+        return nullptr;
+    }
+
     unique_ptr<Variable> var;
     if (lexer.isTokenLeftSquareBrack())
     {
@@ -1170,6 +1179,85 @@ unique_ptr<VariableAssignment> Parser::VariableAssignmentStatementHelper(const s
     if (!parsingFuncDef)
         va->setGlobally();
     return va;
+}
+
+unique_ptr<Statement> Parser::ParseForEach(){
+    lexer.getNextToken();
+
+    if (!lexer.isTokenLeftParen())
+    {
+        LogError("Expected a '(' in 'foreach'");
+        return nullptr;
+    }
+
+    lexer.getNextToken();
+
+    if (!lexer.isTokenIdentifier()){
+        LogError("Expected a 'variable name' in 'foreach'");
+        return nullptr;
+    }
+
+    string varName = lexer.getIdentifier();
+
+    if (LocalVarTable[varName] || GlobalVarTable[varName])
+    {
+        LogError("Variable declared in 'foreach' already exist, change the name.");
+        return nullptr;
+    }
+
+    lexer.getNextToken();
+
+    if(!lexer.isTokenAs()){
+        LogError("Expected 'as' keyword in 'foreach'");
+        return nullptr;
+    }
+
+    lexer.getNextToken();
+
+    if (!lexer.isTokenIdentifier()){
+        LogError("Expected a name for an array to loop on in 'foreach'");
+        return nullptr;
+    }
+
+    string sourceName = lexer.getIdentifier();
+     ::Type *t1;
+    if (LocalVarTable[sourceName])
+        t1 = LocalVarTable[sourceName].get();
+    else if (GlobalVarTable[sourceName])
+        t1 = GlobalVarTable[sourceName].get();
+    else
+    {
+        LogError("Undefined Variable");
+        return nullptr;
+    }
+
+    if(!t1->isArray()){
+        LogError("The source variable in the 'foreach' should be an array");
+        return nullptr;
+    }
+
+    Array* ty = static_cast<Array*>(t1);
+
+    if (!parsingFuncDef)
+        GlobalVarTable[varName] = ty->getOfType()->getNew();
+    else
+        LocalVarTable[varName] = ty->getOfType()->getNew();
+    
+    foreachNameList.push_back(varName);
+    lexer.getNextToken();
+    
+    if (!lexer.isTokenRightParen())
+    {
+        LogError("Expected a ')' in 'for'");
+        return nullptr;
+    }
+    lexer.getNextToken();
+    auto cmpStat = ParseCompoundStatement();
+    if (!cmpStat)
+        return nullptr;
+   
+    
+    return make_unique<ForEachStatement>(varName, sourceName, ty->getOfType()->getNew(), t1->getNew(),move(cmpStat));
 }
 
 unique_ptr<Statement> Parser::ParseForStatement()
