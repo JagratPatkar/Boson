@@ -1093,13 +1093,6 @@ unique_ptr<VariableAssignment> Parser::VariableAssignmentStatementHelper(const s
         return nullptr;
     }
 
-   
-    if (std::find(foreachNameList.begin(), foreachNameList.end(), name) != foreachNameList.end())
-    {
-        LogError("Cannot Assign to foreach variables");
-        return nullptr;
-    }
-
     unique_ptr<Variable> var;
     if (lexer.isTokenLeftSquareBrack())
     {
