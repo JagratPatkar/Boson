@@ -858,4 +858,21 @@ namespace AST
         }
         void codegen() override;
     };
+
+    class ForEachStatement : public Statement
+    {
+        string sinkName;
+        string sourceName;
+        unique_ptr<::Type> varType;
+        unique_ptr<::Type> counterType;
+        unique_ptr<::Type> sourceType;
+        unique_ptr<CompoundStatement> compoundStatement;
+
+    public:
+        ForEachStatement(string sinkName, string sourceName, unique_ptr<::Type> varType ,unique_ptr<::Type> sourceType, unique_ptr<CompoundStatement> compoundStatement) : sinkName(sinkName), sourceName(sourceName), varType(move(varType)), sourceType(move(sourceType)), compoundStatement(move(compoundStatement))
+        {
+            counterType.reset(new Int());
+        }
+        void codegen() override;
+    };
 } // namespace AST

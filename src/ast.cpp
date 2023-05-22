@@ -527,6 +527,62 @@ void ForStatement::codegen()
     cg->builder->SetInsertPoint(AfterLoopBB);
 }
 
+
+void ForEachStatement::codegen()
+{
+    BasicBlock *bb = cg->builder->GetInsertBlock();
+    Function *func = bb->getParent();
+    BasicBlock *LoopBB = BasicBlock::Create(*(cg->context), "loop", func);
+    BasicBlock *AfterLoopBB = BasicBlock::Create(*(cg->context), "afterloop", func);
+
+   
+    AllocaInst *alloca;
+    alloca = varType->allocateLLVMVariable(sinkName);
+    cg->LocalVarTable.addElement(sinkName, alloca);    
+
+    llvm::Value* val;
+    AllocaInst *counterAlloca;
+    counterAlloca = counterType->allocateLLVMVariable(sinkName + "counter");
+    val = counterType->getDefaultConstant();
+    counterType->createWrite(0, val, counterAlloca);
+
+    Array* arrType = static_cast<Array*>(sourceType.get());
+    llvm::Value *arraySize = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*(cg->context)), arrType->getSize(), true);
+    llvm::Value* counterValue = varType->createLoad(0, counterAlloca, sinkName + "counterLoad");
+    llvm::Value *condition =  cg->builder->CreateICmpSLT(counterValue, arraySize, "cmp");
+  
+    cg->builder->CreateCondBr(condition, LoopBB, AfterLoopBB);
+    cg->builder->SetInsertPoint(LoopBB);
+
+    llvm::Value *arrayElemVal;
+    if (cg->getGeneratingFunction() && cg->LocalVarTable.doesElementExist(sourceName))
+    {
+        llvm::Value *v = cg->LocalVarTable.getElement(sourceName);
+        llvm::Value *cv = varType->createLoad(0, counterAlloca, sinkName + "counterLoad");
+        arrayElemVal = arrType->createLoadElement(cv, v, "allocaValue");
+    }
+    else{
+        GlobalVariable *gVar = cg->GlobalVarTable.getElement(sourceName);   
+        llvm::Value *cv = varType->createLoad(0, counterAlloca, sinkName + "counterLoad"); 
+        arrayElemVal = arrType->createLoadElement(cv, gVar, "allocaValue");
+    }
+
+    varType->createWrite(0,arrayElemVal, alloca);
+
+    compoundStatement->codegen();
+    
+    llvm::Value *cv = varType->createLoad(0, counterAlloca, sinkName + "counterLoad");
+    counterType->createWrite(0,counterType->createAdd(cv, 1), counterAlloca);
+
+    arraySize = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*(cg->context)), arrType->getSize(), true);
+    counterValue = varType->createLoad(0, counterAlloca, sinkName + "counterLoad");
+    condition =  cg->builder->CreateICmpSLT(counterValue, arraySize, "cmp");
+  
+    cg->builder->CreateCondBr(condition, LoopBB, AfterLoopBB);
+    cg->builder->SetInsertPoint(AfterLoopBB);
+}
+
+
 void BinaryExpression::VarDecCodeGen(GlobalVariable *gVar, ::Type *vt)
 {
     gVar->setInitializer(vt->getDefaultConstant());

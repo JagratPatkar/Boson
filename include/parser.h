@@ -15,6 +15,7 @@ class Parser
     map<string, unique_ptr<::Type>> GlobalVarTable;
     map<string, unique_ptr<::Type>> LocalVarTable;
     map<string, pair<vector<unique_ptr<::Type>>, unique_ptr<::Type>>> FunctionTable;
+    vector<std::string> foreachNameList;
     bool parsingRetTy;
     map<string, int> OperatorPrecedence;
     bool parsingFuncDef;
@@ -52,6 +53,7 @@ public:
     std::unique_ptr<CompoundStatement> ParseCompoundStatement();
     std::unique_ptr<Statement> ParseIfElseStatement();
     std::unique_ptr<Statement> ParseForStatement();
+    std::unique_ptr<Statement> ParseForEach();
     std::unique_ptr<AST::Expression> ParsePrimary();
     std::unique_ptr<FunctionSignature> ParseConsume();
     std::unique_ptr<AST::Expression> ParseCallExpression(const string &);

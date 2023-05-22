@@ -49,7 +49,9 @@ class Lexer
         token_not = -40,
         token_obj = -41,
         token_dot = -42,
-        token_colon = -43
+        token_colon = -43,
+        token_foreach = -44,
+        token_as = -45
     };
     map<string, token> KeywordRegistry;
     map<char, token> SymbolRegistry;
@@ -77,6 +79,8 @@ public:
         KeywordRegistry["true"] = token_true;
         KeywordRegistry["false"] = token_false;
         KeywordRegistry["obj"] = token_obj;
+        KeywordRegistry["foreach"] = token_foreach;
+        KeywordRegistry["as"] = token_as;
         SymbolRegistry[';'] = token_semi_colon;
         SymbolRegistry['*'] = token_mul_sym;
         SymbolRegistry['/'] = token_div_sym;
@@ -144,6 +148,8 @@ public:
     bool isTokenDecrement() { return currentToken == token_decrement; }
     bool isTokenNot() { return currentToken == token_not; }
     bool isTokenObj() { return currentToken == token_obj; }
+    bool isTokenForeach() { return currentToken == token_foreach; }
+    bool isTokenAs() { return currentToken == token_as; }
     bool isTokenDot() { return currentToken == token_dot; }
     bool isTokenEOF() { return currentToken == token_eof; }
     bool isTokenColon() { return currentToken == token_colon; }

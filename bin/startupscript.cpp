@@ -72,6 +72,11 @@ extern "C" void printbool(bool val)
     printf("%d\n", val);
 }
 
+extern "C" void printdouble(double val)
+{
+    printf("%f\n", val);
+}
+
 extern "C" void nextLine()
 {
     putchar('\n');
